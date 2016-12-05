@@ -1,4 +1,0 @@
-@set PLUGIN  fino
-@set AUTHOR  
-@set EMAIL   
-@set YEAR    

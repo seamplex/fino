@@ -1,4 +1,0 @@
-@set UPDATED 
-@set UPDATED-MONTH 
-@set EDITION 
-@set VERSION 

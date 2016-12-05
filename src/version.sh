@@ -9,8 +9,7 @@ if test -e ../.hg -a ! -z "`which hg`"; then
 #define PLUGIN_VCS_REVID     \"{node}\"\n\
 #define PLUGIN_VCS_SHORTID   \"{node|short}\"\n\
 #define PLUGIN_VCS_REVNO     {rev}\n\
-#define PLUGIN_VCS_DATE      \"{date|isodate}\"\n\
-#define PLUGIN_VCS_CLEAN     `hg status | wc -l`\n" > version-vcs.h
+#define PLUGIN_VCS_DATE      \"{date|isodate}\"\n" > version-vcs.h
 fi
 
 cat version-vcs.h >> version.h
