@@ -1,0 +1,264 @@
+/*------------ -------------- -------- --- ----- ---   --       -            -
+ *  fino's bulk routines
+ *
+ *  Copyright (C) 2015-2016 jeremy theler
+ *
+ *  This file is part of fino.
+ *
+ *  fino is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  fino is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
+ *------------------- ------------  ----    --------  --     -       -         -
+ */
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_blas.h>
+
+#include "fino.h"
+
+#define NAME_SIZE 32
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_allocate_elemental_objects"
+int fino_allocate_elemental_objects(element_t *element) {
+
+  fino.n_local_nodes = element->type->nodes;
+  fino.elemental_size = element->type->nodes * fino.degrees;
+  
+  // TODO: esta las tendria que alocar mesh
+  gsl_matrix_free(fino.mesh->fem.H);
+  fino.mesh->fem.H = gsl_matrix_calloc(fino.mesh->degrees_of_freedom, fino.elemental_size);
+  
+  gsl_matrix_free(fino.mesh->fem.B);
+  fino.mesh->fem.B = gsl_matrix_calloc(fino.mesh->degrees_of_freedom * fino.mesh->bulk_dimensions, fino.elemental_size);
+
+  gsl_matrix_free(fino.Ai);
+  fino.Ai = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
+  gsl_matrix_free(fino.Bi);
+  fino.Bi = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
+  gsl_vector_free(fino.bi);
+  fino.bi = gsl_vector_calloc(fino.elemental_size);
+  
+  return WASORA_RUNTIME_OK;
+
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_build_bulk"
+int fino_build_bulk(void) {
+
+  int i;
+  
+  for (i = 0; i < fino.mesh->n_elements; i++) {
+    if (fino.mesh->element[i].type->dim == fino.dimensions) {
+      // solo los elementos que tengan la dimension del problema
+      // son los que usamos para las matrices elementales
+      wasora_call(fino_build_element(&fino.mesh->element[i]));
+      
+    } else if (fino.mesh->element[i].type->dim < fino.dimensions) {
+      if (fino.math_type != math_eigen) {
+        // en problemas de autovalores todas las condiciones de contorno son homogeneas
+        if (fino.mesh->element[i].physical_entity != NULL) {
+          
+          if (fino.mesh->element[i].physical_entity->bc_strings != NULL) {
+            
+            bc_string_based_t *bc;
+            // pistola
+        
+            LL_FOREACH(fino.mesh->element[i].physical_entity->bc_strings, bc) {
+              if (bc->bc_type_int == BC_NEUMANN) {            
+                wasora_call(fino_add_single_surface_term_to_rhs(&fino.mesh->element[i], bc));
+              }
+            }
+            
+          // si bc_type_int es diferente de cero todas las cc son iguales
+          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_NEUMANN) {
+            // a las de neumann les pasamos las expresiones como las leimos del input
+            // dphi_g/dn = b_g
+            
+            // TODO: si es cero ni siquiera meterse aca
+            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], NULL, fino.mesh->element[i].physical_entity->bc_args));
+
+          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_ROBIN) {
+            // a las de robin les pasamos una y una
+            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], fino.mesh->element[i].physical_entity->bc_args, fino.mesh->element[i].physical_entity->bc_args->next));
+
+          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_POINT_FORCE) {
+            if (fino.mesh->element[i].type->dim != 0) {
+              wasora_push_error_message("boundary condition 'point_force' in entity '%s' is applied to an object of dimension %d, not 0 as expected", fino.mesh->element[i].physical_entity->name, fino.mesh->element[i].type->dim);
+              return WASORA_RUNTIME_ERROR;
+            }
+            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], NULL, NULL));
+          }
+          
+          // TODO: bc_string_based
+          
+        }
+      }
+    }
+  }
+
+  wasora_call(fino_assembly());
+
+  return WASORA_RUNTIME_OK;
+
+}
+
+int fino_build_element(element_t *element) {
+  int v;           // indice del punto de gauss
+  int row, col;
+  int j, m;  
+  double xi;
+  double w_gauss;
+
+  if (element->physical_entity == NULL) {
+    // esto (deberia) pasar solo en malla estructuradas
+    wasora_push_error_message("volumetric element %d does not have an associated physical entity", element->id);
+    return WASORA_RUNTIME_ERROR;
+    
+  } else {
+
+    if (fino.n_local_nodes != element->type->nodes) {
+      wasora_call(fino_allocate_elemental_objects(element));
+    }  
+    
+    // inicializamos en cero los objetos elementales
+    gsl_matrix_set_zero(fino.Ai);
+    gsl_matrix_set_zero(fino.Bi);
+    gsl_vector_set_zero(fino.bi);
+
+    // TODO: hacer el loop de gauss adentro de cada funcion asi podemos
+    // hacer evaluaciones nodo por nodo o lo que sea
+    // para cada punto de gauss
+    for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+
+      // armamos las matrices
+      if (fino.problem == problem_shake || fino.problem == problem_break) {
+        wasora_call(fino_build_breakshake(element, v));
+      } else if (fino.problem == problem_bake) {
+        wasora_call(fino_build_bake(element, v));
+      } else {
+        // problema generico, leemos las matrices del input
+        // para este punto de gauss, calculamos las matrices H y B
+        w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);    
+
+        // hacemos a apuntar las h y sus derivadas de fino al fem de mesh
+        // (si no lo hicimos ya)
+      /*      
+        if (fino.h->value->data != fino.mesh->fem.h->data) {
+          wasora_realloc_vector_ptr(fino.h, fino.mesh->fem.h->data, 0);
+          wasora_realloc_matrix_ptr(fino.dhdx, fino.mesh->fem.dhdx->data, 0);
+        }
+       */
+
+        // esto es asi porque se mezclan elementos!
+        // TODO: mejorar
+        for (j = 0; j < fino.n_local_nodes; j++) {
+          gsl_vector_set(wasora_value_ptr(fino.h), j, gsl_vector_get(fino.mesh->fem.h, j));
+          for (m = 0; m < fino.dimensions; m++) {
+            gsl_matrix_set(wasora_value_ptr(fino.dhdx), j, m, gsl_matrix_get(fino.mesh->fem.dhdx, j, m));
+          }
+        }
+        
+        for (row = 0; row < fino.elemental_size; row++) {
+          for (col = 0; col < fino.elemental_size; col++) {
+
+            // la matriz A siempre
+            xi = w_gauss * wasora_evaluate_function(fino.Ai_function[row][col], gsl_vector_ptr(fino.mesh->fem.x, 0));
+            gsl_matrix_add_to_element(fino.Ai, row, col, xi);
+
+            // la matriz B solo en eigen
+            if (fino.math_type == math_eigen) {
+              xi = w_gauss * wasora_evaluate_function(fino.Bi_function[row][col], gsl_vector_ptr(fino.mesh->fem.x, 0));
+              gsl_matrix_add_to_element(fino.Bi, row, col, xi);
+            }
+          }
+
+          // el vector b
+          if (fino.math_type == math_linear) {
+            xi = w_gauss * wasora_evaluate_function(fino.bi_function[row], gsl_vector_ptr(fino.mesh->fem.x, 0));
+            gsl_vector_add_to_element(fino.bi, row, xi);
+          }
+        }
+        break;
+      }
+    }
+
+    MatSetValues(fino.A, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ai, 0, 0), ADD_VALUES);
+    if (fino.math_type == math_linear) {
+      VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+    } else if (fino.math_type == math_eigen)  {
+      MatSetValues(fino.B, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Bi, 0, 0), ADD_VALUES);
+    }
+
+/*    
+    if (fino.dump != NULL) {
+      fprintf(fino.dump, "\nelement %d\n", element->id);
+      fprintf(fino.dump, "%s\n", fino.matrix_name);
+      fino_print_gsl_matrix(fino.Ai, fino.dump);
+      fprintf(fino.dump, "%s\n", fino.vector_name);
+      fino_print_gsl_vector(fino.bi, fino.dump);
+      fprintf(fino.dump, "\n");
+    }
+ */ 
+    
+    
+  }
+
+  return WASORA_RUNTIME_OK;
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_print_gsl_vector"
+int fino_print_gsl_vector(gsl_vector *b, FILE *file) {
+
+  double xi;
+  int i;
+
+  for (i = 0; i < b->size; i++) {
+    xi = gsl_vector_get(b, i);
+    if (xi != 0) {
+      fprintf(file, "% .1e ", xi);
+    } else {
+      fprintf(file, "    0    ");
+    }
+    fprintf(file, "\n");
+  }
+  
+  return WASORA_RUNTIME_OK;
+
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_print_gsl_matrix"
+int fino_print_gsl_matrix(gsl_matrix *A, FILE *file) {
+
+  double xi;
+  int i, j;
+
+  for (i = 0; i < A->size1; i++) {
+    for (j = 0; j < A->size2; j++) {
+      xi = gsl_matrix_get(A, i, j);
+      if (xi != 0) {
+        fprintf(file, "% .1e ", xi);
+      } else {
+        fprintf(file, "    0    ");
+      }
+    }
+    fprintf(file, "\n");
+  }
+  
+  return WASORA_RUNTIME_OK;
+
+}
