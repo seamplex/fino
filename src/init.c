@@ -276,11 +276,11 @@ int plugin_finalize(void) {
   wasora_call(fino_problem_free());
 
   if (fino.petscinit_called) {
-    if (fino.math_type == math_linear) {
-      petsc_call(PetscFinalize());
-    } else if (fino.math_type == math_eigen) {
-      petsc_call(SlepcFinalize());
-    }
+#ifdef HAVE_SLEPC  
+    petsc_call(SlepcFinalize());
+#else
+    petsc_call(PetscFinalize());
+#endif
   }
   
   return WASORA_RUNTIME_OK;
@@ -485,9 +485,11 @@ int fino_problem_free(void) {
   if (fino.ksp != PETSC_NULL) {
     petsc_call(KSPDestroy(&fino.ksp));
   }
+#ifdef HAVE_SLEPC  
   if (fino.eps != PETSC_NULL) {
     petsc_call(EPSDestroy(&fino.eps));
   }
+#endif
   
   return WASORA_RUNTIME_OK;
 

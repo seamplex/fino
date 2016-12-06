@@ -140,17 +140,11 @@ if test -z "$PETSC_DIR"; then
     mkdir -p libs
     cd libs
     if test ! -f petsc-lite-${petsc_version}.tar.gz; then
-
-     if command_exists curl; then
-      curl='curl'
-     elif command_exists wget; then
-      curl='wget'
-     else
-      echo "error: cannot find neither curl nor wget"
+     if ! command_exists wget; then
+      echo "error: wget not installed"
       exit 1
      fi
-
-     ${curl} http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-${petsc_version}.tar.gz
+     wget -c http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-${petsc_version}.tar.gz
     fi
     tar xvzf petsc-lite-${petsc_version}.tar.gz 
     cd petsc-${petsc_version}/
@@ -160,11 +154,10 @@ if test -z "$PETSC_DIR"; then
     make
     make test
     cat >> $HOME/.bashrc << EOF
-# added by ${name} get.sh
-export PETSC_DIR=${PETSC_DIR}
-export PETSC_ARCH=${PETSC_ARCH}
+export PETSC_DIR=${PETSC_DIR}      # added by ${name} get.sh
+export PETSC_ARCH=${PETSC_ARCH}    # added by ${name} get.sh
 EOF
-    cd ..
+    cd ../..
     ;;
   *)
    echo "please manually install or fix PETSc and re-run this script"
@@ -172,11 +165,14 @@ EOF
  esac
 
 elif test ! -d ${PETSC_DIR}; then
-
  echo "PETSC_DIR is ${PETSC_DIR} but it is not a directory"
  echo "please manually install or fix PETSc re-run this script"
  exit
 
+elif test ! -z "${PETSC_ARCH}"; then
+ echo "PETSC_ARCH is empty"
+ echo "please manually install or fix PETSc re-run this script"
+ exit
 fi
 
 # step 5. configure
@@ -202,8 +198,7 @@ echo "ok!"
 if test -z "`echo $PATH | grep $HOME/bin`"; then
   echo -n "8. adding $HOME/bin to the path in ~/.bashrc"
   cat >> $HOME/.bashrc << EOF
-# added by ${name} get.sh
-export PATH=\$PATH:\$HOME/bin
+export PATH=\$PATH:\$HOME/bin      # added by ${name} get.sh
 EOF
   export PATH=\$PATH:\$HOME/bin
   echo "ok!"

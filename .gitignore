@@ -72,5 +72,7 @@ examples/*.log
 examples/tensile-test.vtk
 examples/tensile-sigma.dat
 
+petscslepc.mak
+
 fino
 fino.so

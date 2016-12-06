@@ -100,6 +100,7 @@ int plugin_parse_line(char *line) {
           }
           free(mesh_name);
         
+#ifdef HAVE_SLEPC
 ///kw+FINO_PROBLEM+usage [ N_EIGEN <expr> ]
         } else if (strcasecmp(token, "N_EIGEN") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
@@ -108,6 +109,7 @@ int plugin_parse_line(char *line) {
             wasora_push_error_message("a positive number of eigenvalues should be given instead of '%d'", fino.nev);
             return WASORA_PARSER_ERROR;
           }
+#endif
 
 ///kw+FINO_PROBLEM+usage [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
         } else if (strcasecmp(token, "SOLUTION") == 0 || strcasecmp(token, "SOLUTIONS") == 0 ||

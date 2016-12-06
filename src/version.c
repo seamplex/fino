@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's version banner
  *
- *  Copyright (C) 2015 jeremy theler
+ *  Copyright (C) 2015--2016 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -37,7 +37,7 @@ char finolongversion[2048];
 const char finousage[] = "no commandline options needed";
 
 const char finocopyright[] = "\
- fino is copyright (c) 2015 jeremy theler\n\
+ fino is copyright (c) 2015--2016 jeremy theler\n\
  licensed under GNU GPL version 3 or later.\n\
  fino is free software: you are free to change and redistribute it.\n\
  There is NO WARRANTY, to the extent permitted by law.";

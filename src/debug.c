@@ -34,7 +34,10 @@
 #include <gsl/gsl_errno.h>
 
 #include <petsc.h>
-#include <slepcsys.h>
+#ifdef HAVE_SLEPC
+ #include <slepcsys.h>
+#endif
+  
 #include <petscdraw.h>
 
 #include "fino.h"
@@ -152,6 +155,7 @@ int fino_instruction_debug(void *arg) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-----------------------\n", (int)(wasora_var(wasora_special_var(step_static)))));
 
 
+#ifdef HAVE_SLEPC    
     // eigencurrent solution
     if (fino.eps != NULL) {
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n### SLEPc's EPSView output\n\n"));
@@ -175,6 +179,7 @@ int fino_instruction_debug(void *arg) {
       petsc_call(KSPView(fino.ksp, debug->viewer));
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n\n\n"));
     }
+#endif
 
     // system resources
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "### System resource usage\n\n"));

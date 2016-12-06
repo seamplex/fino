@@ -86,7 +86,6 @@ int fino_instruction_step(void *arg) {
       
     } else if (fino.math_type == math_eigen) {
 #ifdef HAVE_SLEPC
-      
       // resolvemos
       wasora_call(fino_solve_eigen_slepc());
       // leemos el autovalor
