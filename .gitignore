@@ -69,8 +69,14 @@ nbproject
 
 examples/*.trs
 examples/*.log
+
 examples/tensile-test.vtk
 examples/tensile-sigma.dat
+
+examples/veeder.geo
+examples/veeder.msh
+examples/veeder.vtk
+examples/veeder_*.dat
 
 petscslepc.mak
 

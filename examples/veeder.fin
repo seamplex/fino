@@ -1,0 +1,48 @@
+# solves the benchmark problem by J. Veeder
+# Thermo-elastic expansion of finite cylinders, AECL-2660, 1967
+
+r = 20   # cylinder radius
+H = 20   # cylinder height 
+lc = 2   # characteristic length of the mesh
+
+# mesh
+M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo MACRO lc lc MACRO r r MACRO H H
+SHELL "gmsh -3 -v 0 veeder.geo"
+MESH FILE_PATH veeder.msh
+
+
+FINO_PROBLEM BREAK
+# FINO_SOLVER PC_TYPE gamg KSP_TYPE bcgs
+# http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html
+# http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html
+
+E = 200e3     # young modulus (does not matter for the displacement, only for stresses)
+nu = 0.25     # poisson ratio
+alpha = 1e-5  # temperature expansion coefficient
+
+# temperature distribution
+T0 = 400-20
+T(x,y,z) := T0*(1-(x^2+y^2)/(r^2))
+
+# boundary conditions (note that the cylinder can still rotate around z)
+PHYSICAL_ENTITY NAME inf      BC w=0
+PHYSICAL_ENTITY NAME origin   BC u=0 v=0
+
+# solve!
+FINO_STEP
+
+# write vtk output
+MESH_POST FILE_PATH veeder.vtk      T sigma sigma1 sigma2 sigma3  VECTOR u v w
+
+# displacement profiles 
+v_profile(z') := v(0, r, z'*H/2)/(alpha*T0*r)
+w_profile(y') := w(0, r*y', H/2)/(alpha*T0*r)
+
+PRINT_FUNCTION FILE_PATH veeder_v.dat FORMAT %.3f v_profile MIN 0 MAX 1 NSTEPS 50 HEADER
+PRINT_FUNCTION FILE_PATH veeder_w.dat FORMAT %.3f w_profile MIN 0 MAX 1 NSTEPS 50 HEADER
+
+# screen output
+PRINT "\# max_displacement" displ_max TEXT "at" displ_max_x displ_max_y displ_max_z
+PRINT "\# see veeder_v.dat and veeder_w.dat for the non-dimensional displacement profiles along the axes"
+PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
+PRINT "\# memory [Gb]    = "  %.2f memory_usage_global/1e9 TEXT "/" available_memory/1e9  SEP " "
