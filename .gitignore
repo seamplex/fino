@@ -28,14 +28,7 @@ test-driver
 test-suite.log
 plugin.mk
 
-m4/libtool.m4
-m4/ltoptions.m4
-m4/ltsugar.m4
-m4/ltversion.m4
-m4/lt~obsolete.m4
-m4/petsc.m4
-m4/python.m4
-m4/wasora.m4
+wasora
 
 README
 INSTALL

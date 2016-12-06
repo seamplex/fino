@@ -1,12 +1,9 @@
 plugin = fino
 
 SUBDIRS = src
-if WANT_STANDALONE
-  SUBDIRS += src/wasora
-endif
-DIST_SUBDIRS = src src/wasora
+DIST_SUBDIRS = src wasora
 
-ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I wasora/m4
 dist_doc_DATA = AUTHORS ChangeLog README TODO
 EXTRA_DIST = examples doc
 

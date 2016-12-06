@@ -22,10 +22,7 @@
 
 #ifndef _FINO_H_
 #define _FINO_H_
-
-
 #include <wasora.h>
-#include "mesh/mesh.h"
 
 #include <petscksp.h>
 #include <petscpc.h>

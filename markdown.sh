@@ -11,9 +11,6 @@ pandoc README.md -o doc/README.html -s                    # --default-image-exte
 pandoc INSTALL.md -t plain -o INSTALL
 pandoc INSTALL.md -o doc/INSTALL.pdf -V geometry:margin=3cm
 pandoc INSTALL.md -o doc/INSTALL.html -s
-pandoc ${WASORA_PATH}/PLUGINS.md -t plain -o PLUGINS
-pandoc ${WASORA_PATH}/PLUGINS.md -o doc/PLUGINS.pdf
-pandoc ${WASORA_PATH}/PLUGINS.md -o doc/PLUGINS.html -s -S
 
 # cd doc
 # pandoc README.md -o README.pdf -V geometry:margin=3cm # --default-image-extension=pdf
