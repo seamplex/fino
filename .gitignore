@@ -69,6 +69,8 @@ nbproject
 
 examples/*.trs
 examples/*.log
+examples/tensile-test.vtk
+examples/tensile-sigma.dat
 
 fino
 fino.so

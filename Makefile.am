@@ -10,10 +10,10 @@ EXTRA_DIST = examples doc
 TESTS = examples/test.sh
 
 all-local:
-	if [ -e src/.libs/lib${plugin}.so.0.0.0 ]; then cp -u  src/.libs/lib${plugin}.so.0.0.0 ./${plugin}.so; fi
-	if [ -e src/wasora/${plugin}$(EXEEXT) ]; then cp -u  src/wasora/${plugin}$(EXEEXT) .; fi
-	if [ -e ${plugin}$(EXEEXT) ]; then cd examples; ln -sf ../${plugin}$(EXEEXT); cd;  fi
+# 	if [ -e src/.libs/lib${plugin}.so.0.0.0 ]; then cp -u  src/.libs/lib${plugin}.so.0.0.0 ./${plugin}.so; fi
+	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
+	if [ -e ${plugin} ]; then cd examples; ln -sf ../${plugin}; cd;  fi
 
 clean-local:
-	rm -f src/wasora/${plugin}$(EXEEXT)
+	rm -f src/${plugin}
 	rm -f ${plugin} ${plugin}.so
