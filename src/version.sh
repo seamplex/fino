@@ -24,6 +24,6 @@ cat << EOF >> version.h
 #define COMPILATION_DATE     "`date +'%Y-%m-%d %H:%M:%S'`"
 #define COMPILATION_USERNAME "`whoami | sed s/\\\\\\\\//`"
 #define COMPILATION_HOSTNAME "`hostname`"
-#define PLUGIN_DATE          "`stat -c %y *.c mesh/*.c | sort -r | head -n1 | cut -b-19`"
+#define PLUGIN_DATE          "`stat -c %y *.c | sort -r | head -n1 | cut -b-19`"
 #define PLUGIN_HEADERMD5     "`md5sum ../wasora/src/wasora.h | cut -c-32`"
 EOF
