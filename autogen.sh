@@ -35,6 +35,7 @@ PLUGIN_README_INSTALL
 EOF
 
 # build makefile.am
+touch ../petscslepc.mak
 am="src/Makefile.am"
 echo -n "building $am... "
 cat << EOF > $am

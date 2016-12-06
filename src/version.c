@@ -60,17 +60,14 @@ const char *plugin_longversion(void) {
 #ifdef HAVE_SLEPC
   SlepcGetVersion(slepcversion, BUFFER_SIZE);  
 #endif  
-  
+    
   sprintf(finolongversion, "\n\
- rev hash %s\n\
- last commit on %s (rev %d)\n\
+ last commit on %s\n\
  compiled on %s by %s@%s (%s)\n\
  with %s using %s linked against\n\
   %s\n\
   %s %s\n",
-   PLUGIN_VCS_REVID,
    PLUGIN_VCS_DATE,
-   PLUGIN_VCS_REVNO,
    COMPILATION_DATE,
    COMPILATION_USERNAME,
    COMPILATION_HOSTNAME,
@@ -93,11 +90,9 @@ const char *plugin_copyright(void) {
 
 const char *plugin_version(void) {
 #ifdef PLUGIN_VCS_BRANCH
-  sprintf(finoshortversion, "%s.%s %s (%s %s)", PLUGIN_VCS_MAJOR, PLUGIN_VCS_MINOR,
-                                      strcmp(PLUGIN_VCS_BRANCH, "default")?PLUGIN_VCS_BRANCH:"",
-                                      PLUGIN_VCS_SHORTID,
-//                                       (PLUGIN_VCS_CLEAN==0)?"":"+Δ",
-                                      PLUGIN_VCS_DATE);
+  sprintf(finoshortversion, "%s%s %s", PLUGIN_VCS_VERSION,
+                                       (PLUGIN_VCS_CLEAN==0)?"":"+Δ",
+                                       strcmp(PLUGIN_VCS_BRANCH, "master")?PLUGIN_VCS_BRANCH:"");
 #else
   sprintf(finoshortversion, "%s", PACKAGE_VERSION);
 #endif

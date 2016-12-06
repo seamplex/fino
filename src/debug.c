@@ -110,8 +110,10 @@ int fino_debug_open(debug_t *debug) {
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "and linked against  \n"));
   petsc_call(PetscGetVersion(libversion, BUFFER_SIZE));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%s  \n", libversion));
+#ifdef HAVE_SLEPC
   petsc_call(SlepcGetVersion(libversion, BUFFER_SIZE));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%s  \n", libversion));
+#endif
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n"));
 
 
@@ -449,11 +451,11 @@ int fino_debug_close(debug_t *debug) {
   
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[fino"));
 #ifdef PLUGIN_VCS_BRANCH
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, " %s.%d", PLUGIN_VCS_MAJOR, PLUGIN_VCS_REVNO));
+    petsc_call(PetscViewerASCIIPrintf(debug->viewer, " %", PLUGIN_VCS_VERSION));
 #else
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, " %s", PACKAGE_VERSION));
 #endif
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "](https://bitbucket.org/gtheler/fino)\n\n"));
+    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "](https://www.seamplex.com/fino)\n\n"));
 
     PetscViewerDestroy(&debug->viewer);
   }
