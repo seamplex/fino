@@ -1,4 +1,4 @@
-rm -f *.png
+rm -f *.png *.pdf
 rm -f *.vtk
 rm -f *.dat
-rm -f *.pos
+rm -f veeder.msh

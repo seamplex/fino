@@ -9,7 +9,7 @@ if [ $? -ne 0 ]; then
   outcome=99
 fi
 
-if [ "`cat tensile-sigma.dat`" != "20000" ]; then
+if [ "`cat tensile-sigma.dat`" != "400" ]; then
   outcome=99
 fi
 

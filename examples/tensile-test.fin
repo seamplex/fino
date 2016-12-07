@@ -9,7 +9,10 @@ nu = 0.3
 
 PHYSICAL_ENTITY NAME left  BC fixed
 # PHYSICAL_ENTITY NAME right BC u=0 v=0 w=1
-PHYSICAL_ENTITY NAME right BC tx=0.1*E*(10/13)
+PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)
+
+PRINT TEXT "elements                    =" %g elements
+PRINT TEXT "nodes                       =" %g nodes
 
 FINO_STEP
 
@@ -18,6 +21,6 @@ FINO_STEP
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
 PRINT TEXT "maximum_diplacement   [mm]  =" %g displ_max
 PRINT TEXT "stress_at_the_origin  [MPa] =" %g sigma(0,0,0)
-PRINT TEXT "reaction_at_fixed_end [N]   =" %g TEXT "Rx ="  R_left_x TEXT "Ry =" R_left_y TEXT "Rz =" R_left_z  TEXT "[N]"
-PRINT TEXT "iterations " %g fino_iterations
+PRINT TEXT "reaction_at_fixed_end [N]   =" %g TEXT "Rx ="  R_left_x TEXT "Ry =" R_left_y TEXT "Rz =" R_left_z
+PRINT TEXT "iterations                  =" %g fino_iterations
 PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)

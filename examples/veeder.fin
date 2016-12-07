@@ -33,6 +33,7 @@ FINO_STEP
 
 # write vtk output
 MESH_POST FILE_PATH veeder.vtk      T sigma sigma1 sigma2 sigma3  VECTOR u v w
+MESH_POST FILE_PATH veeder_out.msh  T sigma sigma1 sigma2 sigma3  VECTOR u v w
 
 # displacement profiles 
 v_profile(z') := v(0, r, z'*H/2)/(alpha*T0*r)
@@ -46,3 +47,5 @@ PRINT "\# max_displacement" displ_max TEXT "at" displ_max_x displ_max_y displ_ma
 PRINT "\# see veeder_v.dat and veeder_w.dat for the non-dimensional displacement profiles along the axes"
 PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
 PRINT "\# memory [Gb]    = "  %.2f memory_usage_global/1e9 TEXT "/" available_memory/1e9  SEP " "
+
+PRINT sigma(0,0,0) sigma1(0,0,0) sigma2(0,0,0) sigma3(0,0,0)
