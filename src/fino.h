@@ -254,11 +254,11 @@ struct {
   // las funciones con la solucion (una para cada grado de libertad)
   function_t **solution;
   // las derivadas de la solucion con respecto al espacio;
-  function_t ***gradient;   // sobre los nodos
-  function_t ***grad_cell;   // definida sobre las celdas
+  function_t ***gradient;
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
+  function_t ***base_gradient;
   
   function_t *sigma;     // von misses
   function_t *sigma1;    // principal

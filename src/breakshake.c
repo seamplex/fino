@@ -264,22 +264,6 @@ int fino_break_compute_stresses(void) {
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
 
-/*  
-e_x(x,y,z) := du_xdx(x,y,z)
-e_y(x,y,z) := du_ydy(x,y,z)
-e_z(x,y,z) := du_zdz(x,y,z)
-gamma_xy(x,y,z) := du_xdy(x,y,z) + du_ydx(x,y,z)
-gamma_yz(x,y,z) := du_ydz(x,y,z) + du_zdy(x,y,z)
-gamma_zx(x,y,z) := du_zdx(x,y,z) + du_xdz(x,y,z)
-
-sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
-sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
-sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
-tau_xy(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
-tau_yz(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
-tau_zx(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
-VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
-*/
 
     if (nu.function != NULL) {
       evaluatednu = fino_distribution_evaluate(&nu);
@@ -302,12 +286,31 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
     }
 
     // deformaciones
+/*  
+e_x(x,y,z) := du_xdx(x,y,z)
+e_y(x,y,z) := du_ydy(x,y,z)
+e_z(x,y,z) := du_zdz(x,y,z)
+gamma_xy(x,y,z) := du_xdy(x,y,z) + du_ydx(x,y,z)
+gamma_yz(x,y,z) := du_ydz(x,y,z) + du_zdy(x,y,z)
+gamma_zx(x,y,z) := du_zdx(x,y,z) + du_xdz(x,y,z)
+*/    
     ex = fino.gradient[0][0]->data_value[j];
     ey = fino.gradient[1][1]->data_value[j];
     ez = fino.gradient[2][2]->data_value[j];
     gammaxy = fino.gradient[0][1]->data_value[j] + fino.gradient[1][0]->data_value[j];
     gammayz = fino.gradient[1][2]->data_value[j] + fino.gradient[2][1]->data_value[j];
     gammazx = fino.gradient[2][0]->data_value[j] + fino.gradient[0][2]->data_value[j];
+
+    // tensiones
+/*
+sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
+sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
+sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
+tau_xy(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
+tau_yz(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
+tau_zx(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
+VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
+*/
     
     sigmax = c1 * ((1-evaluatednu)*ex + evaluatednu*(ey+ez));
     sigmay = c1 * ((1-evaluatednu)*ey + evaluatednu*(ex+ez));

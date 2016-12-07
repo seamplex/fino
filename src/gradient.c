@@ -29,16 +29,17 @@
 int fino_compute_gradients(void) {
   
   double w_gauss, M_jj;
-  int j, d, g, v;
+  int j, v;
+  int m, g;
   int local_j, local_jprime;
   element_list_item_t *associated_element;
 
   for (g = 0; g < fino.degrees; g++) {
-    for (d = 0; d <fino.dimensions; d++) {
-      free(fino.gradient[g][d]->data_value);
-      fino.gradient[g][d]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
-      fino.gradient[g][d]->data_size = fino.mesh->n_nodes;
-      fino.gradient[g][d]->data_argument = fino.solution[g]->data_argument;
+    for (m = 0; m <fino.dimensions; m++) {
+      free(fino.gradient[g][m]->data_value);
+      fino.gradient[g][m]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+      fino.gradient[g][m]->data_size = fino.mesh->n_nodes;
+      fino.gradient[g][m]->data_argument = fino.solution[g]->data_argument;
     }
   }
 
@@ -47,8 +48,8 @@ int fino_compute_gradients(void) {
   for (j = 0; j < fino.mesh->n_nodes; j++) {
 
     for (g = 0; g < fino.degrees; g++) {
-      for (d = 0; d <fino.dimensions; d++) {
-        fino.gradient[g][d]->data_value[j] = 0;
+      for (m = 0; m <fino.dimensions; m++) {
+        fino.gradient[g][m]->data_value[j] = 0;
       }
     }
 
@@ -79,8 +80,8 @@ int fino_compute_gradients(void) {
             M_jj += w_gauss * gsl_vector_get(fino.mesh->fem.h, local_jprime) * gsl_vector_get(fino.mesh->fem.h, local_j);
 
             for (g = 0; g < fino.degrees; g++) {
-              for (d = 0; d <fino.dimensions; d++) {
-                fino.gradient[g][d]->data_value[j] += w_gauss * gsl_matrix_get(fino.mesh->fem.dhdx, local_jprime, d) * gsl_vector_get(fino.mesh->fem.h, local_j) * fino.solution[g]->data_value[associated_element->element->node[local_jprime]->id-1];
+              for (m = 0; m <fino.dimensions; m++) {
+                fino.gradient[g][m]->data_value[j] += w_gauss * gsl_matrix_get(fino.mesh->fem.dhdx, local_jprime, m) * gsl_vector_get(fino.mesh->fem.h, local_j) * fino.solution[g]->data_value[associated_element->element->node[local_jprime]->id-1];
               }
             }
           }
@@ -89,8 +90,19 @@ int fino_compute_gradients(void) {
     }
     
     for (g = 0; g < fino.degrees; g++) {
-      for (d = 0; d <fino.dimensions; d++) {
-        fino.gradient[g][d]->data_value[j] /= M_jj;
+      for (m = 0; m <fino.dimensions; m++) {
+        fino.gradient[g][m]->data_value[j] /= M_jj;
+        
+        // si tenemos un gradiente base hay que sumarlo
+        if (fino.base_gradient != NULL && fino.base_gradient[g] != NULL && fino.base_gradient[g][m]) {
+          // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
+          if (fino.base_gradient[g][m]->data_size == fino.spatial_unknowns) {
+            fino.gradient[g][m]->data_value[j] += fino.base_gradient[g][m]->data_value[j];
+          } else {
+            fino.gradient[g][m]->data_value[j] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j].x);
+          }
+        }
+        
       }
     }
   }

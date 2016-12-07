@@ -129,7 +129,7 @@ int fino_instruction_debug(void *arg) {
   
   debug_t *debug = (debug_t *)arg;
 
-  struct rusage resource_usage;
+//  struct rusage resource_usage;
 
   PetscViewer viewer, viewer2;
   char *filename;
