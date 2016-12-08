@@ -1,0 +1,21 @@
+SHELL "gmsh -v 0 -3 prism.geo"
+MESH FILE_PATH prism.msh
+
+E = 200e3      # Young modulus
+nu = 0.3       # Poisson ratio
+
+T = 100        # Temperature increment (with respect to reference)
+alpha = 1e-3   # Thermal expansion coefficient
+
+# the prism is fixed on these planes
+PHYSICAL_ENTITY NAME "xy" BC  w=0
+PHYSICAL_ENTITY NAME "yz" BC  u=0  
+PHYSICAL_ENTITY NAME "zx" BC  v=0 
+
+FINO_SOLVER PC_TYPE lu KSP_TYPE gmres
+FINO_STEP
+
+MESH_POST FILE_PATH prism.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+# the displacements at the corner of the prism
+PRINT %.2f u(4,1,2) v(4,1,2) w(4,1,2)

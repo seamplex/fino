@@ -78,6 +78,9 @@ examples/veeder.msh
 examples/veeder.vtk
 examples/veeder_*.dat
 
+examples/prism.vtk
+examples/prism.msh
+
 cosas
 
 petscslepc.mak
