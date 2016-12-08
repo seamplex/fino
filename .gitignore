@@ -78,8 +78,10 @@ examples/veeder.msh
 examples/veeder.vtk
 examples/veeder_*.dat
 
-examples/prism.vtk
 examples/prism.msh
+examples/prism.vtk
+examples/conic_valve.msh
+examples/conic_valve.vtk
 
 cosas
 

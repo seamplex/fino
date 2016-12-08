@@ -103,21 +103,21 @@ int fino_read_bcs(void) {
             
             bc->dof = 0;
             bc->bc_type_int = BC_NEUMANN;
-            snprintf(buff, strlen(expr) + 7, "nx*(%s)", expr);
+            snprintf(buff, strlen(expr) + 7, "-nx*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc->expr));
             
             // agregamos dos mas de prepo para v y w
             bc_v = calloc(1, sizeof(bc_string_based_t));
             bc_v->dof = 1;
             bc_v->bc_type_int = BC_NEUMANN;
-            snprintf(buff, strlen(expr) + 7, "ny*(%s)", expr);
+            snprintf(buff, strlen(expr) + 7, "-ny*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc_v->expr));
             LL_APPEND(physical_entity->bc_strings, bc_v);
             
             bc_w = calloc(1, sizeof(bc_string_based_t));
             bc_w->dof = 2;
             bc_w->bc_type_int = BC_NEUMANN;
-            snprintf(buff, strlen(expr) + 7, "nz*(%s)", expr);
+            snprintf(buff, strlen(expr) + 7, "-nz*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc_w->expr));
             LL_APPEND(physical_entity->bc_strings, bc_w);
             
