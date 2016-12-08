@@ -9,8 +9,8 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="178.79602"
-   height="128.65605"
+   width="599.88147"
+   height="431.65607"
    id="svg3177"
    version="1.1"
    inkscape:version="0.48.5 r10040"
@@ -24,9 +24,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="4"
-     inkscape:cx="95.451039"
-     inkscape:cy="55.881433"
+     inkscape:zoom="1"
+     inkscape:cx="553.66201"
+     inkscape:cy="244.27469"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -38,7 +38,8 @@
      inkscape:window-height="1060"
      inkscape:window-x="1916"
      inkscape:window-y="-3"
-     inkscape:window-maximized="1" />
+     inkscape:window-maximized="1"
+     units="px" />
   <metadata
      id="metadata3182">
     <rdf:RDF>
@@ -55,10 +56,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-474.79271,-558.85585)">
+     transform="translate(-474.79272,-255.85585)">
     <g
        id="g3212"
-       transform="matrix(0.22228522,0,0,0.22228522,391.49737,477.5383)"
+       transform="matrix(0.74579282,0,0,0.74579282,195.32713,-16.973995)"
        style="fill:#000000;fill-opacity:1">
       <path
          sodipodi:nodetypes="czzcccczzcccccccccccsccccccccccc"
@@ -82,7 +83,7 @@
       <polygon
          style="fill:#000000;fill-opacity:1;fill-rule:evenodd"
          id="polygon68"
-         points="2233,-101 2244,-102 2244,-117 2235,-117 "
+         points="2244,-117 2235,-117 2233,-101 2244,-102 "
          class="fil0"
          transform="matrix(-1,0,0,1,2899.4057,560.15001)" />
       <path
@@ -119,7 +120,7 @@
     <g
        style="font-size:48px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Carlito;-inkscape-font-specification:Carlito"
        id="text3223"
-       transform="matrix(2.5252286,0,0,2.5252286,-996.84852,-1031.3947)">
+       transform="matrix(8.4724362,0,0,8.4724362,-4462.7351,-5079.6201)">
       <path
          d="m 586.19733,663.40601 0,-19.47657 -2.32032,-0.30468 c -0.32812,-0.0312 -0.59375,-0.1328 -0.79687,-0.30469 -0.20313,-0.17186 -0.30469,-0.41404 -0.30469,-0.72656 l 0,-1.6875 3.42188,0 0,-2.17969 c -10e-6,-1.31248 0.17187,-2.47654 0.51562,-3.49219 0.35937,-1.03122 0.86718,-1.89059 1.52344,-2.57812 0.65624,-0.7031 1.45312,-1.23435 2.39062,-1.59375 0.93749,-0.37497 1.99218,-0.56247 3.16407,-0.5625 0.48436,3e-5 0.95311,0.0391 1.40625,0.11718 0.46873,0.0782 0.91405,0.18754 1.33593,0.32813 l -0.11718,2.0625 c -0.0313,0.3594 -0.21877,0.56253 -0.5625,0.60937 -0.34377,0.0313 -0.8047,0.0469 -1.38282,0.0469 -0.65626,3e-5 -1.25001,0.086 -1.78125,0.25781 -0.51563,0.17191 -0.96094,0.46097 -1.33593,0.86719 -0.37501,0.40628 -0.66407,0.94534 -0.86719,1.61719 -0.20313,0.65627 -0.3047,1.46877 -0.30469,2.4375 l 0,2.0625 10.78866,0 0,3 -10.64803,0 0,19.5 -4.125,0"
          id="path4000"
@@ -128,36 +129,36 @@
     </g>
     <text
        xml:space="preserve"
-       style="font-size:121.21097565px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Carlito;-inkscape-font-specification:Carlito"
-       x="593.91528"
-       y="645.13116"
+       style="font-size:406.67694092px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Carlito;-inkscape-font-specification:Carlito"
+       x="874.46283"
+       y="545.31958"
        id="text4002"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan4004"
-         x="593.91528"
-         y="645.13116">o</tspan></text>
+         x="874.46283"
+         y="545.31958">o</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:121.21097565px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Carlito;-inkscape-font-specification:Carlito"
-       x="535.4295"
-       y="644.16705"
+       style="font-size:406.67694092px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Carlito;-inkscape-font-specification:Carlito"
+       x="678.23621"
+       y="542.0849"
        id="text3227"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          id="tspan3229"
-         x="535.4295"
-         y="644.16705">n</tspan></text>
+         x="678.23621"
+         y="542.0849">n</tspan></text>
     <text
        xml:space="preserve"
-       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Linux Libertine Display O;-inkscape-font-specification:Linux Libertine Display O"
-       x="525.7113"
-       y="651.98303"
+       style="font-size:40.26139832px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Linux Libertine Display O;-inkscape-font-specification:Linux Libertine Display O"
+       x="645.63049"
+       y="568.30841"
        id="text3800"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="525.7113"
-         y="651.98303"
+         x="645.63049"
+         y="568.30841"
          id="tspan3804">a free finite-element solver</tspan></text>
   </g>
 </svg>
