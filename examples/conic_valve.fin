@@ -1,0 +1,31 @@
+# can you fem solver constrain your model faces
+# to algebraically-defined surfaces such as cones?
+# ours can! (and it is open source)
+# <https://twitter.com/seamplex/status/789440535329181696>
+
+SHELL "gmsh -v 0 -3 conic_valve.geo"
+MESH FILE_PATH conic_valve.msh DIMENSIONS 3
+
+E = 200e3
+nu = 0.3
+
+FINO_SOLVER PC_TYPE lu KSP_TYPE gmres
+
+PHYSICAL_ENTITY NAME base  BC u=0 v=1e-2 w=0
+PHYSICAL_ENTITY NAME top   BC u=0 v=1e-2 w=0
+
+# the cone equation
+x1 = -4
+y1 = 2
+
+x2 = -2
+y2 = 4
+
+f(x) := (y2-y1)/(x2-x1)*(x-x1) + y1
+h = f(0)
+r = root(f(x), x, -10, 0) 
+
+PHYSICAL_ENTITY NAME cone  BC implicit=((x+u)^2+(z+w)^2)/(r/h)^2-(y+v-h)^2
+
+FINO_STEP
+MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w dudx dvdx dwdx dudy dvdy dwdy dudz dvdz dwdz 
