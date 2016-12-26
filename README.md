@@ -11,7 +11,7 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
 
 # Quick start
 
-If you are impatient to run Fino (or have failed to follow the instructions in [INSTALL](INSTALL.md)), open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
+If you are impatient to run Fino, open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
 
 ```
 curl https://www.seamplex.com/fino/get.sh | sh

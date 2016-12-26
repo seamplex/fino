@@ -287,12 +287,12 @@ int fino_break_compute_stresses(void) {
 
     // deformaciones
 /*  
-e_x(x,y,z) := du_xdx(x,y,z)
-e_y(x,y,z) := du_ydy(x,y,z)
-e_z(x,y,z) := du_zdz(x,y,z)
-gamma_xy(x,y,z) := du_xdy(x,y,z) + du_ydx(x,y,z)
-gamma_yz(x,y,z) := du_ydz(x,y,z) + du_zdy(x,y,z)
-gamma_zx(x,y,z) := du_zdx(x,y,z) + du_xdz(x,y,z)
+e_x(x,y,z) := du_dx(x,y,z)
+e_y(x,y,z) := dv_dy(x,y,z)
+e_z(x,y,z) := dw_dz(x,y,z)
+gamma_xy(x,y,z) := du_dy(x,y,z) + dv_dx(x,y,z)
+gamma_yz(x,y,z) := dv_dz(x,y,z) + dw_dy(x,y,z)
+gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 */    
     ex = fino.gradient[0][0]->data_value[j];
     ey = fino.gradient[1][1]->data_value[j];
@@ -306,9 +306,9 @@ gamma_zx(x,y,z) := du_zdx(x,y,z) + du_xdz(x,y,z)
 sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
 sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
 sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
-tau_xy(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
-tau_yz(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
-tau_zx(x,y,z) := E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
+tau_xy(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
+tau_yz(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
+tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
 VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
 */
     
