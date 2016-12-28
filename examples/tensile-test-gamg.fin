@@ -9,6 +9,8 @@ PHYSICAL_ENTITY NAME left  BC fixed
 # PHYSICAL_ENTITY NAME right BC u=0 v=0 w=1
 PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)
 
+FINO_REACTION PHYSICAL_ENTITY left
+
 PRINT TEXT "elements                    =" %g elements
 PRINT TEXT "nodes                       =" %g nodes
 

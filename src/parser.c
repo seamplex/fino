@@ -458,6 +458,73 @@ int plugin_parse_line(char *line) {
 
       return WASORA_PARSER_OK;
       
+// ---------------------------------------------------------------------
+///kw+FINO_REACTION+usage FINO_REACTION
+///kw+FINO_REACTION+desc Asks Fino to compute the reactions at physical entities with Dirichlet boundary conditions.
+    } else if ((strcasecmp(token, "FINO_REACTION") == 0)) {
+
+      char *buff;
+      fino_reaction_t *reaction = calloc(1, sizeof(fino_reaction_t));      
+
+      while ((token = wasora_get_next_token(NULL)) != NULL) {
+///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity>
+        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+          if ((reaction->physical_entity = wasora_get_physical_entity_ptr(name)) == NULL) {
+            wasora_push_error_message("unknown physical entity '%s'", name);
+            free(name);
+            return WASORA_PARSER_ERROR;
+          }
+
+///kw+FINO_REACTION+usage [ NAME_ROOT <name> ]
+        } else if (strcasecmp(token, "NAME_ROOT") == 0) {
+          wasora_call(wasora_parser_string(&reaction->name_root));
+          
+        } else {
+          wasora_push_error_message("unknown keyword '%s'", token);
+          return WASORA_PARSER_ERROR;
+        }
+      }
+      
+      if (reaction->physical_entity == NULL) {
+        wasora_push_error_message("FINO_REACTION needs a PHYSICAL_ENTITY");
+        return WASORA_PARSER_ERROR;
+      }
+      
+      if (reaction->name_root == NULL) {
+        reaction->name_root = malloc(strlen(reaction->physical_entity->name)+8);
+        snprintf(reaction->name_root, strlen(reaction->physical_entity->name)+7, "R_%s", reaction->physical_entity->name);
+      }
+      
+      if (strpbrk(reaction->name_root, factorseparators) != NULL) {
+        wasora_push_error_message("FINO_REACTION cannot use '%s' as the name root", reaction->name_root);
+        return WASORA_PARSER_ERROR;
+      }
+      
+      buff = malloc(strlen(reaction->name_root)+8);
+
+      snprintf(buff, strlen(reaction->name_root)+7, "%s_x", reaction->name_root);
+      if ((reaction->R[0] = wasora_define_variable(buff)) == NULL) {
+        wasora_push_error_message("cannot define variable '%s'", buff);
+        return WASORA_PARSER_ERROR;
+      }
+      snprintf(buff, strlen(reaction->name_root)+7, "%s_y", reaction->name_root);
+      if ((reaction->R[1] = wasora_define_variable(buff)) == NULL) {
+        wasora_push_error_message("cannot define variable '%s'", buff);
+        return WASORA_PARSER_ERROR;
+      }
+      snprintf(buff, strlen(reaction->name_root)+7, "%s_z", reaction->name_root);
+      if ((reaction->R[2] = wasora_define_variable(buff)) == NULL) {
+        wasora_push_error_message("cannot define variable '%s'", buff);
+        return WASORA_PARSER_ERROR;
+      }
+      free(buff);
+      
+      LL_APPEND(fino.reactions, reaction);
+
+      return WASORA_PARSER_OK;      
+      
     }
   }
   
@@ -488,7 +555,6 @@ int fino_define_functions(void) {
   }
 
   fino.solution = malloc(fino.degrees * sizeof(function_t *));
-//  fino.grad_cell = malloc(fino.degrees * sizeof(function_t *));
   fino.gradient = malloc(fino.degrees * sizeof(function_t *));
   for (g = 0; g < fino.degrees; g++) {
     if (fino.unknown_name == NULL) {
@@ -512,27 +578,10 @@ int fino_define_functions(void) {
     fino.solution[g]->type = type_pointwise_mesh_node;
 
     // las derivadas de las soluciones con respecto al espacio
-//    fino.grad_cell[g] = malloc(fino.dimensions * sizeof(function_t *));
     fino.gradient[g] = malloc(fino.dimensions * sizeof(function_t *));
     
     for (d = 0; d < fino.dimensions; d++) {
       fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
-      
-      // definimos las derivadas de la solucion
-/*      
-      if (asprintf(&gradname, "d%sd%scell", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
-        wasora_push_error_message("cannot asprintf");
-        return WASORA_RUNTIME_ERROR;
-      }
-      if ((fino.grad_cell[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
-        return WASORA_PARSER_ERROR;
-      }
-      fino.grad_cell[g][d]->mesh = fino.mesh;
-      fino.grad_cell[g][d]->var_argument = fino.solution[g]->var_argument;
-      fino.grad_cell[g][d]->type = type_pointwise_mesh_cell;
-      // los puntos se los damos despues
-      free(gradname);
- */
       
       if (asprintf(&gradname, "d%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
         wasora_push_error_message("cannot asprintf");

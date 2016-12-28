@@ -68,6 +68,7 @@ PetscErrorCode petsc_err;
 #define BC_FACTOR 1.0
 
 // forward definitions
+typedef struct fino_reaction_t fino_reaction_t;
 typedef struct fino_distribution_t fino_distribution_t;
 typedef struct fino_step_t fino_step_t;
 typedef struct fino_times_t fino_times_t;
@@ -234,7 +235,9 @@ struct {
 
   // holder para calcular las reacciones de vinculo de BCs dirichlet
   int n_dirichlet_rows;
-  dirichlet_row_t *dirichlet_row;  
+  dirichlet_row_t *dirichlet_row;
+  
+  fino_reaction_t *reactions;
 
   
   // user-provided functions para los objetos elementales, las linkeamos
@@ -275,6 +278,14 @@ struct {
 #endif
   
 } fino;
+
+struct fino_reaction_t {
+  physical_entity_t *physical_entity;
+  char *name_root;
+  var_t *R[3];
+  
+  fino_reaction_t *next;
+};
 
 // se rellena value a partir o bien de una variable o bien de una funcion
 struct fino_distribution_t {

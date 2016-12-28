@@ -380,34 +380,3 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_compute_reactions"
-int fino_break_compute_reactions(void) {
-
-  // TODO: hacer lo que dijo barry de traer matgetsubmatrix
-
-  int i, k;
-  PetscScalar xi;
-  physical_entity_t *physical_entity;
-
-  LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
-    if (physical_entity->R[0] != NULL) {
-      wasora_var_value(physical_entity->R[0]) = 0;
-      wasora_var_value(physical_entity->R[1]) = 0;
-      wasora_var_value(physical_entity->R[2]) = 0;
-    }
-  }
-
-  for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    if (fino.dirichlet_row[i].physical_entity->R[0] != NULL) {
-      for (k = 0; k < fino.dirichlet_row[i].ncols; k++) {
-        petsc_call(VecGetValues(fino.phi, 1, &fino.dirichlet_row[i].cols[k], &xi));
-        wasora_var_value(fino.dirichlet_row[i].physical_entity->R[fino.dirichlet_row[i].dof]) += fino.dirichlet_row[i].vals[k] * xi;
-      }
-    }
-  }
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-}
