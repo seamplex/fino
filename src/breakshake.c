@@ -221,7 +221,7 @@ int fino_break_compute_stresses(void) {
   double sigmax, sigmay, sigmaz;
   double tauxy, tauyz, tauzx;
   double I1, I2, I3, phi;
-  double c1, c2, c3, c4, c5;
+  double c1, c1c2, c3, c4, c5;
   double sigma, sigma1, sigma2, sigma3;
   double displ2;
 
@@ -274,11 +274,7 @@ int fino_break_compute_stresses(void) {
     E = fino_distribution_evaluate(&distribution_E, NULL);
   }
   
-  if (nu != 0 && E != 0) {
-    c1 = E/((1+nu)*(1-2*nu));
-    c2 = 0.5*(1-2*nu);
-  }
-  
+ 
   wasora_var(fino.vars.sigma_max) = 0;
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
@@ -317,12 +313,7 @@ int fino_break_compute_stresses(void) {
           return WASORA_RUNTIME_ERROR;
         }
       }
-      E = fino_distribution_evaluate(&distribution_nu, material);
-    }
-    
-    if (distribution_nu.variable == NULL || distribution_E.variable == NULL) {
-      c1 = E/((1+nu)*(1-2*nu));
-      c2 = 0.5*(1-2*nu);
+      E = fino_distribution_evaluate(&distribution_E, material);
     }
 
     // deformaciones
@@ -351,13 +342,16 @@ tau_yz(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
 tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
 VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
 */
+    // constantes    
+    c1 = E/((1+nu)*(1-2*nu));
+    c1c2 = c1 * 0.5*(1-2*nu);
     
     sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
     sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
     sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));
-    tauxy =  c1 * c2 * gammaxy;
-    tauyz =  c1 * c2 * gammayz;
-    tauzx =  c1 * c2 * gammazx;
+    tauxy =  c1c2 * gammaxy;
+    tauyz =  c1c2 * gammayz;
+    tauzx =  c1c2 * gammazx;
     
     // stress invariants
     I1 = sigmax + sigmay + sigmaz;
