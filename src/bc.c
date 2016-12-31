@@ -358,11 +358,12 @@ int fino_set_essential_bc(void) {
     petsc_call(MatRestoreRow(fino.A, indexes[i], &ncols, &cols, &vals));
   }
   
-  petsc_call(MatZeroRows(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), PETSC_NULL, PETSC_NULL));
+  petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), PETSC_NULL, PETSC_NULL));
   if (fino.math_type == math_linear) {
     petsc_call(VecSetValues(fino.b, k, indexes, rhs, INSERT_VALUES));
+    // TODO: sumar lo que falta
    } else if (fino.math_type == math_eigen) {
-    petsc_call(MatZeroRows(fino.B, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(MatZeroRowsColumns(fino.B, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS

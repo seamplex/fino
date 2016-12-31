@@ -1,5 +1,5 @@
-MESH FILE_PATH two-material-beam.msh DIMENSIONS 3 ORDERING node
-FINO_SOLVER PC_TYPE gamg KSP_TYPE gmres SET_BLOCK_SIZE #SET_NEAR_NULLSPACE 
+MESH FILE_PATH two-material-beam.msh DIMENSIONS 3 #ORDERING unknown
+FINO_SOLVER PC_TYPE gamg KSP_TYPE cgs SET_BLOCK_SIZE USE_PCSETCOORDINATES #SET_NEAR_NULLSPACE
 
 MATERIAL left   E 200e3 nu 0.25
 MATERIAL right  E  70e3 nu 0.33
@@ -24,3 +24,4 @@ FINO_DEBUG FILE_PATH two-material-beam.md
 
 # results
 MESH_POST FILE_PATH two-material-beam.vtk E nu sigma sigma1 sigma2 sigma3 VECTOR u v w
+PRINT TEXT "sigma max  = " %g sigma_max
