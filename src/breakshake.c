@@ -26,14 +26,14 @@
 
 #include "fino.h"
 
-fino_distribution_t E;     // modulo de young
-fino_distribution_t nu;    // coef de poisson
-fino_distribution_t rho;   // densidad
-fino_distribution_t fx;    // fuerza volumetrica en x
-fino_distribution_t fy;    // fuerza volumetrica en y
-fino_distribution_t fz;    // fuerza volumetrica en z
-fino_distribution_t alpha; // coeficiente de expansion termica
-fino_distribution_t T;     // temperatura
+fino_distribution_t distribution_E;     // modulo de young
+fino_distribution_t distribution_nu;    // coef de poisson
+fino_distribution_t distribution_rho;   // densidad
+fino_distribution_t distribution_fx;    // fuerza volumetrica en x
+fino_distribution_t distribution_fy;    // fuerza volumetrica en y
+fino_distribution_t distribution_fz;    // fuerza volumetrica en z
+fino_distribution_t distribution_alpha; // coeficiente de expansion termica
+fino_distribution_t distribution_T;     // temperatura
 
   
 #undef  __FUNCT__
@@ -53,6 +53,8 @@ int fino_build_breakshake(element_t *element, int v) {
   static gsl_matrix *CB;
   // vector intermedio
   static gsl_vector *Cet;
+  
+  material_t *material;
 
   double c;
   double alphaT;
@@ -62,39 +64,45 @@ int fino_build_breakshake(element_t *element, int v) {
 
   PetscFunctionBegin;
 
+  if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
+    material =  element->physical_entity->material;
+  } else {
+    material = NULL;
+  }
+  
   w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v); 
   
   // si la matriz C de la formulacion es null entonces allocamos y
   // buscamos las distribuciones espaciales de parametros
   if (C == NULL) {
-    wasora_call(fino_distribution_init(&E, "E"));
-    wasora_call(fino_distribution_init(&nu, "nu"));
-    wasora_call(fino_distribution_init(&rho, "rho"));
-    wasora_call(fino_distribution_init(&fx, "fx"));
-    wasora_call(fino_distribution_init(&fy, "fy"));
-    wasora_call(fino_distribution_init(&fz, "fz"));
-    wasora_call(fino_distribution_init(&alpha, "alpha"));
-    wasora_call(fino_distribution_init(&T, "T"));
+    wasora_call(fino_distribution_init(&distribution_E, "E"));
+    wasora_call(fino_distribution_init(&distribution_nu, "nu"));
+    wasora_call(fino_distribution_init(&distribution_rho, "rho"));
+    wasora_call(fino_distribution_init(&distribution_fx, "fx"));
+    wasora_call(fino_distribution_init(&distribution_fy, "fy"));
+    wasora_call(fino_distribution_init(&distribution_fz, "fz"));
+    wasora_call(fino_distribution_init(&distribution_alpha, "alpha"));
+    wasora_call(fino_distribution_init(&distribution_T, "T"));
     
     // TODO: allow lambda+mu
-    if (E.defined == 0) {
+    if (distribution_E.defined == 0) {
       wasora_push_error_message("cannot find Young modulus 'E'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    } else if (nu.defined == 0) {
+    } else if (distribution_nu.defined == 0) {
       wasora_push_error_message("cannot find Poisson coefficient 'nu'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
-    if (fino.math_type == math_eigen && rho.defined == 0) {
+    if (fino.math_type == math_eigen && distribution_rho.defined == 0) {
       wasora_push_error_message("cannot find density 'rho'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
     C = gsl_matrix_calloc(6, 6);
     
-    // si E y nu son variables, calculamos C una sola vez y ya
-    if (E.variable != NULL && nu.variable != NULL) {
-      wasora_call(fino_break_compute_C(C));
+    // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
+    if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material), fino_distribution_evaluate(&distribution_nu, material)));
     }
     
     // expansion termica
@@ -131,21 +139,20 @@ int fino_build_breakshake(element_t *element, int v) {
     gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
     gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
     
-    // TODO: ver si hace falta chequear que este definido
-    if (fino.problem == problem_break) {
+    if (fino.problem == problem_break && (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
       c = w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
-      gsl_vector_add_to_element(fino.bi, 3*j+0, c * fino_distribution_evaluate(&fx));
-      gsl_vector_add_to_element(fino.bi, 3*j+1, c * fino_distribution_evaluate(&fy));
-      gsl_vector_add_to_element(fino.bi, 3*j+2, c * fino_distribution_evaluate(&fz));
+      gsl_vector_add_to_element(fino.bi, 3*j+0, c * fino_distribution_evaluate(&distribution_fx, material));
+      gsl_vector_add_to_element(fino.bi, 3*j+1, c * fino_distribution_evaluate(&distribution_fy, material));
+      gsl_vector_add_to_element(fino.bi, 3*j+2, c * fino_distribution_evaluate(&distribution_fz, material));
     }
     
   }
   
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
-  // pero si alguna es una funcion, es otro cantar
-  if (E.function != NULL || nu.function != NULL) {
-    wasora_call(fino_break_compute_C(C));
+  // pero si alguna es una propiedad o una funcion, es otro cantar
+  if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material), fino_distribution_evaluate(&distribution_nu, material)));
   }
 
   // calculamos Bt*C*B
@@ -153,16 +160,18 @@ int fino_build_breakshake(element_t *element, int v) {
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, B, CB, 1.0, fino.Ai);
 
   // expansion termica
-  alphaT = fino_distribution_evaluate(&alpha)*fino_distribution_evaluate(&T);
-  gsl_vector_set(et, 0, alphaT);
-  gsl_vector_set(et, 1, alphaT);
-  gsl_vector_set(et, 2, alphaT);
-  gsl_blas_dgemv(CblasTrans, 1.0, C, et, 0, Cet);
-  gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
+  if (distribution_alpha.defined != 0) {
+    alphaT = fino_distribution_evaluate(&distribution_alpha, material)*fino_distribution_evaluate(&distribution_T, material);
+    gsl_vector_set(et, 0, alphaT);
+    gsl_vector_set(et, 1, alphaT);
+    gsl_vector_set(et, 2, alphaT);
+    gsl_blas_dgemv(CblasTrans, 1.0, C, et, 0, Cet);
+    gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
+  }
   
   if (fino.problem == problem_shake) {
     // calculamos Ht*rho*H
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&rho), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
   } 
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -171,18 +180,16 @@ int fino_build_breakshake(element_t *element, int v) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_C"
-int fino_break_compute_C(gsl_matrix *C) {
+int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   
-  double evaluated_nu;
   double c1, c2, c3, c4;
   
   PetscFunctionBegin;
 
-  evaluated_nu = fino_distribution_evaluate(&nu);
-  c1 = fino_distribution_evaluate(&E)/((1+evaluated_nu)*(1-2*evaluated_nu));
-  c2 = c1 * evaluated_nu;
-  c3 = c1 * (1-evaluated_nu);
-  c4 = c1 * (1-2*evaluated_nu)/2;
+  c1 = E/((1+nu)*(1-2*nu));
+  c2 = c1 * nu;
+  c3 = c1 * (1-nu);
+  c4 = c1 * (1-2*nu)/2;
     
   gsl_matrix_set(C, 0, 0, c3);
   gsl_matrix_set(C, 0, 1, c2);
@@ -209,7 +216,6 @@ int fino_break_compute_C(gsl_matrix *C) {
 #define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
   
-  double evaluatednu, evaluatedE;
   double ex, ey, ez;
   double gammaxy, gammayz, gammazx;
   double sigmax, sigmay, sigmaz;
@@ -218,7 +224,14 @@ int fino_break_compute_stresses(void) {
   double c1, c2, c3, c4, c5;
   double sigma, sigma1, sigma2, sigma3;
   double displ2;
+
   double max_displ2 = 0;
+  double nu = 0;
+  double E = 0;
+  
+  material_t *material = NULL;
+  element_list_item_t *associated_element = NULL;
+  
   int j;
   
   PetscFunctionBegin;
@@ -247,42 +260,69 @@ int fino_break_compute_stresses(void) {
 
   
   // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
-  evaluatednu = fino_distribution_evaluate(&nu);
-  if (evaluatednu > 0.5) {
-    wasora_push_error_message("nu is greater than 1/2");
-    return WASORA_RUNTIME_ERROR;
-  } else if (evaluatednu < 0) {
-    wasora_push_error_message("nu is negative");
-    return WASORA_RUNTIME_ERROR;
+  if (distribution_nu.variable != NULL) {
+    nu = fino_distribution_evaluate(&distribution_nu, NULL);
+    if (nu > 0.5) {
+      wasora_push_error_message("nu is greater than 1/2");
+      return WASORA_RUNTIME_ERROR;
+    } else if (nu < 0) {
+      wasora_push_error_message("nu is negative");
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+  if (distribution_E.variable != NULL) {
+    E = fino_distribution_evaluate(&distribution_E, NULL);
   }
   
-  evaluatedE = fino_distribution_evaluate(&E);
+  if (nu != 0 && E != 0) {
+    c1 = E/((1+nu)*(1-2*nu));
+    c2 = 0.5*(1-2*nu);
+  }
   
-  c1 = evaluatedE/((1+evaluatednu)*(1-2*evaluatednu));
-  c2 = (1-2*evaluatednu)/2;
   wasora_var(fino.vars.sigma_max) = 0;
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
-
-
-    if (nu.function != NULL) {
-      evaluatednu = fino_distribution_evaluate(&nu);
-      if (evaluatednu > 0.5) {
+    material = NULL;
+    if (distribution_nu.variable == NULL) {
+      // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
+      // pesando toda la funcion completa con los elementos adyacentes
+      LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
+        if (associated_element->element->physical_entity != NULL) {
+          material = associated_element->element->physical_entity->material;
+        }
+      }
+      if (material == NULL) {
+        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
+        return WASORA_RUNTIME_ERROR;
+      }
+      nu = fino_distribution_evaluate(&distribution_nu, material);
+      if (nu > 0.5) {
         wasora_push_error_message("nu is greater than 1/2");
         return WASORA_RUNTIME_ERROR;
-      } else if (evaluatednu < 0) {
+      } else if (nu < 0) {
         wasora_push_error_message("nu is negative");
         return WASORA_RUNTIME_ERROR;
       }      
     }
     
-    if (E.function != NULL) {
-      evaluatedE = fino_distribution_evaluate(&nu);
+    if (distribution_E.variable == NULL) {
+      if (material == NULL) {
+        LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
+          if (associated_element->element->physical_entity != NULL) {
+            material = associated_element->element->physical_entity->material;
+          }
+        }
+        if (material == NULL) {
+          wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
+          return WASORA_RUNTIME_ERROR;
+        }
+      }
+      E = fino_distribution_evaluate(&distribution_nu, material);
     }
     
-    if (nu.function != NULL || E.function != NULL) {
-      c1 = fino_distribution_evaluate(&E)/((1+evaluatednu)*(1-2*evaluatednu));
-      c2 = (1-2*evaluatednu)/2;
+    if (distribution_nu.variable == NULL || distribution_E.variable == NULL) {
+      c1 = E/((1+nu)*(1-2*nu));
+      c2 = 0.5*(1-2*nu);
     }
 
     // deformaciones
@@ -312,9 +352,9 @@ tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
 VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
 */
     
-    sigmax = c1 * ((1-evaluatednu)*ex + evaluatednu*(ey+ez));
-    sigmay = c1 * ((1-evaluatednu)*ey + evaluatednu*(ex+ez));
-    sigmaz = c1 * ((1-evaluatednu)*ez + evaluatednu*(ex+ey));
+    sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
+    sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
+    sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));
     tauxy =  c1 * c2 * gammaxy;
     tauyz =  c1 * c2 * gammayz;
     tauzx =  c1 * c2 * gammazx;

@@ -83,6 +83,10 @@ examples/prism.vtk
 examples/conic_valve.msh
 examples/conic_valve.vtk
 
+examples/two-material-beam.md
+examples/two-material-beam.msh
+examples/two-material-beam.vtk
+
 cosas
 
 petscslepc.mak

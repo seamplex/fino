@@ -290,6 +290,7 @@ struct fino_reaction_t {
 // se rellena value a partir o bien de una variable o bien de una funcion
 struct fino_distribution_t {
   int defined;
+  physical_property_t *physical_property;
   var_t *variable;
   function_t *function;
 };
@@ -394,7 +395,7 @@ extern double fino_get_cpu_time(void);
 
 // breakshake.c
 extern int fino_build_breakshake(element_t *, int);
-extern int fino_break_compute_C(gsl_matrix *);
+extern int fino_break_compute_C(gsl_matrix *, double, double);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
 
@@ -410,6 +411,6 @@ extern const char *plugin_copyright(void);
 
 // distributions.c
 extern int fino_distribution_init(fino_distribution_t *, const char *);
-extern double fino_distribution_evaluate(fino_distribution_t *);
+extern double fino_distribution_evaluate(fino_distribution_t *, material_t *);
 
 #endif  /* _FINO_H_ */

@@ -10,9 +10,9 @@ EXTRA_DIST = examples doc
 TESTS = examples/test.sh
 
 all-local:
-# 	if [ -e src/.libs/lib${plugin}.so.0.0.0 ]; then cp -u  src/.libs/lib${plugin}.so.0.0.0 ./${plugin}.so; fi
 	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
 	if [ -e ${plugin} ]; then cd examples; ln -sf ../${plugin}; cd;  fi
+	if [ -e src/${plugin}-version.$(OBJEXT) ]; then rm -f src/${plugin}-version.$(OBJEXT);  fi
 
 clean-local:
 	rm -f src/${plugin}

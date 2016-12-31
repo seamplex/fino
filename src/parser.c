@@ -250,13 +250,13 @@ int plugin_parse_line(char *line) {
           }
 
 ///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]
-///kw+FINO_SOLVER+detail List of `KSP_TYPE`s http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html
+///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>
 ///kw+FINO_SOLVER+detail          
         } else if (strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.ksp_type));
 
 ///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]
-///kw+FINO_SOLVER+detail List of `PC_TYPE`s http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html
+///kw+FINO_SOLVER+detail List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>
 ///kw+FINO_SOLVER+detail          
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.pc_type));

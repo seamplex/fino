@@ -1,0 +1,26 @@
+MESH FILE_PATH two-material-beam.msh DIMENSIONS 3 ORDERING node
+FINO_SOLVER PC_TYPE gamg KSP_TYPE gmres SET_BLOCK_SIZE #SET_NEAR_NULLSPACE 
+
+MATERIAL left   E 200e3 nu 0.25
+MATERIAL right  E  70e3 nu 0.33
+
+PHYSICAL_ENTITY NAME fixed_left  BC fixed
+PHYSICAL_ENTITY NAME fixed_right BC fixed
+PHYSICAL_ENTITY NAME load        BC tz=-1
+
+
+
+PRINT %g nodes "nodes, " elements "elements, " 3*nodes "dofs"
+PRINT "building matrices..."
+FINO_STEP JUST_BUILD
+PRINT TEXT "build time = " %.3f time_cpu_build
+# FINO_DEBUG MATRICES_X
+PRINT "solving problem..."
+FINO_STEP JUST_SOLVE
+PRINT TEXT "solve time = " %.3f time_cpu_solve
+PRINT TEXT "memory     = " %.3f 1e-9*memory_usage_global " Gb / " 1e-9*available_memory " Gb"
+
+FINO_DEBUG FILE_PATH two-material-beam.md
+
+# results
+MESH_POST FILE_PATH two-material-beam.vtk E nu sigma sigma1 sigma2 sigma3 VECTOR u v w

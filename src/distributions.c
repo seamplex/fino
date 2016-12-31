@@ -33,6 +33,13 @@ int fino_distribution_init(fino_distribution_t *distribution, const char *name) 
     PetscFunctionReturn(WASORA_RUNTIME_OK);
   }
   
+  // despues con una propiedad (tiene que venir antes de chequear la funcion)
+  HASH_FIND_STR(wasora_mesh.physical_properties, name, distribution->physical_property);
+  if (distribution->physical_property != NULL) {
+    distribution->defined = 1;
+    PetscFunctionReturn(WASORA_RUNTIME_OK);
+  }
+  
   // si no camino, buscamos una funcion
   if ((distribution->function = wasora_get_function_ptr(name)) != NULL) {
     if (distribution->function->n_arguments != fino.dimensions) {
@@ -50,14 +57,21 @@ int fino_distribution_init(fino_distribution_t *distribution, const char *name) 
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_distribution_evaluate"
-double fino_distribution_evaluate(fino_distribution_t *distribution) {
+double fino_distribution_evaluate(fino_distribution_t *distribution, material_t *material) {
   double x[3];
+  property_data_t *property_data = NULL;
   
   PetscFunctionBegin;
   
   if (distribution->variable != NULL) {
     PetscFunctionReturn(wasora_var_value(distribution->variable));
-  } else if (distribution->function != NULL) {
+  } else if (distribution->physical_property != NULL) {
+     HASH_FIND_STR(material->property_datums, distribution->physical_property->name, property_data);
+    if (property_data != NULL) {
+      // evaluamos la expresion del material
+      PetscFunctionReturn(wasora_evaluate_expression(&property_data->expr));
+    }
+  } else if (distribution->function != NULL || material != NULL) {
     // TODO: esto creo que ya lo hace alguien, y si no lo hace deberia hacerlo
     x[0] = wasora_var_value(wasora_mesh.vars.x);
     x[1] = wasora_var_value(wasora_mesh.vars.y);

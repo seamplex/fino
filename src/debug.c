@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino debugging and benchmarking routines
  *
- *  Copyright (C) 2015 jeremy theler
+ *  Copyright (C) 2015--2016 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -79,11 +79,9 @@ int fino_debug_open(debug_t *debug) {
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%% %s\n", getlogin()));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%% %s\n", ctime(&tm)));
   
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "fino debugging and benchmarking output\n"));
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "=========================================\n\n"));
+  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "# Fino debugging and benchmarking output\n"));
 
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "code invocation\n"));
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "---------------\n\n"));
+  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "## Code invocation\n\n"));
    
 // PetscGetUserName()
 // PetscGetHostName()  
@@ -93,10 +91,9 @@ int fino_debug_open(debug_t *debug) {
   }
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\non %s\n\n", ctime(&tm)));
 
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "code version\n"));
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "------------\n\n"));
-
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[%s](https://bitbucket.org/gtheler/fino) %s  \n", plugin_name(), plugin_version()));
+  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "## Code version\n\n"));
+  
+  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[%s](https://www.seamplex.com/fino) %s  \n", plugin_name(), plugin_version()));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%s  \n\n", plugin_description()));
 
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n"));
@@ -104,7 +101,7 @@ int fino_debug_open(debug_t *debug) {
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "%s\n", plugin_copyright()));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n\n"));
   
-  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "fino was compiled on %s  \n", COMPILATION_DATE));
+  petsc_call(PetscViewerASCIIPrintf(debug->viewer, "Fino was compiled on %s  \n", COMPILATION_DATE));
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "by %s on %s (%s) using %s  \n", COMPILATION_USERNAME, COMPILATION_HOSTNAME, COMPILATION_ARCH, CCOMPILER_VERSION));
   
   petsc_call(PetscViewerASCIIPrintf(debug->viewer, "and linked against  \n"));
@@ -129,7 +126,7 @@ int fino_instruction_debug(void *arg) {
   
   debug_t *debug = (debug_t *)arg;
 
-//  struct rusage resource_usage;
+  struct rusage resource_usage;
 
   PetscViewer viewer, viewer2;
   char *filename;
@@ -153,8 +150,7 @@ int fino_instruction_debug(void *arg) {
 
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n"));
 
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "problem static step %d\n", (int)(wasora_var(wasora_special_var(step_static)))));
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-----------------------\n", (int)(wasora_var(wasora_special_var(step_static)))));
+    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "## Static step %d\n\n", (int)(wasora_var(wasora_special_var(step_static)))));
 
 
 #ifdef HAVE_SLEPC    
@@ -185,7 +181,7 @@ int fino_instruction_debug(void *arg) {
 
     // system resources
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "### System resource usage\n\n"));
-/* TODO: esto da errores en el valgrind   
+/* TODO: esto da errores en el valgrind  */  
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "user CPU time                          %.4g seconds\n", resource_usage.ru_utime.tv_sec + 1e-6*resource_usage.ru_utime.tv_usec));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "system CPU time                        %.4g seconds\n", resource_usage.ru_stime.tv_sec + 1e-6*resource_usage.ru_stime.tv_usec));
@@ -208,7 +204,6 @@ int fino_instruction_debug(void *arg) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "number of swaps                        %ld\n", resource_usage.ru_majflt));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "number of block input operations       %ld\n", resource_usage.ru_inblock));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "number of block output operations      %ld\n", resource_usage.ru_oublock));
- */
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
 
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n"));
@@ -426,16 +421,14 @@ int fino_debug_close(debug_t *debug) {
 
   if (debug->file != NULL) {
   
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "PETSc's LogView output\n"));
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "----------------------\n"));
-  
+    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "## PETSc's LogView output\n\n"));
+    
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n"));
     petsc_call(PetscLogView(debug->viewer));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n\n\n"));
   
     if (debug->include_input) {
-      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "transcription of input file\n"));
-      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "---------------------------\n\n"));
+      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "## Transcription of input file\n\n"));
 
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "~~~~\n"));
     finput = fopen(wasora.argv[1], "r");
@@ -449,13 +442,7 @@ int fino_debug_close(debug_t *debug) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n*  *  *  *\n\n"));
   
   
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[fino"));
-#ifdef PLUGIN_VCS_BRANCH
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, " %", PLUGIN_VCS_VERSION));
-#else
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, " %s", PACKAGE_VERSION));
-#endif
-    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "](https://www.seamplex.com/fino)\n\n"));
+    petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[%s](https://www.seamplex.com/fino) %s\n\n", plugin_name(), plugin_version()));
 
     PetscViewerDestroy(&debug->viewer);
   }
