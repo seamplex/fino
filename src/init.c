@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's initialization routines
  *
- *  Copyright (C) 2015-2016 jeremy theler
+ *  Copyright (C) 2015-2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -39,12 +39,12 @@ int plugin_init_before_parser(void) {
   // hay que re-escrbir eso como "--slepc_opt log_summary"
   // si alguna opcion tiene argumento hay que ponerlo como "--slepc_opt pc_type=sor"
   for (i = 0; i < wasora.argc_orig; i++) {
-    if (strcmp(wasora.argv_orig[i], "--petsc_opt") == 0) {
+    if (strcmp(wasora.argv_orig[i], "--petsc") == 0) {
       if (i >= (wasora.argc_orig-1)) {
-        wasora_push_error_message("commandline option --petsc_opt needs an argument");
+        wasora_push_error_message("commandline option --petsc needs an argument");
         return WASORA_PARSER_ERROR;
       } else if (wasora.argv_orig[i+1][0] == '-') {
-        wasora_push_error_message("the argument of commandline option --petsc_opt should not start with a dash (it is added automatically)");
+        wasora_push_error_message("the argument of commandline option --petsc should not start with a dash (it is added automatically)");
         return WASORA_PARSER_ERROR;
       }
       
@@ -101,22 +101,55 @@ int plugin_init_before_parser(void) {
   
   // variables especiales de fino
   // TODO: documentar
+///va+fino_atol+name fino_atol
+///va+fino_atol+desc Absolute tolerance of the linear solver,
+///va+fino_atol+desc as passed to PETSc’s
+///va+fino_atol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
   fino.vars.atol = wasora_define_variable("fino_atol");
+  // TODO: poner el default automaticamente
+///va+fino_atol+desc Default `1e-50`.
   wasora_var(fino.vars.atol) = 1e-50;
-  fino.vars.rtol = wasora_define_variable("fino_rtol");
+ 
+///va+fino_rtol+name fino_rtol
+///va+fino_rtol+desc Relative tolerance of the linear solver,
+///va+fino_rtol+desc as passed to PETSc’s
+///va+fino_rtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+fino.vars.rtol = wasora_define_variable("fino_rtol");
+///va+fino_rtol+desc Default `1e-9`.
   wasora_var(fino.vars.rtol) = 1e-9;
+  
+///va+fino_divtol+name fino_divtol
+///va+fino_divtol+desc Divergence tolerance,
+///va+fino_divtol+desc as passed to PETSc’s
+///va+fino_divtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.divtol = wasora_define_variable("fino_divtol");
+///va+fino_divtol+desc Default `1e+3`.  
   wasora_var(fino.vars.divtol) = 1e+3;
+  
+///va+fino_max_iterations+name fino_max_iterations
+///va+fino_max_iterations+desc Number of maximum iterations before diverging,
+///va+fino_max_iterations+desc as passed to PETSc’s
+///va+fino_max_iterations+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.max_iterations = wasora_define_variable("fino_max_iterations");
+///va+fino_max_iterations+desc Default `1e4`.
   wasora_var(fino.vars.max_iterations) = 1e4;
   
+///va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
+///va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows
+///va+fino_dirichlet_diagonal+desc that correspond to Dirichlet boundary conditions.
+///va+fino_dirichlet_diagonal+desc Default is one, but PETSc internally scales it up
+///va+fino_dirichlet_diagonal+desc automatically to keep a good condition number.
   fino.vars.dirichlet_diagonal = wasora_define_variable("fino_dirichlet_diagonal");
   
-  fino.vars.nodes = wasora_define_variable("nodes");
-  fino.vars.elements = wasora_define_variable("elements");
-  
-  // estas dos se las pedimos a petsc por si al usuario le interesa
+ 
+///va+fino_iterations+name fino_iterations
+///va+fino_iterations+desc This variable contains the actual number of iterations used
+///va+fino_iterations+desc by the solver. It is set after `FINO_STEP`.
   fino.vars.iterations = wasora_define_variable("fino_iterations");
+  
+///va+fino_residual+name fino_residual
+///va+fino_residual+desc This variable contains the residual obtained
+///va+fino_residual+desc by the solver. It is set after `FINO_STEP`.
   fino.vars.residual= wasora_define_variable("fino_residual");
 
   // estas son para las expresiones algebraicas implicitamente
@@ -131,24 +164,52 @@ int plugin_init_before_parser(void) {
   fino.vars.ny= wasora_define_variable("ny");
   fino.vars.nz= wasora_define_variable("nz");
   
+///va+displ_max+name displ_max
+///va+displ_max+desc The module of the maximum displacement of the elastic problem.
   fino.vars.displ_max = wasora_define_variable("displ_max");
 
+///va+displ_max_x+name displ_max_x
+///va+displ_max_x+desc The\ $x$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_x = wasora_define_variable("displ_max_x");
+///va+displ_max_y+name displ_max_y
+///va+displ_max_y+desc The\ $y$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_y = wasora_define_variable("displ_max_y");
+///va+displ_max_z+name displ_max_z
+///va+displ_max_z+desc The\ $z$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_z = wasora_define_variable("displ_max_z");
 
+///va+u_at_displ_max+name u_at_displ_max
+///va+u_at_displ_max+desc The\ $x$ component\ $u$ of the maximum displacement of the elastic problem.
   fino.vars.u_at_displ_max = wasora_define_variable("u_at_displ_max");
+///va+v_at_displ_max+name v_at_displ_max
+///va+v_at_displ_max+desc The\ $y$ component\ $v$ of the maximum displacement of the elastic problem.
   fino.vars.v_at_displ_max = wasora_define_variable("v_at_displ_max");
+///va+w_at_displ_max+name w_at_displ_max
+///va+w_at_displ_max+desc The\ $z$ component\ $w$ of the maximum displacement of the elastic problem.
   fino.vars.w_at_displ_max = wasora_define_variable("w_at_displ_max");
   
+///va+sigma_max+name sigma_max
+///va+sigma_max+desc The maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max = wasora_define_variable("sigma_max");
 
+///va+sigma_max_x+name sigma_max_x
+///va+sigma_max_x+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_x = wasora_define_variable("sigma_max_x");
+///va+sigma_max_y+name sigma_max_y
+///va+sigma_max_y+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_y = wasora_define_variable("sigma_max_y");
+///va+sigma_max_z+name sigma_max_z
+///va+sigma_max_z+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_z = wasora_define_variable("sigma_max_z");
   
+///va+u_at_sigma_max+name sigma_max_z
+///va+u_at_sigma_max+desc The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.u_at_sigma_max = wasora_define_variable("u_at_sigma_max");
+///va+v_at_sigma_max+name sigma_max_z
+///va+v_at_sigma_max+desc The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.v_at_sigma_max = wasora_define_variable("v_at_sigma_max");
+///va+w_at_sigma_max+name sigma_max_z
+///va+w_at_sigma_max+desc The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.w_at_sigma_max = wasora_define_variable("w_at_sigma_max");
   
   // variables internas
@@ -328,8 +389,8 @@ int fino_problem_init(void) {
   // ponemos esto para hacer explicito que somos FEM y no FVM
   fino.spatial_unknowns = fino.mesh->n_nodes;
   fino.mesh->data_type = data_type_node;
-  wasora_var(fino.vars.nodes) = (double)fino.mesh->n_nodes;
-  wasora_var(fino.vars.elements) = (double)fino.mesh->n_elements;
+//  wasora_var(fino.vars.nodes) = (double)fino.mesh->n_nodes;
+//  wasora_var(fino.vars.elements) = (double)fino.mesh->n_elements;
   fino.problem_size = fino.spatial_unknowns * fino.degrees;
   
 //---------------------------------
@@ -404,7 +465,7 @@ int fino_problem_init(void) {
   petsc_call(MatMPIAIJSetPreallocation(fino.A, width, PETSC_NULL, width, PETSC_NULL));
   petsc_call(MatSeqAIJSetPreallocation(fino.A, width, PETSC_NULL));
   petsc_call(MatSetOption(fino.A, MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE));
-  if (fino.set_block_size) {
+  if (fino.do_not_set_block_size == 0) {
     petsc_call(MatSetBlockSize(fino.A, fino.degrees));
   }
   

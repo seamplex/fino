@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino main header
  *
- *  Copyright (C) 2015--2016 jeremy theler
+ *  Copyright (C) 2015--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -130,8 +130,6 @@ struct {
     
     var_t *dirichlet_diagonal;
   
-    var_t *nodes;
-    var_t *elements;
     var_t *unknowns;
     
     var_t *residual_norm;
@@ -212,9 +210,13 @@ struct {
   char *eps_type;
   char *st_type;
   
-  int set_near_null_space;
-  int use_pcsetcoordinates;
-  int set_block_size;
+  enum {
+    set_near_nullspace_fino,
+    set_near_nullspace_setcoordinates,
+    set_near_nullspace_none
+  } set_near_nullspace;
+  
+  int do_not_set_block_size;
   
   expr_t eps_ncv;
   expr_t st_shift;

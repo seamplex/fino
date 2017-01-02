@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's parsing routines
  *
- *  Copyright (C) 2015-2016 jeremy theler
+ *  Copyright (C) 2015--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -261,17 +261,30 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE ]
+///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE [ fino | setcoordinates | none ] ]
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
-          fino.set_near_null_space = 1;
+          token = wasora_get_next_token(NULL);
+          if (token != NULL) {
+            if (strcmp(token, "fino") == 0) {
+              fino.set_near_nullspace = set_near_nullspace_fino;
+            } else if (strcmp(token, "setcoordinates") == 0) {
+              fino.set_near_nullspace = set_near_nullspace_setcoordinates;
+            } else if (strcmp(token, "none") == 0) {
+              fino.set_near_nullspace = set_near_nullspace_none;
+            } else {
+              wasora_push_error_message("unknown nullspace method '%s'", token);
+              return WASORA_PARSER_ERROR;
+            }
+          }
+          
 
-///kw+FINO_SOLVER+usage [ USE_PCSETCOORDINATES ]
-        } else if (strcasecmp(token, "USE_PCSETCOORDINATES") == 0) {
-          fino.use_pcsetcoordinates = 1;
-
-///kw+FINO_SOLVER+usage [ SET_BLOCK_SIZE ]
+///kw+FINO_SOLVER+usage [ DO_NOT_SET_BLOCK_SIZE 
+        } else if (strcasecmp(token, "DO_NOT_SET_BLOCK_SIZE") == 0) {
+          fino.do_not_set_block_size = 1;
+          
+///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
-          fino.set_block_size = 1;
+          fino.do_not_set_block_size = 0;
 
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);

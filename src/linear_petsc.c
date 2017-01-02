@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's linear solver using PETSc routines
  *
- *  Copyright (C) 2015 jeremy theler
+ *  Copyright (C) 2015--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -39,7 +39,12 @@ int fino_solve_linear_petsc(void) {
   PetscInt nearnulldim;
   MatNullSpace nullsp;
   PetscScalar  dots[5];
-  Vec          *nullvecs;  
+  Vec          *nullvec;  
+  const Vec *vecs;
+  Vec cero;
+  PetscReal norm;
+  PetscBool has_const;
+  PetscInt  n;
   PetscReal *coords;
 
   // creamos un solver lineal
@@ -57,8 +62,7 @@ int fino_solve_linear_petsc(void) {
   // el KSP
   if (fino.ksp_type != NULL) {
     petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-//  } else {
-//    petsc_call(KSPSetType(fino.ksp, "bcgs"));
+    // el default es gmres, no esta mal
   }
 
   // precondicionador
@@ -67,65 +71,92 @@ int fino_solve_linear_petsc(void) {
   // el precondicionador
   if (fino.pc_type != NULL) {
     petsc_call(PCSetType(fino.pc, fino.pc_type));
-//  } else if (fino.problem == problem_break) {
-//    petsc_call(PCSetType(fino.pc, "gamg"));
   } else {
-    petsc_call(PCSetType(fino.pc, "lu"));
+    if (fino.problem == problem_break) {
+      petsc_call(PCSetType(fino.pc, "gamg"));
+    } else {
+      petsc_call(PCSetType(fino.pc, "lu"));
+    }
   }
 
   // las coordenadas (solo para break)
 // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
-  if (fino.use_pcsetcoordinates) {
-    petsc_call(PetscMalloc1(fino.dimensions * fino.mesh->n_nodes, &coords));
-    for (j = 0; j < fino.mesh->n_nodes; j++) {
-      for (d = 0; d < fino.dimensions; d++) {
-        coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+  switch(fino.set_near_nullspace) {
+    case set_near_nullspace_fino:
+      nearnulldim = 6; 
+      petsc_call(PetscMalloc1(nearnulldim, &nullvec));
+      for (i = 0; i < nearnulldim; i++) {
+        petsc_call(MatCreateVecs(fino.A, &nullvec[i], NULL));
       }
-    }
-    petsc_call(PCSetCoordinates(fino.pc, fino.dimensions, fino.mesh->n_nodes, coords));
-    petsc_call(PetscFree(coords));
+      for (j = 0; j < fino.mesh->n_nodes; j++) {
+        // traslaciones
+        VecSetValue(nullvec[0], fino.mesh->node[j].index[0], 1.0, INSERT_VALUES);
+        VecSetValue(nullvec[1], fino.mesh->node[j].index[1], 1.0, INSERT_VALUES);
+        VecSetValue(nullvec[2], fino.mesh->node[j].index[2], 1.0, INSERT_VALUES);
+
+        // rotaciones
+        VecSetValue(nullvec[3], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
+        VecSetValue(nullvec[3], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
+
+        VecSetValue(nullvec[4], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[2], INSERT_VALUES);
+        VecSetValue(nullvec[4], fino.mesh->node[j].index[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
+
+        VecSetValue(nullvec[5], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[2], INSERT_VALUES);
+        VecSetValue(nullvec[5], fino.mesh->node[j].index[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
+      }
+
+      for (i = 0; i < 3; i++) {
+        VecNormalize(nullvec[i], PETSC_NULL);
+      }
+
+      // tomado de MatNullSpaceCreateRigidBody()
+      for (i = 3; i < nearnulldim; i++) {
+        // Orthonormalize vec[i] against vec[0:i-1]
+        VecMDot(nullvec[i], i, nullvec, dots);
+        for (j= 0; j < i; j++) {
+          dots[j] *= -1.;
+        }
+        VecMAXPY(nullvec[i],i,dots,nullvec);
+        VecNormalize(nullvec[i], PETSC_NULL);
+      }
+
+      petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
+      petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+
+  /*    
+      for (i = 0; i < nearnulldim; i++) {
+        petsc_call(VecDestroy(&nullvec[i]));
+      }
+      petsc_call(PetscFree(nullvec));
+   */
+    break;  
+
+    case set_near_nullspace_setcoordinates:
+      petsc_call(PetscMalloc1(fino.dimensions * fino.mesh->n_nodes, &coords));
+      for (j = 0; j < fino.mesh->n_nodes; j++) {
+        for (d = 0; d < fino.dimensions; d++) {
+          coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+        }
+      }
+      
+      // esto termina en PCSetCoordinates_AGG() en src/ksp/pc/impls/gamg/agg.c
+      petsc_call(PCSetCoordinates(fino.pc, fino.dimensions, fino.mesh->n_nodes, coords));
+      petsc_call(PetscFree(coords));
+    break;
+    
+    case set_near_nullspace_none:
+      ;
+    break;
   }
   
-  if (fino.set_near_null_space) {
-    nearnulldim = 6; 
-    petsc_call(PetscMalloc1(nearnulldim, &nullvecs));
-    for (i = 0; i < nearnulldim; i++) {
-      petsc_call(MatCreateVecs(fino.A, &nullvecs[i], NULL));
-    }
-    for (j = 0; j < fino.mesh->n_nodes; j++) {
-      // traslaciones
-      VecSetValue(nullvecs[0], fino.mesh->node[j].index[0], 1.0, INSERT_VALUES);
-      VecSetValue(nullvecs[1], fino.mesh->node[j].index[1], 1.0, INSERT_VALUES);
-      VecSetValue(nullvecs[2], fino.mesh->node[j].index[2], 1.0, INSERT_VALUES);
 
-      // rotaciones
-      VecSetValue(nullvecs[3], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
-      VecSetValue(nullvecs[3], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
-
-      VecSetValue(nullvecs[4], fino.mesh->node[j].index[0], -fino.mesh->node[j].x[2], INSERT_VALUES);
-      VecSetValue(nullvecs[4], fino.mesh->node[j].index[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
-
-      VecSetValue(nullvecs[5], fino.mesh->node[j].index[1], +fino.mesh->node[j].x[2], INSERT_VALUES);
-      VecSetValue(nullvecs[5], fino.mesh->node[j].index[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
-    }
-
-    for (i = 0; i < 3; i++) {
-      VecNormalize(nullvecs[i], PETSC_NULL);
-    }
-
-    for (i=3; i < nearnulldim; i++) {
-      // Orthonormalize vec[i] against vec[0:i-1]
-      VecMDot(nullvecs[i], i, nullvecs, dots);
-      for (j= 0; j < i; j++) {
-        dots[j] *= -1.;
-      }
-      VecMAXPY(nullvecs[i],i,dots,nullvecs);
-      VecNormalize(nullvecs[i], PETSC_NULL);
-    }
-  
-    petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvecs, &nullsp));
-    petsc_call(MatSetNearNullSpace(fino.A, nullsp));
-  }
+/*  
+  petsc_call(MatCreateVecs(fino.A, NULL, &cero));
+  petsc_call(MatMult(fino.A, nullvec[5], cero));
+  fino_print_petsc_vector(cero, PETSC_VIEWER_STDOUT_WORLD);
+  petsc_call(VecNorm(cero, NORM_1, &norm));
+  printf("%g\n", norm);
+ */
   
   // el monitor
 //  petsc_call(KSPMonitorSet(fino.ksp, fino_monitor_dots, NULL, 0));
@@ -141,6 +172,10 @@ int fino_solve_linear_petsc(void) {
   // do the work!
   petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
 
+  
+//  petsc_call(MatGetNearNullSpace(fino.A, &nullsp));
+//  petsc_call(MatNullSpaceGetVecs(nullsp, &has_const, &n, &vecs));
+  
   // chequeamos que haya convergido
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
   if (reason < 0) {

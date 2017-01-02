@@ -1,12 +1,12 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.19-g3537a8b
+This reference sheet is for [Fino](index.html) v0.5.24-gb15fa5c
 . 
 
 ~~~
 $ fino
-fino v0.5.19-g3537a8b 
+fino v0.5.24-gb15fa5c+Δ 
 a partial differential equation solver based on the finite element method
 $
 ~~~
@@ -34,19 +34,29 @@ FINO_PROBLEM [ BAKE | SHAKE | BREAK ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [
 
 
 
+##  `FINO_REACTION`
+
+Asks Fino to compute the reactions at physical entities with Dirichlet boundary conditions.
+
+~~~wasora
+FINO_REACTION PHYSICAL_ENTITY <physical_entity> [ NAME_ROOT <name> ]
+~~~
+
+
+
 ##  `FINO_SOLVER`
 
 Sets options related to the eigen-solver.
 
 ~~~wasora
-FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE ] [ USE_PCSETCOORDINATES ] [ SET_BLOCK_SIZE ]
+FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE [ fino | setcoordinates | none ] ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ]
 ~~~
 
 
 
-List of `KSP_TYPE`s http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html
+List of `KSP_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>
          
-List of `PC_TYPE`s http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html
+List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>
          
 
 ##  `FINO_STEP`
@@ -63,6 +73,89 @@ FINO_STEP [ JUST_BUILD | JUST_SOLVE ] [ DO_NOT_COMPUTE_GRADIENTS | COMPUTE_GRADI
 
 
 # Variables
+
+##  `displ_max`
+
+The module of the maximum displacement of the elastic problem.
+
+
+
+##  `displ_max_x`
+
+The\ $x$ coordinate of the maximum displacement of the elastic problem.
+
+
+
+##  `displ_max_y`
+
+The\ $y$ coordinate of the maximum displacement of the elastic problem.
+
+
+
+##  `displ_max_z`
+
+The\ $z$ coordinate of the maximum displacement of the elastic problem.
+
+
+
+##  `fino_atol`
+
+Absolute tolerance of the linear solver,
+as passed to PETSc’s
+[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
+Default `1e-50`.
+
+
+
+##  `fino_dirichlet_diagonal`
+
+Value that is inserted in the diagonal of the rows
+that correspond to Dirichlet boundary conditions.
+Default is one, but PETSc internally scales it up
+automatically to keep a good condition number.
+
+
+
+##  `fino_divtol`
+
+Divergence tolerance,
+as passed to PETSc’s
+[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+Default `1e+3`.  
+
+
+
+##  `fino_iterations`
+
+This variable contains the actual number of iterations used
+by the solver. It is set after `FINO_STEP`.
+
+
+
+##  `fino_max_iterations`
+
+Number of maximum iterations before diverging,
+as passed to PETSc’s
+[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+Default `1e4`.
+
+
+
+##  `fino_residual`
+
+This variable contains the residual obtained
+by the solver. It is set after `FINO_STEP`.
+
+
+
+##  `fino_rtol`
+
+Relative tolerance of the linear solver,
+as passed to PETSc’s
+[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+Default `1e-9`.
+
+
 
 ##  `lambda`
 
@@ -93,6 +186,30 @@ Total available memory, in bytes.
 ##  `petsc_flops`
 
 Number of floating point operations performed by PETSc/SLEPc.
+
+
+
+##  `sigma_max`
+
+The maximum von Mises stress\ $\sigma$ of the elastic problem.
+
+
+
+##  `sigma_max_x`
+
+The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+
+
+
+##  `sigma_max_y`
+
+The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+
+
+
+##  `sigma_max_z`
+
+The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
 
 
 
@@ -137,6 +254,42 @@ Wall time insumed to solve the eigen-problem, in seconds.
 Wall time insumed to initialize, build and solve, in seconds.
 CPU time insumed to initialize, build and solve, in seconds.
 CPU time insumed by PETSc to initialize, build and solve, in seconds.
+
+
+
+##  `u_at_displ_max`
+
+The\ $x$ component\ $u$ of the maximum displacement of the elastic problem.
+
+
+
+##  `u_at_sigma_max`
+
+The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
+
+
+
+##  `v_at_displ_max`
+
+The\ $y$ component\ $v$ of the maximum displacement of the elastic problem.
+
+
+
+##  `v_at_sigma_max`
+
+The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
+
+
+
+##  `w_at_displ_max`
+
+The\ $z$ component\ $w$ of the maximum displacement of the elastic problem.
+
+
+
+##  `w_at_sigma_max`
+
+The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
 
 
 

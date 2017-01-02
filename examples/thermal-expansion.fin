@@ -12,7 +12,6 @@ PHYSICAL_ENTITY NAME "xy" BC  w=0
 PHYSICAL_ENTITY NAME "yz" BC  u=0  
 PHYSICAL_ENTITY NAME "zx" BC  v=0 
 
-FINO_SOLVER PC_TYPE lu KSP_TYPE gmres
 FINO_STEP
 
 MESH_POST FILE_PATH prism.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
