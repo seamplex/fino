@@ -36,8 +36,8 @@ int fino_solve_linear_petsc(void) {
   PetscInt i, j, d;
 //  PetscViewerAndFormat *vf;  
 
-  PetscInt nearnulldim;
-  MatNullSpace nullsp;
+  PetscInt nearnulldim = 0;
+  MatNullSpace nullsp = NULL;
   PetscScalar  dots[5];
   Vec          *nullvec;  
   const Vec *vecs;
@@ -46,6 +46,7 @@ int fino_solve_linear_petsc(void) {
   PetscBool has_const;
   PetscInt  n;
   PetscReal *coords;
+  Vec       vec_coords;
 
   // creamos un solver lineal
   if (fino.ksp == NULL) {
@@ -82,6 +83,27 @@ int fino_solve_linear_petsc(void) {
   // las coordenadas (solo para break)
 // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
   switch(fino.set_near_nullspace) {
+    
+    case set_near_nullspace_rigidbody:
+      petsc_call(VecCreate(MPI_COMM_WORLD, &vec_coords));
+      petsc_call(VecSetBlockSize(vec_coords, fino.degrees));
+      petsc_call(VecSetSizes(vec_coords, PETSC_DECIDE, fino.dimensions * fino.mesh->n_nodes));
+      petsc_call(VecSetUp(vec_coords));
+      petsc_call(VecGetArray(vec_coords, &coords));
+      
+      for (j = 0; j < fino.mesh->n_nodes; j++) {
+        for (d = 0; d < fino.dimensions; d++) {
+          coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+        }
+      }
+      
+      petsc_call(VecRestoreArray(vec_coords, &coords));
+      petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
+      petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+      petsc_call(MatNullSpaceDestroy(&nullsp));
+      petsc_call(VecDestroy(&vec_coords));      
+    break;
+    
     case set_near_nullspace_fino:
       nearnulldim = 6; 
       petsc_call(PetscMalloc1(nearnulldim, &nullvec));
@@ -122,15 +144,11 @@ int fino_solve_linear_petsc(void) {
 
       petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
       petsc_call(MatSetNearNullSpace(fino.A, nullsp));
-
-  /*    
-      for (i = 0; i < nearnulldim; i++) {
-        petsc_call(VecDestroy(&nullvec[i]));
-      }
-      petsc_call(PetscFree(nullvec));
-   */
+//      petsc_call(MatNullSpaceDestroy(&nullsp));
+//      petsc_call(VecDestroy(&vec_coords));      
     break;  
-
+   
+/*    
     case set_near_nullspace_setcoordinates:
       petsc_call(PetscMalloc1(fino.dimensions * fino.mesh->n_nodes, &coords));
       for (j = 0; j < fino.mesh->n_nodes; j++) {
@@ -142,21 +160,25 @@ int fino_solve_linear_petsc(void) {
       // esto termina en PCSetCoordinates_AGG() en src/ksp/pc/impls/gamg/agg.c
       petsc_call(PCSetCoordinates(fino.pc, fino.dimensions, fino.mesh->n_nodes, coords));
       petsc_call(PetscFree(coords));
+ */
     break;
     
     case set_near_nullspace_none:
       ;
     break;
   }
-  
 
 /*  
+  MatGetNearNullSpace(fino.A, &nullsp);
+  MatNullSpaceGetVecs(nullsp, &has_const, &n, &nullvec);
   petsc_call(MatCreateVecs(fino.A, NULL, &cero));
+  
   petsc_call(MatMult(fino.A, nullvec[5], cero));
   fino_print_petsc_vector(cero, PETSC_VIEWER_STDOUT_WORLD);
-  petsc_call(VecNorm(cero, NORM_1, &norm));
-  printf("%g\n", norm);
+  exit(0);
  */
+//  petsc_call(VecNorm(cero, NORM_1, &norm));
+//  printf("%g\n", norm);
   
   // el monitor
 //  petsc_call(KSPMonitorSet(fino.ksp, fino_monitor_dots, NULL, 0));

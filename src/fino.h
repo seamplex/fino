@@ -211,8 +211,8 @@ struct {
   char *st_type;
   
   enum {
+    set_near_nullspace_rigidbody,
     set_near_nullspace_fino,
-    set_near_nullspace_setcoordinates,
     set_near_nullspace_none
   } set_near_nullspace;
   

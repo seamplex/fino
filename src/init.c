@@ -100,15 +100,14 @@ int plugin_init_before_parser(void) {
 
   
   // variables especiales de fino
-  // TODO: documentar
-///va+fino_atol+name fino_atol
-///va+fino_atol+desc Absolute tolerance of the linear solver,
-///va+fino_atol+desc as passed to PETSc’s
-///va+fino_atol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
-  fino.vars.atol = wasora_define_variable("fino_atol");
+///va+fino_abstol+name fino_abstol
+///va+fino_abstol+desc Absolute tolerance of the linear solver,
+///va+fino_abstol+desc as passed to PETSc’s
+///va+fino_abstol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
+  fino.vars.atol = wasora_define_variable("fino_abstol");
   // TODO: poner el default automaticamente
 ///va+fino_atol+desc Default `1e-50`.
-  wasora_var(fino.vars.atol) = 1e-50;
+  wasora_var(fino.vars.atol) = 1e-50;   // igual al de PETSc
  
 ///va+fino_rtol+name fino_rtol
 ///va+fino_rtol+desc Relative tolerance of the linear solver,
@@ -116,23 +115,23 @@ int plugin_init_before_parser(void) {
 ///va+fino_rtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
 fino.vars.rtol = wasora_define_variable("fino_rtol");
 ///va+fino_rtol+desc Default `1e-9`.
-  wasora_var(fino.vars.rtol) = 1e-9;
+  wasora_var(fino.vars.rtol) = 1e-9;    // el de PETSc es 1e-5
   
 ///va+fino_divtol+name fino_divtol
 ///va+fino_divtol+desc Divergence tolerance,
 ///va+fino_divtol+desc as passed to PETSc’s
 ///va+fino_divtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.divtol = wasora_define_variable("fino_divtol");
-///va+fino_divtol+desc Default `1e+3`.  
-  wasora_var(fino.vars.divtol) = 1e+3;
+///va+fino_divtol+desc Default `1e+4`.  
+  wasora_var(fino.vars.divtol) = 1e+4;  // igual al de PETSc
   
 ///va+fino_max_iterations+name fino_max_iterations
 ///va+fino_max_iterations+desc Number of maximum iterations before diverging,
 ///va+fino_max_iterations+desc as passed to PETSc’s
 ///va+fino_max_iterations+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.max_iterations = wasora_define_variable("fino_max_iterations");
-///va+fino_max_iterations+desc Default `1e4`.
-  wasora_var(fino.vars.max_iterations) = 1e4;
+///va+fino_max_iterations+desc Default `10000`.
+  wasora_var(fino.vars.max_iterations) = 10000;   // igual al de PETSc
   
 ///va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
 ///va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows

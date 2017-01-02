@@ -261,14 +261,14 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE [ fino | setcoordinates | none ] ]
+///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE [ rigidbody | fino | none ] ]
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
           token = wasora_get_next_token(NULL);
           if (token != NULL) {
-            if (strcmp(token, "fino") == 0) {
+            if (strcmp(token, "rigidbody") == 0) {
+              fino.set_near_nullspace = set_near_nullspace_rigidbody;
+            } else if (strcmp(token, "fino") == 0) {
               fino.set_near_nullspace = set_near_nullspace_fino;
-            } else if (strcmp(token, "setcoordinates") == 0) {
-              fino.set_near_nullspace = set_near_nullspace_setcoordinates;
             } else if (strcmp(token, "none") == 0) {
               fino.set_near_nullspace = set_near_nullspace_none;
             } else {
