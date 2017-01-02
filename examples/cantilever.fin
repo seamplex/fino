@@ -1,0 +1,23 @@
+PARAMETRIC c MIN 0.2 MAX 2 NSTEPS 10
+
+M4 {
+ INPUT_FILE_PATH  cantilever.geo.m4
+ OUTPUT_FILE_PATH cantilever.geo
+ MACRO lc 1/c
+}
+
+SHELL "gmsh -3 -v 0 cantilever.geo"
+MESH FILE_PATH cantilever.msh
+
+PHYSICAL_ENTITY NAME left  BC fixed
+PHYSICAL_ENTITY NAME right BC tz=-1
+
+E = 200e3
+nu = 0.3
+
+FINO_SOLVER PC_TYPE $1
+
+FINO_STEP
+
+PRINT nodes elements displ_max sigma_max fino_iterations time_cpu_build time_cpu_solve memory_usage_global
+
