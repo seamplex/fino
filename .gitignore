@@ -90,6 +90,9 @@ examples/two-material-beam.vtk
 examples/cantilever.geo
 examples/cantilever.msh
 
+examples/traction.vtk
+examples/traction.msh
+
 cosas
 
 petscslepc.mak

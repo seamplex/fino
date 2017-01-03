@@ -65,7 +65,7 @@ PetscErrorCode petsc_err;
 #define BC_DIRICHLET_NULL  5
 #define BC_DIRICHLET_ALG   6
 
-#define BC_FACTOR 1.0
+#define BC_FACTOR 0.1
 
 // forward definitions
 typedef struct fino_reaction_t fino_reaction_t;

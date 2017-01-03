@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's boundary conditions
  *
- *  Copyright (C) 2015-2016 jeremy theler
+ *  Copyright (C) 2015--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -222,8 +222,10 @@ int fino_set_essential_bc(void) {
   size_t current_threshold = BC_FACTOR*fino.problem_size - 2*fino.degrees;
 
   PetscInt ncols;
+  Vec vec_rhs;
 
   int found = 0;
+  int non_homogeneous_bc = 0;
   int k = 0;
   int i, j, d;
   
@@ -237,8 +239,8 @@ int fino_set_essential_bc(void) {
     wasora_var(fino.vars.dirichlet_diagonal) = 1;
   }
   
-  rhs = calloc(BC_FACTOR*fino.problem_size, sizeof(PetscScalar));
-  indexes = calloc(BC_FACTOR*fino.problem_size, sizeof(PetscInt));
+  rhs = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
+  indexes = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
   fino.dirichlet_row = calloc(BC_FACTOR*fino.problem_size, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
@@ -251,8 +253,8 @@ int fino_set_essential_bc(void) {
         if (k >= current_threshold) {
           current_size += BC_FACTOR*fino.problem_size;
           current_threshold = current_size - 2*fino.degrees;
-          indexes = realloc(indexes, current_size * sizeof(int));
-          rhs = realloc(rhs, current_size * sizeof(double));
+          indexes = realloc(indexes, current_size * sizeof(PetscInt));
+          rhs = realloc(rhs, current_size * sizeof(PetscScalar));
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
         }
 
@@ -283,7 +285,9 @@ int fino_set_essential_bc(void) {
                 wasora_var_value(fino.vars.U[1]) = 0;
                 wasora_var_value(fino.vars.U[2]) = 0;
 
-                rhs[k] = wasora_evaluate_expression(&bc->expr);
+                if ((rhs[k] = wasora_evaluate_expression(&bc->expr)) != 0) {
+                  non_homogeneous_bc = 1;
+                }
 
                 fino.dirichlet_row[k].alg_col = calloc(fino.degrees, sizeof(PetscInt));
                 fino.dirichlet_row[k].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
@@ -325,7 +329,10 @@ int fino_set_essential_bc(void) {
                     wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                     wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
                     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
-                    rhs[k] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
+
+                    if ((rhs[k] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr)) != 0) {
+                      non_homogeneous_bc = 1;
+                    }
                   } else {
                     rhs[k] = 0;
                   }
@@ -344,7 +351,7 @@ int fino_set_essential_bc(void) {
 
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
-  fino.n_dirichlet_rows = k;
+  // TODO: hacer lo que dijo barry
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
     petsc_call(MatGetRow(fino.A, indexes[i], &ncols, &cols, &vals));
     fino.dirichlet_row[i].ncols = ncols;
@@ -358,11 +365,20 @@ int fino_set_essential_bc(void) {
     petsc_call(MatRestoreRow(fino.A, indexes[i], &ncols, &cols, &vals));
   }
   
-  petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), PETSC_NULL, PETSC_NULL));
-  if (fino.math_type == math_linear) {
-    petsc_call(VecSetValues(fino.b, k, indexes, rhs, INSERT_VALUES));
-    // TODO: sumar lo que falta
-   } else if (fino.math_type == math_eigen) {
+  if (non_homogeneous_bc) {
+    if (fino.math_type == math_eigen) {
+      wasora_push_error_message("boundary conditions ought to be homogeneous in eigenvalue problems");
+      return WASORA_RUNTIME_ERROR;
+    }
+    petsc_call(MatCreateVecs(fino.A, &vec_rhs, NULL));
+    petsc_call(VecSetValues(vec_rhs, k, indexes, rhs, INSERT_VALUES));
+    petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs, fino.b));
+    petsc_call(VecDestroy(&vec_rhs));
+  } else {
+    petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), PETSC_NULL, PETSC_NULL));
+  }
+  
+  if (fino.math_type == math_eigen) {
     petsc_call(MatZeroRowsColumns(fino.B, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
   
@@ -374,8 +390,7 @@ int fino_set_essential_bc(void) {
       }
     }
   }
-  
-  
+    
   free(indexes);
   free(rhs);
 

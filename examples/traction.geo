@@ -1,9 +1,9 @@
 //
 Merge "square-beam.step";
 
-//lc = 2;
-struct = 0;
-//hex = 1;
+lc = 1;
+struct = 1;
+hex = 1;
 
 If ( struct != 0 )
  Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc;
@@ -14,11 +14,13 @@ Else
  Characteristic Length {1:8} = lc;
 EndIf
 
-//If ( hex != 0 ) 
-// Mesh.RecombineAll = 1;
-// Mesh.Recombine3DAll = 1;
-// Mesh.Recombine3DLevel = 2;
-//EndIf
+If ( hex != 0 ) 
+ Mesh.RecombineAll = 1;
+ If ( struct == 0 )
+   Mesh.Recombine3DAll = 1;
+   Mesh.Recombine3DLevel = 2;
+ EndIf
+EndIf
 
 Mesh.Optimize = 1;
 
