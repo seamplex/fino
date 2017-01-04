@@ -211,22 +211,33 @@ int fino_evaluate_bc_expressions(physical_entity_t *physical_entity, node_t *nod
 #define __FUNCT__ "fino_set_essential_bc"
 int fino_set_essential_bc(void) {
 
-  PetscScalar *rhs;
-  PetscInt *indexes;
+  // TODO: hacer esto mas limpio!!
+  
+  PetscScalar *b;
+  PetscScalar *rhs_dirichlet;
+  PetscScalar *rhs_algebraic;
+  PetscInt *indexes_dirichlet;
+  PetscInt *indexes_algebraic;
+
   physical_entity_t *physical_entity;
   element_list_item_t *associated_element;
   
   const PetscInt *cols;
   const PetscScalar *vals;
-  size_t current_size = fino.problem_size;
-  size_t current_threshold = BC_FACTOR*fino.problem_size - 2*fino.degrees;
+  size_t current_size_dirichlet = BC_FACTOR*fino.problem_size;
+  size_t current_size_algebraic = BC_FACTOR*fino.problem_size;
+    
+  size_t current_threshold_dirichlet = BC_FACTOR*fino.problem_size - 2*fino.degrees;
+  size_t current_threshold_algebraic = BC_FACTOR*fino.problem_size - 2*fino.degrees;
 
   PetscInt ncols;
-  Vec vec_rhs;
+  Vec vec_rhs_dirichlet;
+
+  int k_dirichlet = 0;
+  int k_algebraic = 0;
 
   int found = 0;
-  int non_homogeneous_bc = 0;
-  int k = 0;
+//  int non_homogeneous_bc = 0;
   int i, j, d;
   
   bc_string_based_t *bc;
@@ -239,9 +250,12 @@ int fino_set_essential_bc(void) {
     wasora_var(fino.vars.dirichlet_diagonal) = 1;
   }
   
-  rhs = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
-  indexes = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
+  rhs_dirichlet = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
+  rhs_algebraic = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
+  indexes_dirichlet = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
+  indexes_algebraic = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
   fino.dirichlet_row = calloc(BC_FACTOR*fino.problem_size, sizeof(dirichlet_row_t));
+  fino.algebraic_row = calloc(BC_FACTOR*fino.problem_size, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     found = 0;
@@ -250,21 +264,28 @@ int fino_set_essential_bc(void) {
           associated_element->element->type->dim != fino.dimensions &&
           (physical_entity = associated_element->element->physical_entity) != NULL) {
           
-        if (k >= current_threshold) {
-          current_size += BC_FACTOR*fino.problem_size;
-          current_threshold = current_size - 2*fino.degrees;
-          indexes = realloc(indexes, current_size * sizeof(PetscInt));
-          rhs = realloc(rhs, current_size * sizeof(PetscScalar));
-          fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
+        if (k_dirichlet >= current_threshold_dirichlet) {
+          current_size_dirichlet += BC_FACTOR*fino.problem_size;
+          current_threshold_dirichlet = current_size_dirichlet - 2*fino.degrees;
+          indexes_dirichlet = realloc(indexes_dirichlet, current_size_dirichlet * sizeof(PetscInt));
+          rhs_dirichlet = realloc(rhs_dirichlet, current_size_dirichlet * sizeof(PetscScalar));
+          fino.dirichlet_row = realloc(fino.dirichlet_row, current_size_dirichlet * sizeof(dirichlet_row_t));
+        }
+        if (k_algebraic >= current_threshold_algebraic) {
+          current_size_algebraic += BC_FACTOR*fino.problem_size;
+          current_threshold_algebraic = current_size_algebraic - 2*fino.degrees;
+          indexes_algebraic = realloc(indexes_algebraic, current_size_algebraic * sizeof(PetscInt));
+          rhs_algebraic = realloc(rhs_algebraic, current_size_algebraic * sizeof(PetscScalar));
+          fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
 
         if (physical_entity->bc_type_int == BC_DIRICHLET_NULL) {
           for (d = 0; d < fino.degrees; d++) {
-            fino.dirichlet_row[k].physical_entity = physical_entity;
-            fino.dirichlet_row[k].dof = d;
-            indexes[k] = fino.mesh->node[j].index[d];
-            rhs[k] = 0;
-            k++;
+            fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
+            fino.dirichlet_row[k_dirichlet].dof = d;
+            indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[d];
+            rhs_dirichlet[k_dirichlet] = 0;
+            k_dirichlet++;
           }
           found = 1;
           
@@ -276,7 +297,7 @@ int fino_set_essential_bc(void) {
             switch(bc->bc_type_int) {
               case BC_DIRICHLET_ALG:
 
-                fino.dirichlet_row[k].physical_entity = physical_entity;
+                fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
                 wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                 wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
@@ -285,34 +306,38 @@ int fino_set_essential_bc(void) {
                 wasora_var_value(fino.vars.U[1]) = 0;
                 wasora_var_value(fino.vars.U[2]) = 0;
 
-                if ((rhs[k] = wasora_evaluate_expression(&bc->expr)) != 0) {
-                  non_homogeneous_bc = 1;
+                if ((rhs_algebraic[k_algebraic] = wasora_evaluate_expression(&bc->expr)) != 0) {
+//                  non_homogeneous_bc = 1;
                 }
 
-                fino.dirichlet_row[k].alg_col = calloc(fino.degrees, sizeof(PetscInt));
-                fino.dirichlet_row[k].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
+                fino.algebraic_row[k_algebraic].alg_col = calloc(fino.degrees, sizeof(PetscInt));
+                fino.algebraic_row[k_algebraic].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
 
                 for (d = 0; d < fino.degrees; d++) {
-                  fino.dirichlet_row[k].alg_col[d] = fino.mesh->node[j].index[d];
+                  fino.algebraic_row[k_algebraic].alg_col[d] = fino.mesh->node[j].index[d];
+                  
                   wasora_var_value(fino.vars.U[d]) = +h;
                   y1 = wasora_evaluate_expression(&bc->expr);
                   wasora_var_value(fino.vars.U[d]) = -h;
                   y2 = wasora_evaluate_expression(&bc->expr);
                   wasora_var_value(fino.vars.U[d]) = 0;
-                  fino.dirichlet_row[k].alg_val[d] = -(y1-y2)/(2.0*h);
+                  
+                  fino.algebraic_row[k_algebraic].alg_val[d] = -(y1-y2)/(2.0*h);
                 }
 
                 // el indice es el que tiene el coeficiente mayor (vaya uno a saber por que)
                 for (d = 0; d < fino.dimensions; d++) {
-                  if (fabs(fino.dirichlet_row[k].alg_val[d]) >= fabs(fino.dirichlet_row[k].alg_val[0]) &&
-                      fabs(fino.dirichlet_row[k].alg_val[d]) >= fabs(fino.dirichlet_row[k].alg_val[1]) && 
-                      fabs(fino.dirichlet_row[k].alg_val[d]) >= fabs(fino.dirichlet_row[k].alg_val[2])) {
-                    indexes[k] = fino.mesh->node[j].index[d];
-                    fino.dirichlet_row[k].dof = d;
+                  if (fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[0]) &&
+                      fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[1]) && 
+                      fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[2])) {
+                    indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[d];
+                    fino.algebraic_row[k_algebraic].dof = d;
                   }
                 }
                 
-                k++;
+//                fino.algebraic_row[k_algebraic].dof = 2;
+                
+                k_algebraic++;
                 found = 1;
 
               break;
@@ -320,24 +345,24 @@ int fino_set_essential_bc(void) {
               case BC_DIRICHLET:
 
                 if (bc->bc_type_int == BC_DIRICHLET) {
-                  fino.dirichlet_row[k].physical_entity = associated_element->element->physical_entity;
-                  fino.dirichlet_row[k].dof = bc->dof;
+                  fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
+                  fino.dirichlet_row[k_dirichlet].dof = bc->dof;
 
-                  indexes[k] = fino.mesh->node[j].index[bc->dof];
+                  indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
 
                   if (fino.math_type == math_linear && (strcmp(bc->expr.string, "0") != 0)) {
                     wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                     wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
                     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
 
-                    if ((rhs[k] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr)) != 0) {
-                      non_homogeneous_bc = 1;
+                    if ((rhs_dirichlet[k_dirichlet] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr)) != 0) {
+//                      non_homogeneous_bc = 1;
                     }
                   } else {
-                    rhs[k] = 0;
+                    rhs_dirichlet[k_dirichlet] = 0;
                   }
 
-                  k++;
+                  k_dirichlet++;
                 }
                 found = 1;
                 
@@ -349,11 +374,15 @@ int fino_set_essential_bc(void) {
     }
   }
 
+  fino.n_dirichlet_rows = k_dirichlet;
+  fino.n_algebraic_rows = k_algebraic;
+  
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
+  petsc_call(VecGetArray(fino.b, &b));
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    petsc_call(MatGetRow(fino.A, indexes[i], &ncols, &cols, &vals));
+    petsc_call(MatGetRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
     fino.dirichlet_row[i].ncols = ncols;
     fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
     fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
@@ -362,37 +391,38 @@ int fino_set_essential_bc(void) {
       fino.dirichlet_row[i].cols[j] = cols[j];
       fino.dirichlet_row[i].vals[j] = vals[j];
     }
-    petsc_call(MatRestoreRow(fino.A, indexes[i], &ncols, &cols, &vals));
+    petsc_call(MatRestoreRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
+    
+    // el cuento es asi: hay que poner un cero en fino.b para romper las fuerzas volumetricas
+    // despues con rhs le ponemos lo que va
+    b[indexes_dirichlet[i]] = 0;
   }
+  petsc_call(VecRestoreArray(fino.b, &b));
   
-  if (non_homogeneous_bc) {
-    if (fino.math_type == math_eigen) {
-      wasora_push_error_message("boundary conditions ought to be homogeneous in eigenvalue problems");
-      return WASORA_RUNTIME_ERROR;
-    }
-    petsc_call(MatCreateVecs(fino.A, &vec_rhs, NULL));
-    petsc_call(VecSetValues(vec_rhs, k, indexes, rhs, INSERT_VALUES));
-    petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs, fino.b));
-    petsc_call(VecDestroy(&vec_rhs));
-  } else {
-    petsc_call(MatZeroRowsColumns(fino.A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), PETSC_NULL, PETSC_NULL));
-  }
+  petsc_call(MatCreateVecs(fino.A, &vec_rhs_dirichlet, NULL));
+  petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
+  petsc_call(MatZeroRowsColumns(fino.A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, fino.b));
+//  petsc_call(MatZeroRows(fino.A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, fino.b));  
+  petsc_call(VecDestroy(&vec_rhs_dirichlet));
   
   if (fino.math_type == math_eigen) {
-    petsc_call(MatZeroRowsColumns(fino.B, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(MatZeroRowsColumns(fino.B, k_dirichlet, indexes_dirichlet, 0.0, PETSC_NULL, PETSC_NULL));
   }
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
-  for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    if (fino.dirichlet_row[i].alg_val != NULL) {
-      for (d = 0; d < fino.degrees; d++) {
-        petsc_call(MatSetValues(fino.A, 1, &indexes[i], fino.degrees, fino.dirichlet_row[i].alg_col, fino.dirichlet_row[i].alg_val, INSERT_VALUES));
-      }
-    }
+  // TODO: esto rompe simetria como loco!
+  petsc_call(MatZeroRows(fino.A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
+  petsc_call(VecGetArray(fino.b, &b));
+  for (i = 0; i < fino.n_algebraic_rows; i++) {
+    petsc_call(MatSetValues(fino.A, 1, &indexes_algebraic[i], fino.degrees, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
+    b[indexes_algebraic[i]] = rhs_algebraic[i];
   }
-    
-  free(indexes);
-  free(rhs);
+  petsc_call(VecRestoreArray(fino.b, &b));
+  
+  free(indexes_dirichlet);
+  free(indexes_algebraic);
+  free(rhs_dirichlet);
+  free(rhs_algebraic);
 
   wasora_call(fino_assembly());
 

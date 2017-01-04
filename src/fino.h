@@ -238,6 +238,8 @@ struct {
   // holder para calcular las reacciones de vinculo de BCs dirichlet
   int n_dirichlet_rows;
   dirichlet_row_t *dirichlet_row;
+  int n_algebraic_rows;
+  dirichlet_row_t *algebraic_row;
   
   fino_reaction_t *reactions;
 
