@@ -125,6 +125,7 @@ struct {
     var_t *rtol;
     var_t *divtol;
     var_t *max_iterations;
+    var_t *gamg_threshold;
     var_t *iterations;
     var_t *residual;
     

@@ -132,6 +132,16 @@ fino.vars.rtol = wasora_define_variable("fino_rtol");
   fino.vars.max_iterations = wasora_define_variable("fino_max_iterations");
 ///va+fino_max_iterations+desc Default `10000`.
   wasora_var(fino.vars.max_iterations) = 10000;   // igual al de PETSc
+
+///va+fino_gamg_threshold+name fino_gamg_threshold
+///va+fino_gamg_threshold+desc Relative threshold to use for dropping edges in aggregation graph for the
+///va+fino_gamg_threshold+desc [Geometric Algebraic Multigrid Preconditioner](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)
+///va+fino_gamg_threshold+desc as passed to PETSc’s
+///va+fino_gamg_threshold+desc [`PCGAMGSetThreshold`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMGSetThreshold.html).
+///va+fino_gamg_threshold+desc A value of 0.0 means keep all nonzero entries in the graph; negative means keep even zero entries in the graph.
+  fino.vars.gamg_threshold = wasora_define_variable("fino_gamg_threshold");
+///va+fino_gamg_threshold+desc Default `0.01`.  
+  wasora_var(fino.vars.gamg_threshold) = 0.01;
   
 ///va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
 ///va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows

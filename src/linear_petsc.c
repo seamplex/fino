@@ -34,6 +34,7 @@ int fino_solve_linear_petsc(void) {
   KSPConvergedReason reason;
   PetscInt iterations;
   PetscInt i, j, d;
+  PCType pc_type;
 //  PetscViewerAndFormat *vf;  
 
   PetscInt nearnulldim = 0;
@@ -78,6 +79,11 @@ int fino_solve_linear_petsc(void) {
     } else {
       petsc_call(PCSetType(fino.pc, "lu"));
     }
+  }
+  
+  petsc_call(PCGetType(fino.pc, &pc_type));
+  if (strcmp(pc_type, PCGAMG) == 0) {
+    PCGAMGSetThreshold(fino.pc, (PetscReal)wasora_var_value(fino.vars.gamg_threshold));
   }
 
   // las coordenadas (solo para break)
