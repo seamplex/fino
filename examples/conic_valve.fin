@@ -9,7 +9,7 @@ MESH FILE_PATH conic_valve.msh DIMENSIONS 3
 E = 200e3
 nu = 0.3
 
-# FINO_SOLVER PC_TYPE lu KSP_TYPE cg
+# FINO_SOLVER PC_TYPE lu KSP_TYPE preonly
 
 PHYSICAL_ENTITY NAME base  BC u=0 v=1e-2 w=0
 PHYSICAL_ENTITY NAME top   BC u=0 v=1e-2 w=0

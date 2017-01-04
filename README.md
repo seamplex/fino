@@ -129,7 +129,7 @@ Follow us: [Twitter](https://twitter.com/seamplex/) [YouTube](https://www.youtub
 
 ---------------------------
 
-fino is copyright (C) 2014-2016 Jeremy Theler  
+fino is copyright (C) 2014-2017 Jeremy Theler  
 fino is licensed under [GNU GPL version 3](http://www.gnu.org/copyleft/gpl.html) or (at your option) any later version.  
 fino is free software: you are free to change and redistribute it.  
 There is NO WARRANTY, to the extent permitted by law.  

@@ -1,6 +1,7 @@
 config.h
 config.log
 config.status
+confdefs.h
 .deps/
 .dirstamp
 .libs/
