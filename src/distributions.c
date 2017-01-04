@@ -1,5 +1,5 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
- *  fino's handling of distributions
+ *  fino's approach to handling distributions of properties
  *
  *  Copyright (C) 2015-2016 jeremy theler
  *
@@ -57,26 +57,32 @@ int fino_distribution_init(fino_distribution_t *distribution, const char *name) 
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_distribution_evaluate"
-double fino_distribution_evaluate(fino_distribution_t *distribution, material_t *material) {
-  double x[3];
-  property_data_t *property_data = NULL;
+double fino_distribution_evaluate(fino_distribution_t *distribution, material_t *material, double *x) {
   
   PetscFunctionBegin;
   
   if (distribution->variable != NULL) {
     PetscFunctionReturn(wasora_var_value(distribution->variable));
+    
   } else if (distribution->physical_property != NULL) {
-     HASH_FIND_STR(material->property_datums, distribution->physical_property->name, property_data);
+    property_data_t *property_data = NULL;
+    HASH_FIND_STR(material->property_datums, distribution->physical_property->name, property_data);
     if (property_data != NULL) {
-      // evaluamos la expresion del material
+      // evaluamos la expresion del material, que es una expresion (no una funcion) de x,y,z
+      wasora_var_value(wasora_mesh.vars.x) = x[0];
+      if (fino.dimensions > 1) {
+        wasora_var_value(wasora_mesh.vars.y) = x[1];
+        if (fino.dimensions > 2) {
+          wasora_var_value(wasora_mesh.vars.z) = x[2];
+        }
+      }
+      
       PetscFunctionReturn(wasora_evaluate_expression(&property_data->expr));
     }
+    
   } else if (distribution->function != NULL || material != NULL) {
-    // TODO: esto creo que ya lo hace alguien, y si no lo hace deberia hacerlo
-    x[0] = wasora_var_value(wasora_mesh.vars.x);
-    x[1] = wasora_var_value(wasora_mesh.vars.y);
-    x[2] = wasora_var_value(wasora_mesh.vars.z);
     PetscFunctionReturn(wasora_evaluate_function(distribution->function, x));
+    
   }
   
   PetscFunctionReturn(0);

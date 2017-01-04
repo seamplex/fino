@@ -415,6 +415,6 @@ extern const char *plugin_copyright(void);
 
 // distributions.c
 extern int fino_distribution_init(fino_distribution_t *, const char *);
-extern double fino_distribution_evaluate(fino_distribution_t *, material_t *);
+extern double fino_distribution_evaluate(fino_distribution_t *, material_t *, double *);
 
 #endif  /* _FINO_H_ */

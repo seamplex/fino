@@ -102,7 +102,7 @@ int fino_build_breakshake(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
-      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material), fino_distribution_evaluate(&distribution_nu, material)));
+      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_nu, material,NULL)));
     }
     
     // expansion termica
@@ -142,9 +142,9 @@ int fino_build_breakshake(element_t *element, int v) {
     if (fino.problem == problem_break && (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
       c = w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
-      gsl_vector_add_to_element(fino.bi, 3*j+0, c * fino_distribution_evaluate(&distribution_fx, material));
-      gsl_vector_add_to_element(fino.bi, 3*j+1, c * fino_distribution_evaluate(&distribution_fy, material));
-      gsl_vector_add_to_element(fino.bi, 3*j+2, c * fino_distribution_evaluate(&distribution_fz, material));
+      gsl_vector_add_to_element(fino.bi, 3*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, 3*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, 3*j+2, c * fino_distribution_evaluate(&distribution_fz, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
     }
     
   }
@@ -152,7 +152,7 @@ int fino_build_breakshake(element_t *element, int v) {
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
-    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material), fino_distribution_evaluate(&distribution_nu, material)));
+    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
   }
 
   // calculamos Bt*C*B
@@ -161,7 +161,7 @@ int fino_build_breakshake(element_t *element, int v) {
 
   // expansion termica
   if (distribution_alpha.defined != 0) {
-    alphaT = fino_distribution_evaluate(&distribution_alpha, material)*fino_distribution_evaluate(&distribution_T, material);
+    alphaT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0))*fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
     gsl_vector_set(et, 0, alphaT);
     gsl_vector_set(et, 1, alphaT);
     gsl_vector_set(et, 2, alphaT);
@@ -171,7 +171,7 @@ int fino_build_breakshake(element_t *element, int v) {
   
   if (fino.problem == problem_shake) {
     // calculamos Ht*rho*H
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
   } 
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -261,7 +261,7 @@ int fino_break_compute_stresses(void) {
   
   // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
   if (distribution_nu.variable != NULL) {
-    nu = fino_distribution_evaluate(&distribution_nu, NULL);
+    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
     if (nu > 0.5) {
       wasora_push_error_message("nu is greater than 1/2");
       return WASORA_RUNTIME_ERROR;
@@ -271,19 +271,25 @@ int fino_break_compute_stresses(void) {
     }
   }
   if (distribution_E.variable != NULL) {
-    E = fino_distribution_evaluate(&distribution_E, NULL);
+    E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
   }
   
  
   wasora_var(fino.vars.sigma_max) = 0;
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
+    
+    wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+    wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+    wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+    
     material = NULL;
     if (distribution_nu.variable == NULL) {
       // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
       // pesando toda la funcion completa con los elementos adyacentes
       LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
-        if (associated_element->element->physical_entity != NULL) {
+        if (associated_element->element->type->dim == fino.dimensions &&
+            associated_element->element->physical_entity != NULL) {
           material = associated_element->element->physical_entity->material;
         }
       }
@@ -291,7 +297,7 @@ int fino_break_compute_stresses(void) {
         wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
         return WASORA_RUNTIME_ERROR;
       }
-      nu = fino_distribution_evaluate(&distribution_nu, material);
+      nu = fino_distribution_evaluate(&distribution_nu, material, fino.mesh->node[j].x);
       if (nu > 0.5) {
         wasora_push_error_message("nu is greater than 1/2");
         return WASORA_RUNTIME_ERROR;
@@ -313,7 +319,7 @@ int fino_break_compute_stresses(void) {
           return WASORA_RUNTIME_ERROR;
         }
       }
-      E = fino_distribution_evaluate(&distribution_E, material);
+      E = fino_distribution_evaluate(&distribution_E, material, fino.mesh->node[j].x);
     }
 
     // deformaciones

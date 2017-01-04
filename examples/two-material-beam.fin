@@ -22,5 +22,5 @@ PRINT TEXT "memory     = " %.3f 1e-9*memory_usage_global " Gb / " 1e-9*available
 FINO_DEBUG FILE_PATH two-material-beam.md
 
 # results
-MESH_POST FILE_PATH two-material-beam.vtk E nu sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH two-material-beam.vtk E nu dudx dudy dudz sigma sigma1 sigma2 sigma3 VECTOR u v w
 PRINT TEXT "sigma max  = " %g sigma_max
