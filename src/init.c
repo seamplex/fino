@@ -211,13 +211,13 @@ fino.vars.rtol = wasora_define_variable("fino_rtol");
 ///va+sigma_max_z+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_z = wasora_define_variable("sigma_max_z");
   
-///va+u_at_sigma_max+name sigma_max_z
+///va+u_at_sigma_max+name u_at_sigma_max
 ///va+u_at_sigma_max+desc The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.u_at_sigma_max = wasora_define_variable("u_at_sigma_max");
-///va+v_at_sigma_max+name sigma_max_z
+///va+v_at_sigma_max+name v_at_sigma_max
 ///va+v_at_sigma_max+desc The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.v_at_sigma_max = wasora_define_variable("v_at_sigma_max");
-///va+w_at_sigma_max+name sigma_max_z
+///va+w_at_sigma_max+name w_at_sigma_max
 ///va+w_at_sigma_max+desc The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.w_at_sigma_max = wasora_define_variable("w_at_sigma_max");
   
