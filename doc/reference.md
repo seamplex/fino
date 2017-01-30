@@ -1,12 +1,12 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.24-gb15fa5c
+This reference sheet is for [Fino](index.html) v0.5.34-g32c3dd8
 . 
 
 ~~~
 $ fino
-fino v0.5.24-gb15fa5c+Δ 
+fino v0.5.34-g32c3dd8+Δ 
 a partial differential equation solver based on the finite element method
 $
 ~~~
@@ -49,7 +49,7 @@ FINO_REACTION PHYSICAL_ENTITY <physical_entity> [ NAME_ROOT <name> ]
 Sets options related to the eigen-solver.
 
 ~~~wasora
-FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE [ fino | setcoordinates | none ] ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ]
+FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE [ rigidbody | fino | none ] ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ]
 ~~~
 
 
@@ -98,7 +98,7 @@ The\ $z$ coordinate of the maximum displacement of the elastic problem.
 
 
 
-##  `fino_atol`
+##  `fino_abstol`
 
 Absolute tolerance of the linear solver,
 as passed to PETSc’s
@@ -121,7 +121,18 @@ automatically to keep a good condition number.
 Divergence tolerance,
 as passed to PETSc’s
 [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
-Default `1e+3`.  
+Default `1e+4`.  
+
+
+
+##  `fino_gamg_threshold`
+
+Relative threshold to use for dropping edges in aggregation graph for the
+[Geometric Algebraic Multigrid Preconditioner](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)
+as passed to PETSc’s
+[`PCGAMGSetThreshold`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMGSetThreshold.html).
+A value of 0.0 means keep all nonzero entries in the graph; negative means keep even zero entries in the graph.
+Default `0.01`.  
 
 
 
@@ -137,7 +148,16 @@ by the solver. It is set after `FINO_STEP`.
 Number of maximum iterations before diverging,
 as passed to PETSc’s
 [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
-Default `1e4`.
+Default `10000`.
+
+
+
+##  `fino_reltol`
+
+Relative tolerance of the linear solver,
+as passed to PETSc’s
+[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+Default `1e-6`.
 
 
 
@@ -145,15 +165,6 @@ Default `1e4`.
 
 This variable contains the residual obtained
 by the solver. It is set after `FINO_STEP`.
-
-
-
-##  `fino_rtol`
-
-Relative tolerance of the linear solver,
-as passed to PETSc’s
-[`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
-Default `1e-9`.
 
 
 

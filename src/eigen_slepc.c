@@ -99,8 +99,8 @@ int fino_solve_eigen_slepc(void) {
   
   // tolerancia
   // TODO
-//  if (wasora_var(fino.vars.rtol) != 0) {
-//    petsc_call(EPSSetTolerances(fino.eps, wasora_var(fino.vars.rtol), PETSC_DECIDE));
+//  if (wasora_var(fino.vars.reltol) != 0) {
+//    petsc_call(EPSSetTolerances(fino.eps, wasora_var(fino.vars.reltol), PETSC_DECIDE));
 //  }
 
   // si no nos pidieron que autovalor quieren, pedimos el primero

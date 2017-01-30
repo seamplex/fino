@@ -121,8 +121,8 @@ struct {
     
   // variables internas
   struct {
-    var_t *atol;
-    var_t *rtol;
+    var_t *abstol;
+    var_t *reltol;
     var_t *divtol;
     var_t *max_iterations;
     var_t *gamg_threshold;

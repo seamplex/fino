@@ -56,8 +56,8 @@ int fino_solve_linear_petsc(void) {
     
   }
 
-  petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.rtol),
-                                        wasora_var(fino.vars.atol),
+  petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.reltol),
+                                        wasora_var(fino.vars.abstol),
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
 

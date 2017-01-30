@@ -104,18 +104,18 @@ int plugin_init_before_parser(void) {
 ///va+fino_abstol+desc Absolute tolerance of the linear solver,
 ///va+fino_abstol+desc as passed to PETSc’s
 ///va+fino_abstol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
-  fino.vars.atol = wasora_define_variable("fino_abstol");
+  fino.vars.abstol = wasora_define_variable("fino_abstol");
   // TODO: poner el default automaticamente
-///va+fino_atol+desc Default `1e-50`.
-  wasora_var(fino.vars.atol) = 1e-50;   // igual al de PETSc
+///va+fino_abstol+desc Default `1e-50`.
+  wasora_var(fino.vars.abstol) = 1e-50;   // igual al de PETSc
  
-///va+fino_rtol+name fino_rtol
-///va+fino_rtol+desc Relative tolerance of the linear solver,
-///va+fino_rtol+desc as passed to PETSc’s
-///va+fino_rtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
-fino.vars.rtol = wasora_define_variable("fino_rtol");
-///va+fino_rtol+desc Default `1e-6`.
-  wasora_var(fino.vars.rtol) = 1e-6;    // el de PETSc es 1e-5
+///va+fino_reltol+name fino_reltol
+///va+fino_reltol+desc Relative tolerance of the linear solver,
+///va+fino_reltol+desc as passed to PETSc’s
+///va+fino_reltol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+fino.vars.reltol = wasora_define_variable("fino_reltol");
+///va+fino_reltol+desc Default `1e-6`.
+  wasora_var(fino.vars.reltol) = 1e-6;    // el de PETSc es 1e-5
   
 ///va+fino_divtol+name fino_divtol
 ///va+fino_divtol+desc Divergence tolerance,
