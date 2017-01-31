@@ -20,9 +20,7 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
-#include <unistd.h>
 #include <sys/time.h>
-#include <sys/resource.h>
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
@@ -49,9 +47,6 @@ int fino_instruction_step(void *arg) {
   fino_times_t cpu;
   fino_times_t petsc;
   int k, g;
-    
-  struct rusage resource_usage;
-
 
   PetscFunctionBegin;
   
@@ -139,9 +134,8 @@ int fino_instruction_step(void *arg) {
   wasora_var(fino.vars.time_wall_total)  = wasora_var(fino.vars.time_wall_build)  + wasora_var(fino.vars.time_wall_solve);
   wasora_var(fino.vars.time_cpu_total)   = wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve);
 
-  wasora_value(fino.vars.available_memory) = sysconf(_SC_PHYS_PAGES)*sysconf(_SC_PAGESIZE);
-  getrusage(RUSAGE_SELF, &resource_usage);
-  wasora_value(fino.vars.memory_usage_global) = (double)(1024.0*resource_usage.ru_maxrss);
+  getrusage(RUSAGE_SELF, &fino.resource_usage);
+  wasora_value(fino.vars.memory_usage_global) = (double)(1024.0*fino.resource_usage.ru_maxrss);
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
@@ -162,25 +156,4 @@ int fino_assembly(void) {
   }
   
   return WASORA_RUNTIME_OK;
-}
-
-
-
-PetscErrorCode fino_monitor_dots(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
-  /*
-     Write the solution vector and residual norm to stdout.
-      - PetscPrintf() handles output for multiprocessor jobs
-        by printing from only one processor in the communicator.
-      - The parallel viewer PETSC_VIEWER_STDOUT_WORLD handles
-        data from multiple processors so that the output
-        is not jumbled.
-  */
-//  PetscPrintf(PETSC_COMM_WORLD, ".");
-//  printf(".");
-//  fflush(stdout);
-//  PetscPrintf(PETSC_COMM_WORLD,"iteration %D solution vector:\n",n);
-//  PetscPrintf(PETSC_COMM_WORLD,"iteration %D KSP Residual norm %14.12e \n",n,rnorm);
-  printf("%d %e\n", n, rnorm);
-  
-  return 0;
 }

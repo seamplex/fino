@@ -166,8 +166,8 @@ int fino_instruction_debug(void *arg) {
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "---------------------- ---------------                                              ------------------\n"));
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "requested eigenvalue   $\\lambda$                                                    %.10f\n", wasora_value(fino.vars.lambda)));
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "residual norm          $\\|R \\phi - \\lambda F \\phi\\|_2$                              %.4g\n", wasora_value(fino.vars.residual_norm)));
-      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "relative error         $\\|R \\phi - \\lambda F \\phi\\|_2 / \\| \\lambda F \\phi \\|_2$     %.4g\n", wasora_value(fino.vars.rel_error)));
-      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "error estimate         $\\|\\lambda - \\lambda_\\text{real}\\|$                          %.4g\n", wasora_value(fino.vars.error_estimate)));
+//      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "relative error         $\\|R \\phi - \\lambda F \\phi\\|_2 / \\| \\lambda F \\phi \\|_2$     %.4g\n", wasora_value(fino.vars.rel_error)));
+//      petsc_call(PetscViewerASCIIPrintf(debug->viewer, "error estimate         $\\|\\lambda - \\lambda_\\text{real}\\|$                          %.4g\n", wasora_value(fino.vars.error_estimate)));
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "---------------------- ---------------                                              ------------------\n"));
       petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n"));
         

@@ -19,6 +19,7 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+#include <unistd.h>
 #include <signal.h>
 #include "fino.h"
 
@@ -156,10 +157,10 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+fino_iterations+desc by the solver. It is set after `FINO_STEP`.
   fino.vars.iterations = wasora_define_variable("fino_iterations");
   
-///va+fino_residual+name fino_residual
-///va+fino_residual+desc This variable contains the residual obtained
-///va+fino_residual+desc by the solver. It is set after `FINO_STEP`.
-  fino.vars.residual= wasora_define_variable("fino_residual");
+///va+fino_residual_norm+name fino_residual_norm
+///va+fino_residual_norm+desc This variable contains the residual obtained
+///va+fino_residual_norm+desc by the solver. It is set after `FINO_STEP`.
+  fino.vars.residual_norm= wasora_define_variable("fino_residual_norm");
 
   // estas son para las expresiones algebraicas implicitamente
   // las definimos en mayusculas porque ya hay funciones que se llaman asi en minuscula
@@ -272,6 +273,7 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+memory_use+name available_memory
 ///va+memory_use+desc Total available memory, in bytes.
   fino.vars.available_memory = wasora_define_variable("available_memory");
+  wasora_value(fino.vars.available_memory) = sysconf(_SC_PHYS_PAGES)*sysconf(_SC_PAGESIZE);
 
 ///va+memory_usage_global+name global_memory_use
 ///va+memory_usage_global+desc Maximum resident set size (global memory used), in bytes.
@@ -348,6 +350,17 @@ int plugin_init_after_parser(void) {
     }
   }
   
+  // los objetos para mostrar el progress
+  if (fino.shmem_progress_build_name != NULL) {
+    fino.shmem_progress_build = wasora_get_shared_pointer(fino.shmem_progress_build_name, sizeof(double));
+  }
+  if (fino.shmem_progress_solve_name != NULL) {
+    fino.shmem_progress_solve = wasora_get_shared_pointer(fino.shmem_progress_solve_name, sizeof(double));
+  }
+  if (fino.shmem_memory_name != NULL) {
+    fino.shmem_memory = wasora_get_shared_pointer(fino.shmem_memory_name, sizeof(double));
+  }  
+
   return WASORA_RUNTIME_OK;
 }
 
@@ -374,6 +387,17 @@ int plugin_finalize(void) {
     petsc_call(PetscFinalize());
 #endif
   }
+  
+  // los objetos para mostrar el progress
+  if (fino.shmem_progress_build_name != NULL) {
+    wasora_free_shared_pointer(fino.shmem_progress_build, fino.shmem_progress_build_name, sizeof(double));
+  }
+  if (fino.shmem_progress_solve_name != NULL) {
+    wasora_free_shared_pointer(fino.shmem_progress_solve, fino.shmem_progress_solve_name, sizeof(double));
+  }
+  if (fino.shmem_memory_name != NULL) {
+    wasora_free_shared_pointer(fino.shmem_memory, fino.shmem_memory_name, sizeof(double));
+  }  
   
   return WASORA_RUNTIME_OK;
 }

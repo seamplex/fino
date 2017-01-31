@@ -41,11 +41,13 @@ int fino_solve_linear_petsc(void) {
   MatNullSpace nullsp = NULL;
   PetscScalar  dots[5];
   Vec          *nullvec;  
+/*  
   const Vec *vecs;
   Vec cero;
   PetscReal norm;
   PetscBool has_const;
   PetscInt  n;
+ */
   PetscReal *coords;
   Vec       vec_coords;
 
@@ -187,7 +189,9 @@ int fino_solve_linear_petsc(void) {
 //  printf("%g\n", norm);
   
   // el monitor
-//  petsc_call(KSPMonitorSet(fino.ksp, fino_monitor_dots, NULL, 0));
+  if (fino.shmem_progress_build != NULL || fino.shmem_progress_solve != NULL || fino.shmem_memory != NULL) {
+    petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
+  }
   
 //  petsc_call(PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, &vf));
 //  petsc_call(KSPMonitorSet(fino.ksp, KSPMonitorDefault, vf, NULL));  
@@ -211,11 +215,35 @@ int fino_solve_linear_petsc(void) {
     return WASORA_RUNTIME_ERROR;
   }
 
+  if (fino.shmem_progress_solve != NULL) {
+    *fino.shmem_progress_solve = 1.0;
+  }
+
+    
   petsc_call(KSPGetIterationNumber(fino.ksp, &iterations));
   wasora_value(fino.vars.iterations) = (double)iterations;
+  
+  petsc_call(KSPGetResidualNorm(fino.ksp, wasora_value_ptr(fino.vars.residual_norm)));
 
 
   return WASORA_RUNTIME_OK;
 
 }
 
+PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
+//  wasora_value(fino.vars.iterations) = (double)n;
+//  wasora_var_value(fino.vars.residual_norm) = rnorm;
+
+  if (fino.shmem_memory != NULL) {
+    getrusage(RUSAGE_SELF, &fino.resource_usage);
+    *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
+  }
+
+  if (fino.shmem_progress_solve != NULL) {
+    *fino.shmem_progress_solve = 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol)));
+//    printf("%d %g\n", n, 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol))));
+  }
+
+  
+  return 0;
+}

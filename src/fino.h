@@ -22,6 +22,9 @@
 
 #ifndef _FINO_H_
 #define _FINO_H_
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include <wasora.h>
 
 #include <petscksp.h>
@@ -127,15 +130,14 @@ struct {
     var_t *max_iterations;
     var_t *gamg_threshold;
     var_t *iterations;
-    var_t *residual;
+    var_t *residual_norm;
     
     var_t *dirichlet_diagonal;
   
     var_t *unknowns;
     
-    var_t *residual_norm;
-    var_t *error_estimate;
-    var_t *rel_error;
+//    var_t *error_estimate;
+//    var_t *rel_error;
     
     var_t *nx;
     var_t *ny;
@@ -219,9 +221,22 @@ struct {
   
   int do_not_set_block_size;
   
+  char *shmem_progress_build_name;  
+  char *shmem_progress_solve_name;
+  char *shmem_memory_name;
+  
+  double *shmem_progress_build;
+  double *shmem_progress_solve;
+  double *shmem_memory;
+  
+  
+  
   expr_t eps_ncv;
   expr_t st_shift;
   expr_t st_anti_shift;  
+
+  // para la memoria  
+  struct rusage resource_usage;
   
   // objetos intermedios que evalua fino y se lo deja disponible a wasora
   vector_t *h;       // funciones de forma
@@ -334,7 +349,7 @@ struct fino_times_t {
 // fino.c
 extern int fino_instruction_step(void *);
 extern int fino_assembly(void);
-extern PetscErrorCode fino_monitor_dots(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy);
+extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy);
 
 // bc.c
 extern int fino_read_bcs(void);

@@ -261,7 +261,7 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE [ rigidbody | fino | none ] ]
+///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
           token = wasora_get_next_token(NULL);
           if (token != NULL) {
@@ -285,6 +285,18 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
+
+///kw+FINO_SOLVER+usage [ SHMEM_PROGRESS_BUILD <shmobject> ]
+        } else if (strcasecmp(token, "SHMEM_PROGRESS_BUILD") == 0) {
+          wasora_call(wasora_parser_string(&fino.shmem_progress_build_name));
+
+///kw+FINO_SOLVER+usage [ SHMEM_PROGRESS_SOLVE <shmobject> ]
+        } else if (strcasecmp(token, "SHMEM_PROGRESS_SOLVE") == 0) {
+          wasora_call(wasora_parser_string(&fino.shmem_progress_solve_name));
+
+///kw+FINO_SOLVER+usage [ MEMORY_SHMEM <shmobject> ]
+        } else if (strcasecmp(token, "SHMEM_MEMORY") == 0) {
+          wasora_call(wasora_parser_string(&fino.shmem_memory_name));
 
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);

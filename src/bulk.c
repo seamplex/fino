@@ -58,8 +58,21 @@ int fino_allocate_elemental_objects(element_t *element) {
 int fino_build_bulk(void) {
 
   int i;
+  int step = fino.mesh->n_elements/100;
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
+    
+    if ((i % step) == 0) {
+      if (fino.shmem_memory != NULL) {
+        getrusage(RUSAGE_SELF, &fino.resource_usage);
+        *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
+      }
+      
+      if (fino.shmem_progress_build != NULL) {
+        *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
+      }
+    }
+    
     if (fino.mesh->element[i].type->dim == fino.dimensions) {
       // solo los elementos que tengan la dimension del problema
       // son los que usamos para las matrices elementales
@@ -108,7 +121,12 @@ int fino_build_bulk(void) {
     }
   }
 
+  // ver si esto chupa memoria
   wasora_call(fino_assembly());
+  
+  if (fino.shmem_progress_build != NULL) {
+    *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
+  }
 
   return WASORA_RUNTIME_OK;
 
