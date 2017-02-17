@@ -302,6 +302,7 @@ int fino_set_essential_bc(void) {
                 wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                 wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
                 wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+//                printf("%g %g %g\n", fino.mesh->node[j].x[0], fino.mesh->node[j].x[1], fino.mesh->node[j].x[2]);
                 wasora_var_value(fino.vars.U[0]) = 0;
                 wasora_var_value(fino.vars.U[1]) = 0;
                 wasora_var_value(fino.vars.U[2]) = 0;
