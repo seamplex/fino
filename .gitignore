@@ -94,6 +94,8 @@ examples/cantilever.msh
 examples/traction.vtk
 examples/traction.msh
 
+examples/compsolid.msh
+
 cosas
 
 petscslepc.mak

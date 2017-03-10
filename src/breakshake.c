@@ -102,6 +102,10 @@ int fino_build_breakshake(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+      if (material == NULL) {
+        wasora_push_error_message("element %d does not have an associated material", element->id);
+        PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+      }
       wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_nu, material,NULL)));
     }
     
@@ -152,6 +156,11 @@ int fino_build_breakshake(element_t *element, int v) {
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+    if (material == NULL) {
+      wasora_push_error_message("element %d does not have an associated material", element->id);
+      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    }
+
     wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
   }
 
