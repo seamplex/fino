@@ -1,4 +1,4 @@
-SHELL "gmsh -v 0 -3 prism.geo"
+SHELL "gmsh -v 0 -3 -order 2 prism.geo"
 MESH FILE_PATH prism.msh
 
 E = 200e3      # Young modulus

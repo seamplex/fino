@@ -35,3 +35,5 @@ Physical Surface("lat") = {27, 23, 19, 15};
 Physical Volume("bulk") = {1};
 Physical Point("origin") = {1};
 Physical Point("up") = {7};
+
+//Mesh.ElementOrder = 2;

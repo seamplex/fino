@@ -1,8 +1,9 @@
 MESH FILE_PATH tensile-test-specimen.msh   # mesh file in Gmsh format
+# the file tensile-test-specimen2.msh has the same grid but with second-order elements
 
 # uniform properties
-E = 2e5   # Young modulus
-nu = 0.3  # Poisson ratio
+E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
+nu = 0.3    # Poisson ratio
 
 # boundary conditions (the names come from the physical entities in the mesh)
 PHYSICAL_ENTITY NAME left  BC fixed
@@ -18,8 +19,11 @@ PRINT TEXT "nodes                       =" %g nodes
 
 FINO_STEP
 
+# FINO_DEBUG MATRICES_X
+
 # results
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+# MESH_POST FILE_PATH tensile-test.msh VECTOR u v w dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz
 
 PRINT TEXT "maximum_diplacement   [mm]  =" %g displ_max
 PRINT TEXT "stress_at_the_origin  [MPa] =" %g sigma(0,0,0)

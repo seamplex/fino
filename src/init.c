@@ -546,20 +546,16 @@ int fino_problem_free(void) {
 
   if (fino.mesh != NULL && fino.mesh->n_elements != 0) {
     for (d = 0; d < fino.dimensions; d++) {
-//      free(fino.grad_cell[0][0]->data_argument[d]);
-      free(fino.gradient[0][0]->data_argument[d]);
+      if (fino.gradient[0][0]->data_argument != NULL) {
+        free(fino.gradient[0][0]->data_argument[d]);
+      }
     }
-//    free(fino.grad_cell[0][0]->data_argument);
-//    fino.grad_cell[0][0]->data_argument = NULL;
-
     free(fino.gradient[0][0]->data_argument);
     fino.gradient[0][0]->data_argument = NULL;
 
     
     for (g = 0; g < fino.degrees; g++) {
       for (d = 0; d < fino.dimensions; d++) {
-//        free(fino.grad_cell[g][d]->data_value);
-//        fino.grad_cell[g][d]->data_value = NULL;
         free(fino.gradient[g][d]->data_value);
         fino.gradient[g][d]->data_value = NULL;
       }

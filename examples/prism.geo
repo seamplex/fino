@@ -1,5 +1,6 @@
 Merge "prism.brep";
-Mesh.CharacteristicLengthFactor = 0.36;
+Mesh.CharacteristicLengthFactor = 1.0;
+Mesh.Algorithm = 8;
 
 Physical Surface("xy", 1) = {5};
 Physical Surface("yz", 2) = {1};

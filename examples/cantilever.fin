@@ -1,3 +1,6 @@
+DEFAULT_ARGUMENT_VALUE 1 1           # use first (1) or second (2) order elements
+DEFAULT_ARGUMENT_VALUE 2 gamg        # use this preconditioner (gamg, lu, etc)
+
 PARAMETRIC c MIN 0.2 MAX 2 NSTEPS 10
 
 M4 {
@@ -6,7 +9,7 @@ M4 {
  MACRO lc 1/c
 }
 
-SHELL "gmsh -3 -v 0 cantilever.geo"
+SHELL "gmsh -3 -v 0 -order $1 cantilever.geo"
 MESH FILE_PATH cantilever.msh
 
 PHYSICAL_ENTITY NAME left  BC fixed
@@ -15,7 +18,7 @@ PHYSICAL_ENTITY NAME right BC tz=-1
 E = 200e3
 nu = 0.3
 
-FINO_SOLVER PC_TYPE $1
+FINO_SOLVER PC_TYPE $2
 
 FINO_STEP
 
