@@ -224,11 +224,12 @@ int fino_set_essential_bc(void) {
   
   const PetscInt *cols;
   const PetscScalar *vals;
-  size_t current_size_dirichlet = BC_FACTOR*fino.problem_size;
-  size_t current_size_algebraic = BC_FACTOR*fino.problem_size;
-    
-  size_t current_threshold_dirichlet = BC_FACTOR*fino.problem_size - 2*fino.degrees;
-  size_t current_threshold_algebraic = BC_FACTOR*fino.problem_size - 2*fino.degrees;
+  size_t n_bcs;
+  size_t current_size_dirichlet;
+  size_t current_size_algebraic;
+  
+  size_t current_threshold_dirichlet;
+  size_t current_threshold_algebraic;
 
   PetscInt ncols;
   Vec vec_rhs_dirichlet;
@@ -249,13 +250,20 @@ int fino_set_essential_bc(void) {
   if (wasora_var(fino.vars.dirichlet_diagonal) == 0) {
     wasora_var(fino.vars.dirichlet_diagonal) = 1;
   }
+
+  n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
+  current_size_dirichlet = n_bcs;
+  current_size_algebraic = n_bcs;
+  current_threshold_dirichlet = n_bcs - 2*fino.degrees;
+  current_threshold_algebraic = n_bcs - 2*fino.degrees;
+
   
-  rhs_dirichlet = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
-  rhs_algebraic = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscScalar));
-  indexes_dirichlet = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
-  indexes_algebraic = malloc(BC_FACTOR*fino.problem_size * sizeof(PetscInt));
-  fino.dirichlet_row = calloc(BC_FACTOR*fino.problem_size, sizeof(dirichlet_row_t));
-  fino.algebraic_row = calloc(BC_FACTOR*fino.problem_size, sizeof(dirichlet_row_t));
+  rhs_dirichlet = malloc(n_bcs * sizeof(PetscScalar));
+  rhs_algebraic = malloc(n_bcs * sizeof(PetscScalar));
+  indexes_dirichlet = malloc(n_bcs * sizeof(PetscInt));
+  indexes_algebraic = malloc(n_bcs * sizeof(PetscInt));
+  fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
+  fino.algebraic_row = calloc(n_bcs, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     found = 0;
@@ -265,14 +273,14 @@ int fino_set_essential_bc(void) {
           (physical_entity = associated_element->element->physical_entity) != NULL) {
           
         if (k_dirichlet >= current_threshold_dirichlet) {
-          current_size_dirichlet += BC_FACTOR*fino.problem_size;
+          current_size_dirichlet += n_bcs;
           current_threshold_dirichlet = current_size_dirichlet - 2*fino.degrees;
           indexes_dirichlet = realloc(indexes_dirichlet, current_size_dirichlet * sizeof(PetscInt));
           rhs_dirichlet = realloc(rhs_dirichlet, current_size_dirichlet * sizeof(PetscScalar));
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size_dirichlet * sizeof(dirichlet_row_t));
         }
         if (k_algebraic >= current_threshold_algebraic) {
-          current_size_algebraic += BC_FACTOR*fino.problem_size;
+          current_size_algebraic += n_bcs;
           current_threshold_algebraic = current_size_algebraic - 2*fino.degrees;
           indexes_algebraic = realloc(indexes_algebraic, current_size_algebraic * sizeof(PetscInt));
           rhs_algebraic = realloc(rhs_algebraic, current_size_algebraic * sizeof(PetscScalar));

@@ -1,4 +1,4 @@
-MESH FILE_PATH two-material-beam.msh DIMENSIONS 3
+MESH FILE_PATH two-material-beam2.msh DIMENSIONS 3
 
 MATERIAL left   E 200e3 nu 0.25
 MATERIAL right  E  70e3 nu 0.33

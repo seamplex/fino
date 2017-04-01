@@ -579,8 +579,9 @@ int fino_define_functions(void) {
     return WASORA_PARSER_ERROR;
   }
 
-  fino.solution = malloc(fino.degrees * sizeof(function_t *));
-  fino.gradient = malloc(fino.degrees * sizeof(function_t *));
+  fino.solution = calloc(fino.degrees, sizeof(function_t *));
+  fino.gradient = calloc(fino.degrees, sizeof(function_t *));
+//  fino.gradsol_cell = calloc(fino.degrees, sizeof(function_t *));
   for (g = 0; g < fino.degrees; g++) {
     if (fino.unknown_name == NULL) {
       if (asprintf(&name, "phi%d", g+1) == -1) {
@@ -603,7 +604,8 @@ int fino_define_functions(void) {
     fino.solution[g]->type = type_pointwise_mesh_node;
 
     // las derivadas de las soluciones con respecto al espacio
-    fino.gradient[g] = malloc(fino.dimensions * sizeof(function_t *));
+    fino.gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
+//    fino.gradsol_cell[g] = calloc(fino.dimensions, sizeof(function_t *));
     
     for (d = 0; d < fino.dimensions; d++) {
       fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
@@ -619,6 +621,26 @@ int fino_define_functions(void) {
       fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
       fino.gradient[g][d]->type = type_pointwise_mesh_node;
       free(gradname);
+      
+      
+      
+      
+      
+      if (asprintf(&gradname, "celld%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
+        wasora_push_error_message("cannot asprintf");
+        return WASORA_RUNTIME_ERROR;
+      }
+/*      
+      if ((fino.gradsol_cell[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
+        return WASORA_PARSER_ERROR;
+      }
+      fino.gradsol_cell[g][d]->mesh = fino.mesh;
+      fino.gradsol_cell[g][d]->var_argument = fino.solution[g]->var_argument;
+      fino.gradsol_cell[g][d]->type = type_pointwise_mesh_cell;
+      free(gradname);
+*/    
+      
+      
       
     }
     

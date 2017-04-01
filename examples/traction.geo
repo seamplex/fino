@@ -3,11 +3,12 @@ Merge "square-beam.step";
 
 lc = 1;
 struct = 1;
-hex = 1;
+hex = 0;
+order = 2;
 
 If ( struct != 0 )
- Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc;
- Transfinite Line {9,10,11,12} = 100/lc;
+ Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc+1;
+ Transfinite Line {9,10,11,12} = 100/lc+1;
  Transfinite Surface "*";
  Transfinite Volume "*";
 Else
@@ -23,6 +24,7 @@ If ( hex != 0 )
 EndIf
 
 Mesh.Optimize = 1;
+Mesh.ElementOrder = order;
 
 
 Physical Volume ("bulk") = 1;

@@ -490,8 +490,10 @@ int fino_problem_init(void) {
 // alocamos objetos globales
 //---------------------------------
 
-  // la matriz global
+  // TODO: ponerle K a la matriz de stiffnes, etc
   width = fino.mesh->max_first_neighbor_nodes * fino.degrees;
+  
+  // la matriz global
   petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.A));
   petsc_call(MatSetSizes(fino.A, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
   petsc_call(MatSetFromOptions(fino.A));
@@ -501,10 +503,8 @@ int fino_problem_init(void) {
   if (fino.do_not_set_block_size == 0) {
     petsc_call(MatSetBlockSize(fino.A, fino.degrees));
   }
-  
-  
   petsc_call(PetscObjectSetName((PetscObject)fino.A, fino.lhs_matrix_name));
-
+  
   // el vector incognita
   petsc_call(MatCreateVecs(fino.A, NULL, &fino.phi));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));

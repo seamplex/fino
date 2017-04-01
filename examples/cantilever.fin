@@ -22,5 +22,7 @@ FINO_SOLVER PC_TYPE $2
 
 FINO_STEP
 
-PRINT nodes elements displ_max sigma_max fino_iterations time_cpu_build time_cpu_solve memory_usage_global
+PRINT 1/c nodes elements displ_max sigma_max fino_iterations time_cpu_build time_cpu_solve memory_usage_global
 
+OUTPUT_FILE vtk cantilever-$1-%.2f.vtk c
+MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz VECTOR u v w

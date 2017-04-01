@@ -55,7 +55,6 @@ int fino_solve_linear_petsc(void) {
   if (fino.ksp == NULL) {
     petsc_call(KSPCreate(PETSC_COMM_WORLD, &fino.ksp));
     petsc_call(KSPSetOperators(fino.ksp, fino.A, fino.A));
-    
   }
 
   petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.reltol),

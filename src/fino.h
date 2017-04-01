@@ -278,6 +278,10 @@ struct {
   function_t **solution;
   // las derivadas de la solucion con respecto al espacio;
   function_t ***gradient;
+
+  // las derivadas de la solucion con respecto al espacio;
+//  function_t ***gradsol_cell;
+//  Vec **rhsgrad;
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;

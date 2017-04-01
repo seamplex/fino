@@ -58,7 +58,7 @@ int fino_allocate_elemental_objects(element_t *element) {
 int fino_build_bulk(void) {
 
   int i;
-  int step = fino.mesh->n_elements/100;
+  int step = (fino.mesh->n_elements > 99)?fino.mesh->n_elements/100:1;
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
     
