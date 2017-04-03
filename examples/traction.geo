@@ -1,10 +1,10 @@
 //
 Merge "square-beam.step";
 
-lc = 1;
+lc = 2.5;
 struct = 1;
 hex = 0;
-order = 2;
+order = 1;
 
 If ( struct != 0 )
  Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc+1;

@@ -8,7 +8,7 @@ E = 200e3
 nu = 0.3
 
 FINO_STEP
-MESH_POST FILE_PATH traction.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH traction.vtk dudx sigma sigma1 sigma2 sigma3 VECTOR u v w
 
 dipl_in_x(x) := u(x,0,0)
 
@@ -18,4 +18,4 @@ PRINT TEXT "\# build time = " %.3f time_cpu_build
 PRINT TEXT "\# solve time = " %.3f time_cpu_solve
 
 
-PRINT_FUNCTION FORMAT %g dipl_in_x sigma(x,0,0) MIN 0 MAX 100 NSTEPS 10 HEADER
+PRINT_FUNCTION FORMAT %.5g dipl_in_x dudx(x,5,5) sigma(x,5,5) MIN 0 MAX 100 NSTEPS 10 HEADER

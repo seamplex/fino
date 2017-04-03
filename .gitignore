@@ -98,6 +98,8 @@ examples/traction.msh
 
 examples/compsolid.msh
 
+examples/meta*.msh
+
 cosas
 
 petscslepc.mak

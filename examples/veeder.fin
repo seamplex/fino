@@ -3,11 +3,11 @@
 
 r = 20   # cylinder radius
 H = 20   # cylinder height 
-lc = 2   # characteristic length of the mesh
+lc = 4   # characteristic length of the mesh
 
 # mesh
 M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo MACRO lc lc MACRO r r MACRO H H
-SHELL "gmsh -3 -v 0 veeder.geo"
+SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
 MESH FILE_PATH veeder.msh
 
 FINO_PROBLEM BREAK
