@@ -3,12 +3,12 @@
 
 r = 20   # cylinder radius
 H = 20   # cylinder height 
-lc = 4   # characteristic length of the mesh
+lc = 5   # characteristic length of the mesh
 
 # mesh
-M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo MACRO lc lc MACRO r r MACRO H H
-SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
-MESH FILE_PATH veeder.msh
+# M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo MACRO lc lc MACRO r r MACRO H H
+# SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
+MESH FILE_PATH veeder.msh DIMENSIONS 3
 
 FINO_PROBLEM BREAK
 
@@ -21,8 +21,8 @@ T0 = 400-20
 T(x,y,z) := T0*(1-(x^2+y^2)/(r^2))
 
 # boundary conditions (note that the cylinder can still rotate around z)
-PHYSICAL_ENTITY NAME inf      BC w=0
-PHYSICAL_ENTITY NAME origin   BC u=0 v=0
+PHYSICAL_ENTITY NAME inf      BC fixed #w=0
+PHYSICAL_ENTITY NAME origin   BC fixed
 
 # solve!
 FINO_STEP
@@ -30,6 +30,9 @@ FINO_STEP
 # write vtk output
 MESH_POST FILE_PATH veeder.vtk      T sigma sigma1 sigma2 sigma3  VECTOR u v w
 MESH_POST FILE_PATH veeder_out.msh  T sigma sigma1 sigma2 sigma3  VECTOR u v w
+
+# PRINT_FUNCTION u v w
+# FINO_DEBUG MATRICES_X
 
 # displacement profiles 
 v_profile(z') := v(0, r, z'*H/2)/(alpha*T0*r)

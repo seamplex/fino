@@ -1,39 +1,24 @@
-//
-//lc = 1;
-//r = 15;
-//H = 15;
+// use gmsh >= 2.16.0
+SetFactory("OpenCASCADE");
+
 h=H/2;
 
-
 Point(1) = {0, 0, 0, lc};
-Point(2) = {r, 0, 0, lc};
-Point(3) = {-r, 0, 0, lc};
-Point(4) = {0, r, 0, lc};
-Point(5) = {0, -r, 0, lc};
+Point(2) = {0, 0, h, lc};
+Cylinder(4) = {0,0,0, 0,0,h, r};
 
-Circle(1) = {3, 1, 4};
-Circle(2) = {4, 1, 2};
-Circle(3) = {2, 1, 5};
-Circle(4) = {5, 1, 3};
+// embed both centers in the surfaces
+Point{1} In Surface{3};
+Point{2} In Surface{2};
 
-Line Loop(5) = {1, 2, 3, 4};
-Plane Surface(6) = {5};
+Mesh.CharacteristicLengthMin = 0.8*lc;
+Mesh.CharacteristicLengthMax = 1.2*lc;
 
-// embebemos el centro en la superficie
-Point{1} In Surface{6};
-
-Extrude {0, 0, h} {
-  Surface{6};
-}
-// embebemos el centro en la superficie
-Point{7} In Surface{28};
-
-Physical Surface("inf") = {6};
-Physical Surface("sup") = {28};
-Physical Surface("lat") = {27, 23, 19, 15};
-
-Physical Volume("bulk") = {1};
 Physical Point("origin") = {1};
-Physical Point("up") = {7};
+Physical Point("up") = {2};
 
-//Mesh.ElementOrder = 2;
+Physical Surface("lat") = {1};
+Physical Surface("sup") = {2};
+Physical Surface("inf") = {3};
+
+Physical Volume("bulk") = {4};

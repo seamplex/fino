@@ -393,14 +393,19 @@ int fino_set_essential_bc(void) {
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
     petsc_call(MatGetRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
     fino.dirichlet_row[i].ncols = ncols;
-    fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
-    fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
-    // por si acaso igualamos en lugar de hacer memcpy
-    for (j = 0; j < ncols; j++) {
-      fino.dirichlet_row[i].cols[j] = cols[j];
-      fino.dirichlet_row[i].vals[j] = vals[j];
+    if (ncols != 0) {
+      fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
+      fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
+      // por si acaso igualamos en lugar de hacer memcpy
+      for (j = 0; j < ncols; j++) {
+        fino.dirichlet_row[i].cols[j] = cols[j];
+        fino.dirichlet_row[i].vals[j] = vals[j];
+      }
+      petsc_call(MatRestoreRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
+    } else {
+      wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
+      return WASORA_RUNTIME_ERROR;
     }
-    petsc_call(MatRestoreRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
     
     // el cuento es asi: hay que poner un cero en fino.b para romper las fuerzas volumetricas
     // despues con rhs le ponemos lo que va
