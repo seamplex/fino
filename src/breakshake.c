@@ -413,7 +413,8 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
              gsl_pow_2(fino.solution[1]->data_value[j]) +        
              gsl_pow_2(fino.solution[2]->data_value[j]);
     
-    if (displ2 > max_displ2) {
+    // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
+    if (displ2 >= max_displ2) {
       max_displ2 = displ2;
       wasora_var(fino.vars.displ_max) = sqrt(displ2);
       wasora_var(fino.vars.displ_max_x) = fino.mesh->node[j].x[0];
