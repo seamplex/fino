@@ -126,21 +126,10 @@ int fino_compute_gradients(void) {
           gsl_vector_set(fino.mesh->fem.x, 1, fino.mesh->element[i].node[j]->x[1]);
           gsl_vector_set(fino.mesh->fem.x, 2, fino.mesh->element[i].node[j]->x[2]);
 
-          wasora_call(mesh_compute_r(&fino.mesh->element[i], fino.mesh->fem.x, fino.mesh->fem.r));
-
-/*          
-          // lo corremos un toque para no estar justo sobre el nodo
-          for (m = 0; m < fino.dimensions; m++) {
-            if (gsl_vector_get(fino.mesh->fem.r, m) > 0.99 || gsl_vector_get(fino.mesh->fem.r, m) < 0.01)  {
-              gsl_vector_set(fino.mesh->fem.r, m, gsl_vector_get(fino.mesh->fem.r, m) + k*(0.5-gsl_vector_get(fino.mesh->fem.r, m)));
-            }
-          }
-*/
-/*          
-          gsl_vector_set(fino.mesh->fem.r, 0, gsl_vector_get(fino.mesh->fem.r, 0) + k*(0.5-gsl_vector_get(fino.mesh->fem.r, 0)));
-          gsl_vector_set(fino.mesh->fem.r, 1, gsl_vector_get(fino.mesh->fem.r, 1) + k*(0.5-gsl_vector_get(fino.mesh->fem.r, 1)));
-          gsl_vector_set(fino.mesh->fem.r, 2, gsl_vector_get(fino.mesh->fem.r, 2) + k*(0.5-gsl_vector_get(fino.mesh->fem.r, 2)));
-*/        
+//          wasora_call(mesh_compute_r(&fino.mesh->element[i], fino.mesh->fem.x, fino.mesh->fem.r));
+          
+          // esto da exactametne ceros o unos
+          wasora_call(mesh_compute_r_at_node(&fino.mesh->element[i], j, fino.mesh->fem.r));
           
           mesh_compute_dxdr(&fino.mesh->element[i], fino.mesh->fem.r, fino.mesh->fem.dxdr);
           mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
