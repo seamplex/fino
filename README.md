@@ -9,6 +9,16 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
 
 [![CAEplex: a web-based interface for finite-element analysis on the cloud](doc/caeplex.png){.img-responsive}](https://www.caeplex.com)
 
+<div class="row hidden-xs" style="margin-top: 1em">
+ <div class="col-md-12">
+  <div class="embed-responsive embed-responsive-16by9">
+   <div class="github-fork-ribbon right-top" title="Play with me!"></div>
+   <iframe class="embed-responsive-item" src="demo/viga.html"></iframe>
+  </div>
+ </div>
+</div>
+
+
 # Quick start
 
 If you are impatient to run Fino, open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
@@ -23,6 +33,34 @@ Make sure you have `curl` installed and if you are behind a proxy, that both `ht
  b. Ask for help in the mailing list at <https://groups.google.com/a/seamplex.com/forum/#!forum/wasora>
 
 If these instructions are non-sense to you, go directly to point b.
+
+# Features 
+
+Fino uses the a finite-element formulation to solve
+
+ * the displacement-based linear static elastic problem, or
+ * the natural frequencies modal linear static elastic problem, or
+ * the static heat conduction equation, or
+ * any arbitrary linear partial differential equation provided the user enters the elemental stiffness matrix.
+
+Fino uses a main input file (see below for [examples](#examples)), that in turn instructs Fino to read one or more mesh files in [Gmsh](http://gmsh.info/) format. Fino works on top of the [wasora framework](https://www.seamplex.com/wasora) so it shares its [design basis](https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf) and inherits all of its features:
+
+
+  * evaluation of [algebraic expressions](https://www.seamplex.com/wasora/realbook/real-002-expressions.html)
+  * [one](https://www.seamplex.com/wasora/realbook/real-007-functions.html) and [multi-dimensional](https://www.seamplex.com/wasora/realbook/real-010-2dfunctions.html) function interpolation
+  * [scalar](https://www.seamplex.com/wasora/realbook/real-001-peano.html), [vector](https://www.seamplex.com/wasora/realbook/real-006-fibonacci.html) and matrix operations
+  * numerical [integration](https://www.seamplex.com/wasora/realbook/real-008-integrals.html), [differentiation](https://www.seamplex.com/wasora/realbook/real-017-double-pendulum.html) and [root finding](https://www.seamplex.com/wasora/realbook/real-020-gsl.html) of functions
+  * possibility to solve [iterative](https://www.seamplex.com/wasora/realbook/real-030-buffon.html) and/or [time-dependent](https://www.seamplex.com/wasora/realbook/real-003-lag.html) problems
+  * adaptive [integration of systems of differential-algebraic equations](https://www.seamplex.com/wasora/realbook/real-018-waterwheel.html)
+  * I/O from files and shared-memory objects (with optional synchronization using semaphores)
+  * execution of [arbitrary code](https://www.seamplex.com/wasora/realbook/real-015-primes) provided as shared object files
+  * [parametric runs using quasi-random sequence numbers](https://www.seamplex.com/wasora/realbook/real-025-mathace.html) to efficiently sweep a sub-space of parameter space 
+  * solution of systems of non-linear algebraic equations
+  * non-linear fit of scattered data to [one](https://www.seamplex.com/wasora/realbook/real-020-gsl.html) or [multidimensional](https://www.seamplex.com/wasora/realbook/real-028-mass.html) functions
+  * [non-linear multidimensional optimization](https://www.seamplex.com/wasora/realbook/real-020-gsl.html)
+  * management of unstructured grids
+
+Output is 100% defined in the input file. If no explicit output instruction is provided, Fino remains silent (as required by the [UNIX rule of silence](http://www.linfo.org/rule_of_silence.html)). Besides terminal and plain-text files, post-processing files in VTK o MSH formats can be generated.
 
 # Examples
 
@@ -113,7 +151,9 @@ MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w dudx dvdx dwdx dudy dvdy 
 
 See the original tweet at <https://twitter.com/seamplex/status/789440535329181696>
 
+## Thermal expansion of finite cylinders
 
+See <https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf>.
 
 # Licensing
 
@@ -125,6 +165,7 @@ Fino is distributed under the terms of the [GNU General Public License](http://w
 Home page: <https://www.seamplex.com/fino>  
 Repository: <https://bitbucket.org/seamplex/fino>  
 Mailing list and bug reports: <wasora@seamplex.com>  (you need to subscribe first at <wasora+subscribe@seamplex.com>)  
+Web interface for mailing list: <https://www.seamplex.com/lists.html>
 Follow us: [Twitter](https://twitter.com/seamplex/) [YouTube](https://www.youtube.com/channel/UCC6SzVLxO8h6j5rLlfCQPhA) [LinkedIn](https://www.linkedin.com/company/seamplex/) [Bitbucket](https://bitbucket.org/seamplex/)
 
 ---------------------------
