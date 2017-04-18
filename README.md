@@ -13,7 +13,7 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
  <div class="col-md-12">
   <div class="embed-responsive embed-responsive-16by9">
    <div class="github-fork-ribbon right-top" title="Play with me!"></div>
-   <iframe class="embed-responsive-item" src="demo/viga.html"></iframe>
+   <iframe class="embed-responsive-item" src="https://www.caeplex.com/demo/index.html"></iframe>
   </div>
  </div>
 </div>
@@ -165,7 +165,7 @@ Fino is distributed under the terms of the [GNU General Public License](http://w
 Home page: <https://www.seamplex.com/fino>  
 Repository: <https://bitbucket.org/seamplex/fino>  
 Mailing list and bug reports: <wasora@seamplex.com>  (you need to subscribe first at <wasora+subscribe@seamplex.com>)  
-Web interface for mailing list: <https://www.seamplex.com/lists.html>
+Web interface for mailing list: <https://www.seamplex.com/lists.html>  
 Follow us: [Twitter](https://twitter.com/seamplex/) [YouTube](https://www.youtube.com/channel/UCC6SzVLxO8h6j5rLlfCQPhA) [LinkedIn](https://www.linkedin.com/company/seamplex/) [Bitbucket](https://bitbucket.org/seamplex/)
 
 ---------------------------
