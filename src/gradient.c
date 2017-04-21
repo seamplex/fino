@@ -20,24 +20,41 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 #include <gsl/gsl_vector.h>
-#include "fino.h"
+#include <petsc.h>
+#include <petscsys.h>
+#include <petscksp.h>
 
-//#define OLD
+#include "fino.h"
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_compute_gradients"
 int fino_compute_gradients(void) {
   
-  double w_gauss, M_jj;
+  double w_gauss, w_lobatto;
   double *den;
+  double total_mass;
+  double det;
   double vol;
-//  double k;
-  int i, j, v;
-  int m, g, l;
-  int j_prime, l_prime;
-  int local_j, local_jprime;
+  double xi;
+
+  Mat M;
+  Vec b;
+  Vec x;
+  PetscScalar  *data;
+  KSP ksp;
+  
+  gsl_vector *diag_M;
+  double trace_M;
+  element_t *element;
+
+  int i, v;
+  int m, g;
+  int j_global, j_global_prime;
+  int j_local,  j_local_prime;
+  int j1, j2;
+  
     
-  element_list_item_t *associated_element;
+  element_list_item_t *item;
 
   for (g = 0; g < fino.degrees; g++) {
     for (m = 0; m <fino.dimensions; m++) {
@@ -47,130 +64,347 @@ int fino_compute_gradients(void) {
       fino.gradient[g][m]->data_argument = fino.solution[g]->data_argument;
     }
   }
+ 
+  // defaults
+  if (fino.gradient_evaluation == gradient_undefined) {
+    fino.gradient_evaluation = (fino.mesh->order == 1) ? gradient_mass_matrix_row_sum : gradient_gauss_average;
+  }
+  if (fino.gradient_jacobian_threshold == 0) {
+    fino.gradient_jacobian_threshold = 1e-3;
+  }
+  
+  if (fino.gradient_evaluation == gradient_none) {
+    return WASORA_RUNTIME_OK;
+  } else if (fino.gradient_evaluation == gradient_mass_matrix_consistent ||
+             fino.gradient_evaluation == gradient_mass_matrix_row_sum ||
+             fino.gradient_evaluation == gradient_mass_matrix_lobatto ||
+             fino.gradient_evaluation == gradient_mass_matrix_diagonal) {
+    
+    if (fino.gradient_evaluation == gradient_mass_matrix_consistent) {
+      
+      // la matriz
+      petsc_call(MatCreate(PETSC_COMM_WORLD, &M));
+      petsc_call(MatSetSizes(M, PETSC_DECIDE, PETSC_DECIDE, fino.mesh->n_nodes, fino.mesh->n_nodes));
+      petsc_call(MatSetFromOptions(M));
+      petsc_call(MatMPIAIJSetPreallocation(M, fino.mesh->max_first_neighbor_nodes, PETSC_NULL, fino.mesh->max_first_neighbor_nodes, PETSC_NULL));
+      petsc_call(MatSeqAIJSetPreallocation(M, fino.mesh->max_first_neighbor_nodes, PETSC_NULL));
+  
+      // los vectores
+      petsc_call(MatCreateVecs(M, NULL, &x));
+      petsc_call(MatCreateVecs(M, NULL, &b));
+      
+    } else {
+      // en paralelo esto deberia ser petsc
+      diag_M = gsl_vector_alloc(fino.mesh->n_nodes);
+      trace_M = 0;
+    }
+    
+    for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+      LL_FOREACH (fino.mesh->node[j_global].associated_elements, item) {
+        element = item->element;
+        if (element->type->dim == fino.dimensions) {
 
-  if (fino.mesh->order == 1) {
-
-    // metodo lumped mass
-    // calculamos las derivadas de todos los grados de libertad g con respecto a las dimensiones d
-    // en los nodos con el metodo de matias rivero
-    for (j = 0; j < fino.mesh->n_nodes; j++) {
-
-      M_jj = 0;   // lumped mass
-      LL_FOREACH (fino.mesh->node[j].associated_elements, associated_element) {
-        if (associated_element->element->type->dim == fino.dimensions) {
-
-          // buscamos a que indice local i corresponde el j global
-          local_j = -1;
-          for (local_jprime = 0; local_jprime < associated_element->element->type->nodes; local_jprime++) {
-            if (associated_element->element->node[local_jprime]->id == j+1) {
-              local_j = local_jprime;
-              break;
-            }
-          }
-          if (local_j == -1) {
-            wasora_push_error_message("internal mismatch with local_j");
+          // calcular el j_local
+          if ((j_local = mesh_compute_local_node_index(element, j_global)) == -1) {
+            wasora_push_error_message("cannot find local index for global %d in element %d", j_global, element->id);
             return WASORA_RUNTIME_ERROR;
           }
 
-          for (v = 0; v < associated_element->element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-            w_gauss = mesh_integration_weight(fino.mesh, associated_element->element, v);
-            mesh_compute_x(associated_element->element, fino.mesh->fem.r, fino.mesh->fem.x);
+          for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+            w_gauss = mesh_integration_weight(fino.mesh, element, v);
+            mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
             mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-            mesh_compute_dhdx(associated_element->element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+            mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-            for (local_jprime = 0; local_jprime < associated_element->element->type->nodes; local_jprime++) {
-              M_jj += w_gauss * gsl_vector_get(fino.mesh->fem.h, local_jprime) * gsl_vector_get(fino.mesh->fem.h, local_j);
+            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
 
+              j_global_prime = element->node[j_local_prime]->id - 1;
+              
               for (g = 0; g < fino.degrees; g++) {
                 for (m = 0; m <fino.dimensions; m++) {
-                  fino.gradient[g][m]->data_value[j] += w_gauss * gsl_matrix_get(fino.mesh->fem.dhdx, local_jprime, m) * gsl_vector_get(fino.mesh->fem.h, local_j) * fino.solution[g]->data_value[associated_element->element->node[local_jprime]->id-1];
+                  fino.gradient[g][m]->data_value[j_global] += w_gauss * gsl_vector_get(fino.mesh->fem.h, j_local) * gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                }
+              }
+
+              xi = w_gauss * gsl_vector_get(fino.mesh->fem.h, j_local_prime) * gsl_vector_get(fino.mesh->fem.h, j_local);
+              
+              if (fino.gradient_evaluation == gradient_mass_matrix_consistent) {
+                petsc_call(MatSetValue(M, j_global, j_global_prime, xi, ADD_VALUES));
+              } else if (fino.gradient_evaluation == gradient_mass_matrix_row_sum) {
+                gsl_vector_set(diag_M, j_global, gsl_vector_get(diag_M, j_global) + xi);
+              } else if (fino.gradient_evaluation == gradient_mass_matrix_diagonal) {
+                if (j_global_prime == j_global) {
+                  gsl_vector_set(diag_M, j_global, gsl_vector_get(diag_M, j_global) + xi);
+                  trace_M += xi;
+                }
+              }
+            }
+          }
+            
+          if (fino.gradient_evaluation == gradient_mass_matrix_lobatto) {
+            wasora_call(mesh_compute_r_at_node(element, j_local_prime, fino.mesh->fem.r));
+            mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+            mesh_compute_h(element, fino.mesh->fem.r, fino.mesh->fem.h);
+            mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+            det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+            w_lobatto = ((j_local < 4)?(-1.0/20.0):(+1.0/5.0));
+//            w_lobatto = 1.0/10.0;
+            gsl_vector_set(diag_M, j_global, gsl_vector_get(diag_M, j_global) + w_lobatto * 1.0/6.0 * det);
+          }
+        }
+      }
+    }
+    
+    if (fino.gradient_evaluation == gradient_mass_matrix_diagonal) {
+
+      total_mass = 0;
+      for (i = 0; i < fino.mesh->n_elements; i++) {
+        if (fino.mesh->element[i].type->dim == fino.dimensions) {
+          total_mass += fino.mesh->element[i].type->element_volume(&fino.mesh->element[i]);
+        }
+      }
+      gsl_vector_scale(diag_M, total_mass/trace_M);
+      
+    }
+
+    if (fino.gradient_evaluation != gradient_mass_matrix_consistent) {
+      
+      total_mass = 0;
+      for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+        total_mass += gsl_vector_get(diag_M, j_global);
+      }
+//      printf("%f\n", total_mass);
+    //  gsl_vector_fprintf(stdout, diag_M, "%e");
+      
+      
+      // para row_sum y lobatto no hace falta volver a loopear en j, se puede hacer en el anterior
+      // pero aca tenemos lo del gradiente y eso
+      for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+        for (g = 0; g < fino.degrees; g++) {
+          for (m = 0; m <fino.dimensions; m++) {
+            if (gsl_vector_get(diag_M, j_global) != 0) {
+              fino.gradient[g][m]->data_value[j_global] /= gsl_vector_get(diag_M, j_global);
+
+              // si tenemos un gradiente base hay que sumarlo
+              if (fino.base_gradient != NULL && fino.base_gradient[g] != NULL && fino.base_gradient[g][m]) {
+                // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
+                if (fino.base_gradient[g][m]->data_size == fino.spatial_unknowns) {
+                  fino.gradient[g][m]->data_value[j_global] += fino.base_gradient[g][m]->data_value[j_global];
+                } else {
+                  fino.gradient[g][m]->data_value[j_global] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j_global].x);
                 }
               }
             }
           }
         }
       }
+      
+      gsl_vector_free(diag_M);
+      
+    } else {
 
+      // matriz consistente! hay que calcular...      
+      petsc_call(MatAssemblyBegin(M, MAT_FINAL_ASSEMBLY));
+      petsc_call(MatAssemblyEnd(M, MAT_FINAL_ASSEMBLY));
+      
+      petsc_call(KSPCreate(PETSC_COMM_WORLD, &ksp));
+      petsc_call(KSPSetOperators(ksp, M, M));
+      
       for (g = 0; g < fino.degrees; g++) {
         for (m = 0; m <fino.dimensions; m++) {
-          if (M_jj != 0) {
-            fino.gradient[g][m]->data_value[j] /= M_jj;
-
-            // si tenemos un gradiente base hay que sumarlo
-            if (fino.base_gradient != NULL && fino.base_gradient[g] != NULL && fino.base_gradient[g][m]) {
-              // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
-              if (fino.base_gradient[g][m]->data_size == fino.spatial_unknowns) {
-                fino.gradient[g][m]->data_value[j] += fino.base_gradient[g][m]->data_value[j];
-              } else {
-                fino.gradient[g][m]->data_value[j] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j].x);
-              }
-            }
+          VecGetArray(b, &data);
+          for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+            data[j_global] = fino.gradient[g][m]->data_value[j_global];
           }
+          VecRestoreArray(b, &data);
+          
+          petsc_call(KSPSolve(ksp, b, x));
 
+          VecGetArray(x, &data);
+          for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+            fino.gradient[g][m]->data_value[j_global] = data[j_global];
+          }
+          VecRestoreArray(x, &data);
+          
         }
       }
-    }    
+      
+      petsc_call(KSPDestroy(&ksp));
+      petsc_call(VecDestroy(&x));
+      petsc_call(VecDestroy(&b));
+      petsc_call(MatDestroy(&M));
+      
+      
+    }
+        
+  } else if (fino.gradient_evaluation == gradient_node_average_corner ||
+             fino.gradient_evaluation == gradient_node_average_all) {
     
-  } else {
- 
     // promediamos los valores nodales pesados con los volumenes de los elementos
     den = calloc(fino.mesh->n_nodes, sizeof(double));
-//    k = 0.0*(5.0-sqrt(5))/20.0;
 
     for (i = 0; i < fino.mesh->n_elements; i++) {
-      if (fino.mesh->element[i].type->dim == fino.dimensions) {
-        vol = fino.mesh->element[i].type->element_volume(&fino.mesh->element[i]);
-        for (j = 0; j < fino.mesh->element[i].type->nodes; j++) {
+      element = &fino.mesh->element[i];
+      if (element->type->dim == fino.dimensions) {
+        vol = element->type->element_volume(element);
+        for (j_local = 0; j_local < element->type->nodes; j_local++) {
 
-          gsl_vector_set(fino.mesh->fem.x, 0, fino.mesh->element[i].node[j]->x[0]);
-          gsl_vector_set(fino.mesh->fem.x, 1, fino.mesh->element[i].node[j]->x[1]);
-          gsl_vector_set(fino.mesh->fem.x, 2, fino.mesh->element[i].node[j]->x[2]);
-
-//          wasora_call(mesh_compute_r(&fino.mesh->element[i], fino.mesh->fem.x, fino.mesh->fem.r));
+          // esto da exactamente ceros o unos
+          wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
           
-          // esto da exactametne ceros o unos
-          wasora_call(mesh_compute_r_at_node(&fino.mesh->element[i], j, fino.mesh->fem.r));
+          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+          det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
           
-          mesh_compute_dxdr(&fino.mesh->element[i], fino.mesh->fem.r, fino.mesh->fem.dxdr);
-          mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-          mesh_compute_dhdx(&fino.mesh->element[i], fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+          if (det > fino.gradient_jacobian_threshold) {
+            mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+            mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-          l = fino.mesh->element[i].node[j]->id - 1;
-          den[l] += vol;
-          for (j_prime = 0; j_prime < fino.mesh->element[i].type->nodes; j_prime++) {
-            l_prime = fino.mesh->element[i].node[j_prime]->id - 1;
-            for (g = 0; g < fino.degrees; g++) {
-              for (m = 0; m < fino.dimensions; m++) {
-                fino.gradient[g][m]->data_value[l] += vol * gsl_matrix_get(fino.mesh->fem.dhdx, j_prime, m) * fino.solution[g]->data_value[l_prime];
+            j_global = element->node[j_local]->id - 1;
+            den[j_global] += vol;
+            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+              j_global_prime = element->node[j_local_prime]->id - 1;
+              for (g = 0; g < fino.degrees; g++) {
+                for (m = 0; m < fino.dimensions; m++) {
+                  xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                  fino.gradient[g][m]->data_value[j_global] += vol * xi;
+                }
               }
             }
           }
         }
       }
     }
-
-    for (j = 0; j < fino.mesh->n_nodes; j++) {
-      if (den[j] != 0) {
+   
+    for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+      if (den[j_global] != 0) {
         for (g = 0; g < fino.degrees; g++) {
           for (m = 0; m < fino.dimensions; m++) {
-            fino.gradient[g][m]->data_value[j] /= den[j];
+            fino.gradient[g][m]->data_value[j_global] /= den[j_global];
             
             // si tenemos un gradiente base hay que sumarlo
             if (fino.base_gradient != NULL && fino.base_gradient[g] != NULL && fino.base_gradient[g][m]) {
               // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
               if (fino.base_gradient[g][m]->data_size == fino.spatial_unknowns) {
-                fino.gradient[g][m]->data_value[j] += fino.base_gradient[g][m]->data_value[j];
+                fino.gradient[g][m]->data_value[j_global] += fino.base_gradient[g][m]->data_value[j_global];
               } else {
-                fino.gradient[g][m]->data_value[j] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j].x);
-             }
+                fino.gradient[g][m]->data_value[j_global] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j_global].x);
+              }
             } 
-            
           }
         }
       }
     }
+
+    free(den);    
+    
+  } else if (fino.gradient_evaluation == gradient_gauss_average) {
+
+
+    // promediamos los valores de los puntos de gauss y se los damos al nodo que esta cerquita
+    den = calloc(fino.mesh->n_nodes, sizeof(double));
+
+    for (i = 0; i < fino.mesh->n_elements; i++) {
+      element = &fino.mesh->element[i];
+      if (element->type->dim == fino.dimensions) {
+        vol = element->type->element_volume(element);
+        for (j_local = 0; j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V; j_local++) {
+          
+          w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
+          mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+          mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+          det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+          
+          if (det > fino.gradient_jacobian_threshold) {
+            j_global = element->node[j_local]->id - 1;
+            den[j_global] += vol;
+            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+              j_global_prime = element->node[j_local_prime]->id - 1;
+              for (g = 0; g < fino.degrees; g++) {
+                for (m = 0; m < fino.dimensions; m++) {
+                  xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                  fino.gradient[g][m]->data_value[j_global] += vol * xi;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+   
+    for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+      if (den[j_global] != 0) {
+        for (g = 0; g < fino.degrees; g++) {
+          for (m = 0; m < fino.dimensions; m++) {
+            fino.gradient[g][m]->data_value[j_global] /= den[j_global];
+            
+            // si tenemos un gradiente base hay que sumarlo
+            if (fino.base_gradient != NULL && fino.base_gradient[g] != NULL && fino.base_gradient[g][m]) {
+              // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
+              if (fino.base_gradient[g][m]->data_size == fino.spatial_unknowns) {
+                fino.gradient[g][m]->data_value[j_global] += fino.base_gradient[g][m]->data_value[j_global];
+              } else {
+                fino.gradient[g][m]->data_value[j_global] += wasora_evaluate_function(fino.base_gradient[g][m], fino.mesh->node[j_global].x);
+              }
+            } 
+          }
+        }
+      }
+    }
+    
     free(den);
+    
   }
+  
+ if (fino.gradient_evaluation == gradient_node_average_corner ||
+     fino.gradient_evaluation == gradient_gauss_average) {
+
+    for (i = 0; i < fino.mesh->n_elements; i++) {
+      element = &fino.mesh->element[i];
+      if (element->type->id == ELEMENT_TYPE_TETRAHEDRON10) {
+        for (j_local = 4; j_local < 10; j_local++) {
+          j_global = element->node[j_local]->id - 1;
+
+          switch (j_local) {
+            case 4:
+              j1 = 0;
+              j2 = 1;
+            break;
+            case 5:
+              j1 = 1;
+              j2 = 2;
+            break;
+            case 6:
+              j1 = 0;
+              j2 = 2;
+            break;
+            case 7:
+              j1 = 0;
+              j2 = 3;
+            break;
+            case 8:
+              j1 = 2;
+              j2 = 3;
+            break;
+            case 9:
+              j1 = 1;
+              j2 = 3;
+            break;
+          }
+
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+
+              fino.gradient[g][m]->data_value[j_global] = 0.5*(fino.gradient[g][m]->data_value[element->node[j1]->id - 1] +
+                                                               fino.gradient[g][m]->data_value[element->node[j2]->id - 1]);
+
+            }
+          }
+        }
+      }
+    }
+  }  
 
   return WASORA_RUNTIME_OK;
 }

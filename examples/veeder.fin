@@ -28,8 +28,7 @@ PHYSICAL_ENTITY NAME origin   BC fixed
 FINO_STEP
 
 # write vtk output
-MESH_POST FILE_PATH veeder.vtk      T sigma sigma1 sigma2 sigma3  VECTOR u v w
-MESH_POST FILE_PATH veeder_out.msh  T sigma sigma1 sigma2 sigma3  VECTOR u v w
+MESH_POST FILE_PATH veeder.vtk      T sigma dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz  sigma1 sigma2 sigma3  VECTOR u v w
 
 # PRINT_FUNCTION u v w
 # FINO_DEBUG MATRICES_X

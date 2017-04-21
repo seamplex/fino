@@ -1,4 +1,4 @@
-// use gmsh >= 2.16.0
+// use gmsh >= 3.0
 SetFactory("OpenCASCADE");
 
 h=H/2;

@@ -1,6 +1,9 @@
 SHELL "gmsh -v 0 -3 -order 2 prism.geo"
 MESH FILE_PATH prism.msh
 
+# FINO_SOLVER GRADIENT_EVALUATION mass_matrix_consistent
+# FINO_SOLVER GRADIENT_EVALUATION gauss_average
+
 E = 200e3      # Young modulus
 nu = 0.3       # Poisson ratio
 
@@ -14,7 +17,7 @@ PHYSICAL_ENTITY NAME "zx" BC  v=0
 
 FINO_STEP
 
-MESH_POST FILE_PATH prism.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH prism.vtk  dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigma sigma1 sigma2 sigma3 VECTOR u v w
 
 # the displacements at the corner of the prism
 PRINT %.2f u(4,1,2) v(4,1,2) w(4,1,2)

@@ -35,19 +35,11 @@ int fino_solve_linear_petsc(void) {
   PetscInt iterations;
   PetscInt i, j, d;
   PCType pc_type;
-//  PetscViewerAndFormat *vf;  
 
   PetscInt nearnulldim = 0;
   MatNullSpace nullsp = NULL;
   PetscScalar  dots[5];
   Vec          *nullvec;  
-/*  
-  const Vec *vecs;
-  Vec cero;
-  PetscReal norm;
-  PetscBool has_const;
-  PetscInt  n;
- */
   PetscReal *coords;
   Vec       vec_coords;
 
@@ -151,61 +143,23 @@ int fino_solve_linear_petsc(void) {
 
       petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
       petsc_call(MatSetNearNullSpace(fino.A, nullsp));
-//      petsc_call(MatNullSpaceDestroy(&nullsp));
-//      petsc_call(VecDestroy(&vec_coords));      
     break;  
-   
-/*    
-    case set_near_nullspace_setcoordinates:
-      petsc_call(PetscMalloc1(fino.dimensions * fino.mesh->n_nodes, &coords));
-      for (j = 0; j < fino.mesh->n_nodes; j++) {
-        for (d = 0; d < fino.dimensions; d++) {
-          coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
-        }
-      }
-      
-      // esto termina en PCSetCoordinates_AGG() en src/ksp/pc/impls/gamg/agg.c
-      petsc_call(PCSetCoordinates(fino.pc, fino.dimensions, fino.mesh->n_nodes, coords));
-      petsc_call(PetscFree(coords));
- */
-    break;
     
     case set_near_nullspace_none:
       ;
     break;
   }
 
-/*  
-  MatGetNearNullSpace(fino.A, &nullsp);
-  MatNullSpaceGetVecs(nullsp, &has_const, &n, &nullvec);
-  petsc_call(MatCreateVecs(fino.A, NULL, &cero));
-  
-  petsc_call(MatMult(fino.A, nullvec[5], cero));
-  fino_print_petsc_vector(cero, PETSC_VIEWER_STDOUT_WORLD);
-  exit(0);
- */
-//  petsc_call(VecNorm(cero, NORM_1, &norm));
-//  printf("%g\n", norm);
-  
   // el monitor
   if (fino.shmem_progress_build != NULL || fino.shmem_progress_solve != NULL || fino.shmem_memory != NULL) {
     petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
   }
-  
-//  petsc_call(PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, &vf));
-//  petsc_call(KSPMonitorSet(fino.ksp, KSPMonitorDefault, vf, NULL));  
-   
-  
   
   // sobreescribimos con la linea de comandos
   petsc_call(KSPSetFromOptions(fino.ksp));
   
   // do the work!
   petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
-
-  
-//  petsc_call(MatGetNearNullSpace(fino.A, &nullsp));
-//  petsc_call(MatNullSpaceGetVecs(nullsp, &has_const, &n, &vecs));
   
   // chequeamos que haya convergido
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));

@@ -283,6 +283,20 @@ struct {
   function_t **base_solution;
   function_t ***base_gradient;
   
+  enum {
+    gradient_undefined,
+    gradient_mass_matrix_consistent,
+    gradient_mass_matrix_row_sum,
+    gradient_mass_matrix_lobatto,
+    gradient_mass_matrix_diagonal,
+    gradient_node_average_corner,
+    gradient_node_average_all,
+    gradient_gauss_average,
+    gradient_none,
+  } gradient_evaluation;
+  
+  double gradient_jacobian_threshold;
+  
   function_t *sigma;     // von misses
   function_t *sigma1;    // principal
   function_t *sigma2;
