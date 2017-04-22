@@ -81,6 +81,11 @@ int fino_solve_linear_petsc(void) {
 
   // las coordenadas (solo para break)
 // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
+  // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody
+  if (fino.mesh->ordering == ordering_unknown_based && fino.set_near_nullspace == set_near_nullspace_rigidbody) {
+    fino.set_near_nullspace = set_near_nullspace_fino;
+  }
+  
   switch(fino.set_near_nullspace) {
     
     case set_near_nullspace_rigidbody:
