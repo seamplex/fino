@@ -59,6 +59,7 @@ int fino_build_bulk(void) {
 
   int i;
   int step = (fino.mesh->n_elements > 99)?fino.mesh->n_elements/100:1;
+  bc_string_based_t *bc;
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
     
@@ -78,44 +79,13 @@ int fino_build_bulk(void) {
       // son los que usamos para las matrices elementales
       wasora_call(fino_build_element(&fino.mesh->element[i]));
       
-    } else if (fino.mesh->element[i].type->dim < fino.dimensions) {
-      if (fino.math_type != math_eigen) {
-        // en problemas de autovalores todas las condiciones de contorno son homogeneas
-        if (fino.mesh->element[i].physical_entity != NULL) {
-          
-          if (fino.mesh->element[i].physical_entity->bc_strings != NULL) {
-            
-            bc_string_based_t *bc;
-            // pistola
-        
-            LL_FOREACH(fino.mesh->element[i].physical_entity->bc_strings, bc) {
-              if (bc->bc_type_int == BC_NEUMANN) {            
-                wasora_call(fino_add_single_surface_term_to_rhs(&fino.mesh->element[i], bc));
-              }
-            }
-            
-          // si bc_type_int es diferente de cero todas las cc son iguales
-          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_NEUMANN) {
-            // a las de neumann les pasamos las expresiones como las leimos del input
-            // dphi_g/dn = b_g
-            
-            // TODO: si es cero ni siquiera meterse aca
-            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], NULL, fino.mesh->element[i].physical_entity->bc_args));
-
-          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_ROBIN) {
-            // a las de robin les pasamos una y una
-            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], fino.mesh->element[i].physical_entity->bc_args, fino.mesh->element[i].physical_entity->bc_args->next));
-
-          } else if (fino.mesh->element[i].physical_entity->bc_type_int == BC_POINT_FORCE) {
-            if (fino.mesh->element[i].type->dim != 0) {
-              wasora_push_error_message("boundary condition 'point_force' in entity '%s' is applied to an object of dimension %d, not 0 as expected", fino.mesh->element[i].physical_entity->name, fino.mesh->element[i].type->dim);
-              return WASORA_RUNTIME_ERROR;
-            }
-            wasora_call(fino_build_surface_objects(&fino.mesh->element[i], NULL, NULL));
+    } else if (fino.mesh->element[i].type->dim < fino.dimensions && fino.math_type != math_eigen) {
+      // en problemas de autovalores todas las condiciones de contorno son homogeneas
+      if (fino.mesh->element[i].physical_entity != NULL && fino.mesh->element[i].physical_entity->bc_strings != NULL) {
+        LL_FOREACH(fino.mesh->element[i].physical_entity->bc_strings, bc) {
+          if (bc->bc_type_mathematical == bc_math_neumann) {            
+            wasora_call(fino_add_single_surface_term_to_rhs(&fino.mesh->element[i], bc));
           }
-          
-          // TODO: bc_string_based
-          
         }
       }
     }
@@ -125,7 +95,7 @@ int fino_build_bulk(void) {
   wasora_call(fino_assembly());
   
   if (fino.shmem_progress_build != NULL) {
-    *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
+    *fino.shmem_progress_build = 1.0;
   }
 
   return WASORA_RUNTIME_OK;
@@ -134,10 +104,6 @@ int fino_build_bulk(void) {
 
 int fino_build_element(element_t *element) {
   int v;           // indice del punto de gauss
-  int row, col;
-  int j, m;  
-  double xi;
-  double w_gauss;
 
   if (element->physical_entity == NULL) {
     // esto (deberia) pasar solo en malla estructuradas
@@ -159,56 +125,11 @@ int fino_build_element(element_t *element) {
     // hacer evaluaciones nodo por nodo o lo que sea
     // para cada punto de gauss
     for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-
       // armamos las matrices
       if (fino.problem == problem_shake || fino.problem == problem_break) {
         wasora_call(fino_build_breakshake(element, v));
       } else if (fino.problem == problem_bake) {
         wasora_call(fino_build_bake(element, v));
-      } else {
-        // problema generico, leemos las matrices del input
-        // para este punto de gauss, calculamos las matrices H y B
-        w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);    
-
-        // hacemos a apuntar las h y sus derivadas de fino al fem de mesh
-        // (si no lo hicimos ya)
-      /*      
-        if (fino.h->value->data != fino.mesh->fem.h->data) {
-          wasora_realloc_vector_ptr(fino.h, fino.mesh->fem.h->data, 0);
-          wasora_realloc_matrix_ptr(fino.dhdx, fino.mesh->fem.dhdx->data, 0);
-        }
-       */
-
-        // esto es asi porque se mezclan elementos!
-        // TODO: mejorar
-        for (j = 0; j < fino.n_local_nodes; j++) {
-          gsl_vector_set(wasora_value_ptr(fino.h), j, gsl_vector_get(fino.mesh->fem.h, j));
-          for (m = 0; m < fino.dimensions; m++) {
-            gsl_matrix_set(wasora_value_ptr(fino.dhdx), j, m, gsl_matrix_get(fino.mesh->fem.dhdx, j, m));
-          }
-        }
-        
-        for (row = 0; row < fino.elemental_size; row++) {
-          for (col = 0; col < fino.elemental_size; col++) {
-
-            // la matriz A siempre
-            xi = w_gauss * wasora_evaluate_function(fino.Ai_function[row][col], gsl_vector_ptr(fino.mesh->fem.x, 0));
-            gsl_matrix_add_to_element(fino.Ai, row, col, xi);
-
-            // la matriz B solo en eigen
-            if (fino.math_type == math_eigen) {
-              xi = w_gauss * wasora_evaluate_function(fino.Bi_function[row][col], gsl_vector_ptr(fino.mesh->fem.x, 0));
-              gsl_matrix_add_to_element(fino.Bi, row, col, xi);
-            }
-          }
-
-          // el vector b
-          if (fino.math_type == math_linear) {
-            xi = w_gauss * wasora_evaluate_function(fino.bi_function[row], gsl_vector_ptr(fino.mesh->fem.x, 0));
-            gsl_vector_add_to_element(fino.bi, row, xi);
-          }
-        }
-        break;
       }
     }
 

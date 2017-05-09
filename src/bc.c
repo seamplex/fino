@@ -66,34 +66,42 @@ int fino_read_bcs(void) {
         if (fino.problem == problem_break) {
           if (strcmp(name, "u") == 0) {
             bc->dof = 0;
-            bc->bc_type_int = BC_DIRICHLET;
+            bc->bc_type_mathematical = bc_math_dirichlet;
+            bc->bc_type_physical =     bc_phys_displacement;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
           } else if (strcmp(name, "v") == 0) {
             bc->dof = 1;
-            bc->bc_type_int = BC_DIRICHLET;
+            bc->bc_type_mathematical = bc_math_dirichlet;
+            bc->bc_type_physical =     bc_phys_displacement;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
           } else if (strcmp(name, "w") == 0) {
-            bc->dof = 2;
-            bc->bc_type_int = BC_DIRICHLET;
+            bc->dof = 2
+                ;
+            bc->bc_type_mathematical = bc_math_dirichlet;
+            bc->bc_type_physical =     bc_phys_displacement;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
           // fixed es como u=0 v=0 w=0
           } else if (strcmp(name, "fixed") == 0) {
-            physical_entity->bc_type_int = BC_DIRICHLET_NULL;
+            physical_entity->bc_type_int = BC_DISPLACEMENT_FIXED;
+            bc->bc_type_physical =         bc_phys_displacement_fixed;
 
           // se le dan o las componentes del vector t [tx, ty, tz]
           // le ponemos a disposicion las componentes del vector n [nx, ny, nz]
           } else if (strcmp(name, "tx") == 0) {
             bc->dof = 0;
-            bc->bc_type_int = BC_NEUMANN;
+            bc->bc_type_mathematical = bc_math_neumann;
+            bc->bc_type_physical =     bc_phys_traction;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
           } else if (strcmp(name, "ty") == 0) {
             bc->dof = 1;
-            bc->bc_type_int = BC_NEUMANN;
+            bc->bc_type_mathematical = bc_math_neumann;
+            bc->bc_type_physical =     bc_phys_traction;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
           } else if (strcmp(name, "tz") == 0) {
             bc->dof = 2;
-            bc->bc_type_int = BC_NEUMANN;
+            bc->bc_type_mathematical = bc_math_neumann;
+            bc->bc_type_physical =     bc_phys_traction;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
           } else if (strcmp(name, "p") == 0) {
@@ -102,21 +110,25 @@ int fino_read_bcs(void) {
             char *buff = malloc(strlen(expr) + 8);
             
             bc->dof = 0;
-            bc->bc_type_int = BC_NEUMANN;
+            bc->bc_type_mathematical = bc_math_neumann;
+            bc->bc_type_physical =     bc_phys_pressure;
+
             snprintf(buff, strlen(expr) + 7, "-nx*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc->expr));
             
             // agregamos dos mas de prepo para v y w
             bc_v = calloc(1, sizeof(bc_string_based_t));
             bc_v->dof = 1;
-            bc_v->bc_type_int = BC_NEUMANN;
+            bc_v->bc_type_mathematical = bc_math_neumann;
+            bc_v->bc_type_physical =     bc_phys_pressure;
             snprintf(buff, strlen(expr) + 7, "-ny*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc_v->expr));
             LL_APPEND(physical_entity->bc_strings, bc_v);
             
             bc_w = calloc(1, sizeof(bc_string_based_t));
             bc_w->dof = 2;
-            bc_w->bc_type_int = BC_NEUMANN;
+            bc_w->bc_type_mathematical = bc_math_neumann;
+            bc_w->bc_type_physical =     bc_phys_pressure;
             snprintf(buff, strlen(expr) + 7, "-nz*(%s)", expr);
             wasora_call(wasora_parse_expression(buff, &bc_w->expr));
             LL_APPEND(physical_entity->bc_strings, bc_w);
@@ -126,8 +138,8 @@ int fino_read_bcs(void) {
           } else if (strcmp(name, "implicit") == 0) {
             char *dummy;
             
-            physical_entity->bc_type_int = BC_DIRICHLET_ALG;
-            bc->bc_type_int = BC_DIRICHLET_ALG;
+            physical_entity->bc_type_int = BC_DISPLACEMENT_ALGEBRAIC;
+            bc->bc_type_mathematical = bc_math_dirichlet_algebraic_relationship;
             
             // el cuento es asi: aca quisieramos que el usuario escriba algo en funcion
             // de x,y,z pero tambien de u,v y w. Pero u,v,w ya son funciones, asi que no
@@ -135,7 +147,8 @@ int fino_read_bcs(void) {
             // mi solucion: definir variables U,V,W y reemplazar u,v,w por U,V,W en
             // esta expresion
 
-            // TODO: ver que haya un separador antes y despues            
+            // TODO: ver que haya un separador antes y despues
+            // TODO: derivadas            
             dummy = expr;
             while (*dummy != '\0') {
               if (*dummy == 'u') {
@@ -154,6 +167,26 @@ int fino_read_bcs(void) {
             wasora_push_error_message("unknown boundary condition type '%s'", name);
             return WASORA_PARSER_ERROR;
           }
+         
+        } else if (fino.problem == problem_bake) {
+          if (strcmp(name, "T") == 0) {
+            bc->dof = 0;
+            bc->bc_type_mathematical = bc_math_dirichlet;
+            bc->bc_type_physical     = bc_phys_temperature;
+            
+          } else if (strcmp(name, "q") == 0) {
+            bc->dof = 0;
+            bc->bc_type_mathematical = bc_math_neumann;
+            bc->bc_type_physical     = bc_phys_heat_flux;
+            
+          } else {
+            wasora_push_error_message("unknown boundary condition type '%s'", name);
+            return WASORA_PARSER_ERROR;
+          }
+          
+          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          
+          
         }
         
         // restauramos el signo igual porque en parametrico en una epoca pasaba de nuevo por aca vamos a volver a pasar por aca
@@ -238,7 +271,6 @@ int fino_set_essential_bc(void) {
   int k_algebraic = 0;
 
   int found = 0;
-//  int non_homogeneous_bc = 0;
   int i, j, d;
   
   bc_string_based_t *bc;
@@ -268,8 +300,10 @@ int fino_set_essential_bc(void) {
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     found = 0;
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
-      if (!found && 
-          associated_element->element->type->dim != fino.dimensions &&
+      if (found) {
+        break;
+      }
+      if (associated_element->element->type->dim != fino.dimensions &&
           (physical_entity = associated_element->element->physical_entity) != NULL) {
           
         if (k_dirichlet >= current_threshold_dirichlet) {
@@ -287,7 +321,7 @@ int fino_set_essential_bc(void) {
           fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
 
-        if (physical_entity->bc_type_int == BC_DIRICHLET_NULL) {
+        if (physical_entity->bc_type_int == BC_DISPLACEMENT_FIXED) {
           for (d = 0; d < fino.degrees; d++) {
             fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
             fino.dirichlet_row[k_dirichlet].dof = d;
@@ -296,86 +330,69 @@ int fino_set_essential_bc(void) {
             k_dirichlet++;
           }
           found = 1;
-          
 
         } else if (physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
 
-            switch(bc->bc_type_int) {
-              case BC_DIRICHLET_ALG:
+            if (bc->bc_type_mathematical == bc_math_dirichlet) {
+              fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
+              fino.dirichlet_row[k_dirichlet].dof = bc->dof;
 
-                fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
+              indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
 
+              if (fino.math_type == math_linear && (strcmp(bc->expr.string, "0") != 0)) {
                 wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                 wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
                 wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
-//                printf("%g %g %g\n", fino.mesh->node[j].x[0], fino.mesh->node[j].x[1], fino.mesh->node[j].x[2]);
-                wasora_var_value(fino.vars.U[0]) = 0;
-                wasora_var_value(fino.vars.U[1]) = 0;
-                wasora_var_value(fino.vars.U[2]) = 0;
+                rhs_dirichlet[k_dirichlet] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
+              } else {
+                rhs_dirichlet[k_dirichlet] = 0;
+              }
 
-                if ((rhs_algebraic[k_algebraic] = wasora_evaluate_expression(&bc->expr)) != 0) {
-//                  non_homogeneous_bc = 1;
-                }
+              k_dirichlet++;
+              found = 1;
+              
+            } else if (bc->bc_type_mathematical == bc_math_dirichlet_algebraic_relationship) {
 
-                fino.algebraic_row[k_algebraic].alg_col = calloc(fino.degrees, sizeof(PetscInt));
-                fino.algebraic_row[k_algebraic].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
+              fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
-                for (d = 0; d < fino.degrees; d++) {
-                  fino.algebraic_row[k_algebraic].alg_col[d] = fino.mesh->node[j].index[d];
+              wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+              wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+              wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+              wasora_var_value(fino.vars.U[0]) = 0;
+              wasora_var_value(fino.vars.U[1]) = 0;
+              wasora_var_value(fino.vars.U[2]) = 0;
+
+              rhs_algebraic[k_algebraic] = wasora_evaluate_expression(&bc->expr);
+              
+              fino.algebraic_row[k_algebraic].alg_col = calloc(fino.degrees, sizeof(PetscInt));
+              fino.algebraic_row[k_algebraic].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
+
+              for (d = 0; d < fino.degrees; d++) {
+                fino.algebraic_row[k_algebraic].alg_col[d] = fino.mesh->node[j].index[d];
                   
-                  wasora_var_value(fino.vars.U[d]) = +h;
-                  y1 = wasora_evaluate_expression(&bc->expr);
-                  wasora_var_value(fino.vars.U[d]) = -h;
-                  y2 = wasora_evaluate_expression(&bc->expr);
-                  wasora_var_value(fino.vars.U[d]) = 0;
+                wasora_var_value(fino.vars.U[d]) = +h;
+                y1 = wasora_evaluate_expression(&bc->expr);
+                wasora_var_value(fino.vars.U[d]) = -h;
+                y2 = wasora_evaluate_expression(&bc->expr);
+                wasora_var_value(fino.vars.U[d]) = 0;
                   
-                  fino.algebraic_row[k_algebraic].alg_val[d] = -(y1-y2)/(2.0*h);
+                fino.algebraic_row[k_algebraic].alg_val[d] = -(y1-y2)/(2.0*h);
+              }
+
+              // el indice es el que tiene el coeficiente mayor (vaya uno a saber por que)
+              for (d = 0; d < fino.dimensions; d++) {
+                if (fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[0]) &&
+                    fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[1]) && 
+                    fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[2])) {
+                  indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[d];
+                  fino.algebraic_row[k_algebraic].dof = d;
                 }
-
-                // el indice es el que tiene el coeficiente mayor (vaya uno a saber por que)
-                for (d = 0; d < fino.dimensions; d++) {
-                  if (fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[0]) &&
-                      fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[1]) && 
-                      fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[2])) {
-                    indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[d];
-                    fino.algebraic_row[k_algebraic].dof = d;
-                  }
-                }
+              }
                 
-//                fino.algebraic_row[k_algebraic].dof = 2;
-                
-                k_algebraic++;
-                found = 1;
-
-              break;
-
-              case BC_DIRICHLET:
-
-                if (bc->bc_type_int == BC_DIRICHLET) {
-                  fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
-                  fino.dirichlet_row[k_dirichlet].dof = bc->dof;
-
-                  indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
-
-                  if (fino.math_type == math_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                    wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-                    wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-                    wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
-
-                    if ((rhs_dirichlet[k_dirichlet] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr)) != 0) {
-//                      non_homogeneous_bc = 1;
-                    }
-                  } else {
-                    rhs_dirichlet[k_dirichlet] = 0;
-                  }
-
-                  k_dirichlet++;
-                }
-                found = 1;
-                
-              break;
+              k_algebraic++;
+              found = 1;
             }
           }
         }

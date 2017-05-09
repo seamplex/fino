@@ -79,80 +79,82 @@ int fino_solve_linear_petsc(void) {
     PCGAMGSetThreshold(fino.pc, (PetscReal)wasora_var_value(fino.vars.gamg_threshold));
   }
 
-  // las coordenadas (solo para break)
-// http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
-  // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody
-  if (fino.mesh->ordering == ordering_unknown_based && fino.set_near_nullspace == set_near_nullspace_rigidbody) {
-    fino.set_near_nullspace = set_near_nullspace_fino;
-  }
-  
-  switch(fino.set_near_nullspace) {
-    
-    case set_near_nullspace_rigidbody:
-      petsc_call(VecCreate(MPI_COMM_WORLD, &vec_coords));
-      petsc_call(VecSetBlockSize(vec_coords, fino.degrees));
-      petsc_call(VecSetSizes(vec_coords, PETSC_DECIDE, fino.dimensions * fino.mesh->n_nodes));
-      petsc_call(VecSetUp(vec_coords));
-      petsc_call(VecGetArray(vec_coords, &coords));
-      
-      for (j = 0; j < fino.mesh->n_nodes; j++) {
-        for (d = 0; d < fino.dimensions; d++) {
-          coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+  if (fino.problem == problem_break) {
+    // las coordenadas (solo para break)
+  // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
+    // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody
+    if (fino.mesh->ordering == ordering_unknown_based && fino.set_near_nullspace == set_near_nullspace_rigidbody) {
+      fino.set_near_nullspace = set_near_nullspace_fino;
+    }
+
+    switch(fino.set_near_nullspace) {
+
+      case set_near_nullspace_rigidbody:
+        petsc_call(VecCreate(MPI_COMM_WORLD, &vec_coords));
+        petsc_call(VecSetBlockSize(vec_coords, fino.degrees));
+        petsc_call(VecSetSizes(vec_coords, PETSC_DECIDE, fino.dimensions * fino.mesh->n_nodes));
+        petsc_call(VecSetUp(vec_coords));
+        petsc_call(VecGetArray(vec_coords, &coords));
+
+        for (j = 0; j < fino.mesh->n_nodes; j++) {
+          for (d = 0; d < fino.dimensions; d++) {
+            coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+          }
         }
-      }
-      
-      petsc_call(VecRestoreArray(vec_coords, &coords));
-      petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
-      petsc_call(MatSetNearNullSpace(fino.A, nullsp));
-      petsc_call(MatNullSpaceDestroy(&nullsp));
-      petsc_call(VecDestroy(&vec_coords));      
-    break;
-    
-    case set_near_nullspace_fino:
-      nearnulldim = 6; 
-      petsc_call(PetscMalloc1(nearnulldim, &nullvec));
-      for (i = 0; i < nearnulldim; i++) {
-        petsc_call(MatCreateVecs(fino.A, &nullvec[i], NULL));
-      }
-      for (j = 0; j < fino.mesh->n_nodes; j++) {
-        // traslaciones
-        VecSetValue(nullvec[0], fino.mesh->node[j].index[0], 1.0, INSERT_VALUES);
-        VecSetValue(nullvec[1], fino.mesh->node[j].index[1], 1.0, INSERT_VALUES);
-        VecSetValue(nullvec[2], fino.mesh->node[j].index[2], 1.0, INSERT_VALUES);
 
-        // rotaciones
-        VecSetValue(nullvec[3], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
-        VecSetValue(nullvec[3], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
+        petsc_call(VecRestoreArray(vec_coords, &coords));
+        petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
+        petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+        petsc_call(MatNullSpaceDestroy(&nullsp));
+        petsc_call(VecDestroy(&vec_coords));      
+      break;
 
-        VecSetValue(nullvec[4], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[2], INSERT_VALUES);
-        VecSetValue(nullvec[4], fino.mesh->node[j].index[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
-
-        VecSetValue(nullvec[5], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[2], INSERT_VALUES);
-        VecSetValue(nullvec[5], fino.mesh->node[j].index[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
-      }
-
-      for (i = 0; i < 3; i++) {
-        VecNormalize(nullvec[i], PETSC_NULL);
-      }
-
-      // tomado de MatNullSpaceCreateRigidBody()
-      for (i = 3; i < nearnulldim; i++) {
-        // Orthonormalize vec[i] against vec[0:i-1]
-        VecMDot(nullvec[i], i, nullvec, dots);
-        for (j= 0; j < i; j++) {
-          dots[j] *= -1.;
+      case set_near_nullspace_fino:
+        nearnulldim = 6; 
+        petsc_call(PetscMalloc1(nearnulldim, &nullvec));
+        for (i = 0; i < nearnulldim; i++) {
+          petsc_call(MatCreateVecs(fino.A, &nullvec[i], NULL));
         }
-        VecMAXPY(nullvec[i],i,dots,nullvec);
-        VecNormalize(nullvec[i], PETSC_NULL);
-      }
+        for (j = 0; j < fino.mesh->n_nodes; j++) {
+          // traslaciones
+          VecSetValue(nullvec[0], fino.mesh->node[j].index[0], 1.0, INSERT_VALUES);
+          VecSetValue(nullvec[1], fino.mesh->node[j].index[1], 1.0, INSERT_VALUES);
+          VecSetValue(nullvec[2], fino.mesh->node[j].index[2], 1.0, INSERT_VALUES);
 
-      petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
-      petsc_call(MatSetNearNullSpace(fino.A, nullsp));
-    break;  
-    
-    case set_near_nullspace_none:
-      ;
-    break;
+          // rotaciones
+          VecSetValue(nullvec[3], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
+          VecSetValue(nullvec[3], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
+
+          VecSetValue(nullvec[4], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[2], INSERT_VALUES);
+          VecSetValue(nullvec[4], fino.mesh->node[j].index[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
+
+          VecSetValue(nullvec[5], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[2], INSERT_VALUES);
+          VecSetValue(nullvec[5], fino.mesh->node[j].index[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
+        }
+
+        for (i = 0; i < 3; i++) {
+          VecNormalize(nullvec[i], PETSC_NULL);
+        }
+
+        // tomado de MatNullSpaceCreateRigidBody()
+        for (i = 3; i < nearnulldim; i++) {
+          // Orthonormalize vec[i] against vec[0:i-1]
+          VecMDot(nullvec[i], i, nullvec, dots);
+          for (j= 0; j < i; j++) {
+            dots[j] *= -1.;
+          }
+          VecMAXPY(nullvec[i],i,dots,nullvec);
+          VecNormalize(nullvec[i], PETSC_NULL);
+        }
+
+        petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
+        petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+      break;  
+
+      case set_near_nullspace_none:
+        ;
+      break;
+    }
   }
 
   // el monitor

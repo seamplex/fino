@@ -310,7 +310,7 @@ int plugin_init_after_parser(void) {
   wasora_call(fino_read_bcs());  
   
   // desplazamientos (y derivadas) anteriores
-  if (fino.problem == problem_break && fino.degrees == 3) {
+  if (fino.problem == problem_break && fino.dimensions == 3) {
     fino.base_solution = calloc(fino.degrees, sizeof(function_t *));
 
     fino.base_solution[0] = wasora_get_function_ptr("u0");
@@ -406,9 +406,8 @@ int plugin_finalize(void) {
 // esto viene despues de haber leido la malla
 int fino_problem_init(void) {
 
-  char name[NAME_SIZE];
-  int i, j, g;
-  int width, max_size;
+  int g;
+  int width;
 
 //---------------------------------
 // inicializamos parametros
@@ -422,68 +421,7 @@ int fino_problem_init(void) {
   // ponemos esto para hacer explicito que somos FEM y no FVM
   fino.spatial_unknowns = fino.mesh->n_nodes;
   fino.mesh->data_type = data_type_node;
-//  wasora_var(fino.vars.nodes) = (double)fino.mesh->n_nodes;
-//  wasora_var(fino.vars.elements) = (double)fino.mesh->n_elements;
   fino.problem_size = fino.spatial_unknowns * fino.degrees;
-  
-//---------------------------------
-// vemos que clase de problema tenemos que resolver
-//---------------------------------
-  if (fino.math_type == math_automatic) {
-    char name[NAME_SIZE];
-    
-    snprintf(name, NAME_SIZE-1, "%s1", fino.rhs_vector_name);
-    if (wasora_get_function_ptr(name) != NULL) {
-      fino.math_type = math_linear;
-    }
-
-    snprintf(name, NAME_SIZE-1, "%s1.1", fino.rhs_matrix_name);
-    if (wasora_get_function_ptr(name) != NULL) {
-      fino.math_type = math_eigen;
-    }
-  }
-
-//---------------------------------
-//  linkeamos las funciones que evaluan elementos de objetos elementos a
-//  las funciones que dio el usuario (si el problema es generico)
-//---------------------------------
-  if (fino.problem == problem_generic) {
-    max_size = fino.mesh->max_nodes_per_element * fino.degrees;
-    fino.Ai_function = calloc(max_size, sizeof(function_t *));
-    fino.Bi_function = calloc(max_size, sizeof(function_t *));
-    fino.bi_function = calloc(max_size, sizeof(function_t *));
-    
-    for (i = 0; i < max_size; i++) {
-      fino.Ai_function[i] = calloc(max_size, sizeof(function_t));
-      if (fino.math_type == math_eigen) {
-        fino.Bi_function[i] = calloc(max_size, sizeof(function_t));
-      }
-
-      for (j = 0; j < max_size; j++) {
-        snprintf(name, NAME_SIZE-1, "%s%d.%d", fino.lhs_matrix_name, i+1, j+1);
-        if ((fino.Ai_function[i][j] = wasora_get_function_ptr(name)) == NULL) {
-           wasora_push_error_message("could not find function '%s'", name);
-           return WASORA_RUNTIME_ERROR;
-        }
-
-        if (fino.math_type == math_eigen) {
-          snprintf(name, NAME_SIZE-1, "%s%d.%d", fino.rhs_matrix_name, i+1, j+1);
-          if ((fino.Bi_function[i][j] = wasora_get_function_ptr(name)) == NULL) {
-             wasora_push_error_message("could not find function '%s'", name);
-             return WASORA_RUNTIME_ERROR;
-          }
-        }
-      }
-
-      if (fino.math_type == math_linear) {
-        snprintf(name, NAME_SIZE-1, "%s%d", fino.rhs_vector_name, i+1);
-        if ((fino.bi_function[i] = wasora_get_function_ptr(name)) == NULL) {
-           wasora_push_error_message("could not find function '%s'", name);
-           return WASORA_RUNTIME_ERROR;
-        }
-      }
-    }
-  }
   
 
 //---------------------------------
@@ -503,7 +441,7 @@ int fino_problem_init(void) {
   if (fino.do_not_set_block_size == 0) {
     petsc_call(MatSetBlockSize(fino.A, fino.degrees));
   }
-  petsc_call(PetscObjectSetName((PetscObject)fino.A, fino.lhs_matrix_name));
+  petsc_call(PetscObjectSetName((PetscObject)fino.A, "A"));
   
   // el vector incognita
   petsc_call(MatCreateVecs(fino.A, NULL, &fino.phi));
@@ -512,7 +450,7 @@ int fino_problem_init(void) {
   if (fino.math_type == math_linear) {
     // el vector del miembro derecho
     petsc_call(MatCreateVecs(fino.A, NULL, &fino.b));
-    petsc_call(PetscObjectSetName((PetscObject)fino.b, fino.rhs_vector_name));
+    petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
     
   } else if (fino.math_type == math_eigen) {
     // la matriz del miembro derecho para autovalores
@@ -521,8 +459,7 @@ int fino_problem_init(void) {
     petsc_call(MatSetFromOptions(fino.B));
     petsc_call(MatMPIAIJSetPreallocation(fino.B, width, PETSC_NULL, width, PETSC_NULL));
     petsc_call(MatSeqAIJSetPreallocation(fino.B, width, PETSC_NULL));
-    petsc_call(PetscObjectSetName((PetscObject)fino.B, fino.rhs_matrix_name));
-
+    petsc_call(PetscObjectSetName((PetscObject)fino.B, "B"));
   }
 
   if (fino.mesh->structured) {

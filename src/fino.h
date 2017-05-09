@@ -60,13 +60,9 @@ PetscErrorCode petsc_err;
 
 #define DEFAULT_MATRICES_X_SIZE     640
 
-#define BC_UNDEFINED       0
-#define BC_DIRICHLET       1
-#define BC_NEUMANN         2
-#define BC_ROBIN           3
-#define BC_POINT_FORCE     4
-#define BC_DIRICHLET_NULL  5
-#define BC_DIRICHLET_ALG   6
+#define BC_UNDEFINED                0
+#define BC_DISPLACEMENT_ALGEBRAIC   132
+#define BC_DISPLACEMENT_FIXED       456
 
 #define BC_FACTOR 0.1
 
@@ -95,7 +91,6 @@ typedef struct {
 struct {
 
   enum {
-    math_automatic,
     math_linear,
     math_nonlinear,
     math_eigen,
@@ -103,7 +98,6 @@ struct {
   
   enum {
     problem_undefined,
-    problem_generic,
     problem_bake,
     problem_break,
     problem_shake,
@@ -269,10 +263,6 @@ struct {
   
   // nombres custom 
   char **unknown_name;          // uno para cada grado de libertad
-  char *shape_name;             // despues le agregamos el numero (i.e. h1)
-  char *lhs_matrix_name;        // despues le agregamos los indices (i.e A1.1)
-  char *rhs_matrix_name;        // despues le agregamos los indices (i.e B1.1)
-  char *rhs_vector_name;        // despues le agregamos los indices (i.e b1)
   
   // las funciones con la solucion (una para cada grado de libertad)
   function_t **solution;

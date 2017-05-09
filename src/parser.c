@@ -28,7 +28,6 @@
 int plugin_parse_line(char *line) {
   
   char *token;
-  char *dhdx_name;
 
   if ((token = wasora_get_next_token(line)) != NULL) {
 
@@ -127,26 +126,6 @@ int plugin_parse_line(char *line) {
           for (g = 0; g < fino.degrees; g++) {
             wasora_call(wasora_parser_string(&fino.unknown_name[g]));
           }
-
-///kw+FINO_PROBLEM+usage [ SHAPE <name> ]
-        } else if (strcasecmp(token, "SHAPE") == 0 || strcasecmp(token, "SHAPE_FUNCTIONS") == 0 || strcasecmp(token, "SHAPE_FUNCION_NAME") == 0) {
-          free(fino.shape_name);
-          wasora_call(wasora_parser_string(&fino.shape_name));
-
-///kw+FINO_PROBLEM+usage [ MATRIX <name> ]
-        } else if (strcasecmp(token, "MATRIX") == 0 || strcasecmp(token, "LHS_MATRIX") == 0) {
-          free(fino.lhs_matrix_name);
-          wasora_call(wasora_parser_string(&fino.lhs_matrix_name));
-
-///kw+FINO_PROBLEM+usage [ VECTOR <name> ]
-        } else if (strcasecmp(token, "VECTOR") == 0 || strcasecmp(token, "RHS_VECTOR") == 0) {
-          free(fino.rhs_vector_name);
-          wasora_call(wasora_parser_string(&fino.rhs_vector_name));
-          
-///kw+FINO_PROBLEM+usage [ EIGEN_MATRIX <name> ]
-        } else if (strcasecmp(token, "EIGEN_MATRIX") == 0 || strcasecmp(token, "RHS_MATRIX") == 0) {
-          free(fino.rhs_matrix_name);
-          wasora_call(wasora_parser_string(&fino.rhs_matrix_name));
           
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
@@ -178,7 +157,7 @@ int plugin_parse_line(char *line) {
           } else if (fino.degrees != 0 && fino.degrees != 3) {
             wasora_push_error_message("SHAKE works only for three degrees of freedom");
             return WASORA_PARSER_ERROR;
-          } else if (fino.math_type != math_automatic && fino.math_type != math_eigen) {
+          } else if (fino.math_type != math_eigen) {
             wasora_push_error_message("SHAKE works only for eigenvalue problem types");
             return WASORA_PARSER_ERROR;
           }
@@ -190,7 +169,7 @@ int plugin_parse_line(char *line) {
           } else if (fino.degrees != 0 && fino.degrees != 3) {
             wasora_push_error_message("BREAK works only for three degrees of freedom");
             return WASORA_PARSER_ERROR;
-          } else if (fino.math_type != math_automatic && fino.math_type != math_linear) {
+          } else if (fino.math_type != math_linear) {
             wasora_push_error_message("BREAK works only for linear problem types");
             return WASORA_PARSER_ERROR;
           }
@@ -204,24 +183,9 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
         break;
-        case problem_generic:
-            // actualizamos los nombres de los objetos de wasora
-            // como el parser busca en un hash hay que volver a definirlo, no vale
-            // solamente cambiarle el nombre (porque el key del hash tiene el nombre viejo)
-            wasora_free_vector(fino.h);
-            fino.h = wasora_define_vector(fino.shape_name, 0, NULL, NULL);
-
-            wasora_free_matrix(fino.dhdx);
-            if (asprintf(&dhdx_name, "d%sdx", fino.shape_name) == -1) {
-              wasora_push_error_message("cannot asprintf");
-              return WASORA_RUNTIME_ERROR;
-            }
-            fino.dhdx = wasora_define_matrix(dhdx_name, 0, NULL, 0, NULL, NULL);
-            free(dhdx_name);
-          break;
-          default:
-          break;
-        }
+        default:
+        break;
+      }
 
 
      
@@ -610,7 +574,7 @@ int fino_define_functions(void) {
 
   fino.solution = calloc(fino.degrees, sizeof(function_t *));
   fino.gradient = calloc(fino.degrees, sizeof(function_t *));
-//  fino.gradsol_cell = calloc(fino.degrees, sizeof(function_t *));
+
   for (g = 0; g < fino.degrees; g++) {
     if (fino.unknown_name == NULL) {
       if (asprintf(&name, "phi%d", g+1) == -1) {
@@ -634,7 +598,6 @@ int fino_define_functions(void) {
 
     // las derivadas de las soluciones con respecto al espacio
     fino.gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
-//    fino.gradsol_cell[g] = calloc(fino.dimensions, sizeof(function_t *));
     
     for (d = 0; d < fino.dimensions; d++) {
       fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
@@ -650,26 +613,6 @@ int fino_define_functions(void) {
       fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
       fino.gradient[g][d]->type = type_pointwise_mesh_node;
       free(gradname);
-      
-      
-      
-      
-      
-      if (asprintf(&gradname, "celld%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
-        wasora_push_error_message("cannot asprintf");
-        return WASORA_RUNTIME_ERROR;
-      }
-/*      
-      if ((fino.gradsol_cell[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
-        return WASORA_PARSER_ERROR;
-      }
-      fino.gradsol_cell[g][d]->mesh = fino.mesh;
-      fino.gradsol_cell[g][d]->var_argument = fino.solution[g]->var_argument;
-      fino.gradsol_cell[g][d]->type = type_pointwise_mesh_cell;
-      free(gradname);
-*/    
-      
-      
       
     }
     
@@ -711,6 +654,7 @@ int fino_define_functions(void) {
     
     
   }
+  // TODO: heat flux
   
   return WASORA_PARSER_OK;
 }
