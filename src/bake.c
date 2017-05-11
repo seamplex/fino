@@ -29,7 +29,8 @@
 fino_distribution_t distribution_k;    // conductividad
 fino_distribution_t distribution_Q;    // heat source
 
-
+#undef  __FUNCT__
+#define __FUNCT__ "fino_build_bake"
 int fino_build_bake(element_t *element, int v) {
   // constantes para hacer mas rapida la milonga
 //  static double k;
@@ -68,4 +69,112 @@ int fino_build_bake(element_t *element, int v) {
   
   return WASORA_RUNTIME_OK;
   
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_bake_set_heat_flux"
+int fino_bake_set_heat_flux(element_t *element) {
+  double w_gauss;
+  double q, k;
+  int v;
+  gsl_vector *Nb;
+  
+  if (distribution_k.defined == 0) {
+    wasora_call(fino_distribution_init(&distribution_k, "k"));
+  }
+  if (distribution_k.defined == 0) {
+    wasora_push_error_message("cannot find thermal conductivity 'k'");
+    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+  }
+  
+  
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+ 
+  Nb = gsl_vector_calloc(fino.degrees);
+  gsl_vector_set_zero(fino.bi);
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    q = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
+    k = fino_distribution_evaluate(&distribution_k, element->physical_entity->material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    gsl_vector_set(Nb, 0, q/k);
+    
+    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  
+  return WASORA_RUNTIME_OK;
+}
+
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_bake_set_heat_flux"
+int fino_bake_set_convection(element_t *element) {
+  double w_gauss;
+  double h = 0;
+  double Tinf = 0;
+  double k;
+  int v;
+  gsl_matrix *Na;
+  gsl_matrix *NaH;
+  gsl_vector *Nb;
+  
+  
+  if (distribution_k.defined == 0) {
+    wasora_call(fino_distribution_init(&distribution_k, "k"));
+  }
+  if (distribution_k.defined == 0) {
+    wasora_push_error_message("cannot find thermal conductivity 'k'");
+    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+  }
+  
+  
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+ 
+  Na = gsl_matrix_calloc(fino.degrees, fino.degrees);
+  NaH = gsl_matrix_calloc(fino.degrees, fino.n_local_nodes);
+  Nb = gsl_vector_calloc(fino.degrees);
+  
+  gsl_matrix_set_zero(fino.Ai);
+  gsl_vector_set_zero(fino.bi);
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    if (element->physical_entity->bc_args != NULL) {
+      h = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
+      Tinf = wasora_evaluate_expression(&element->physical_entity->bc_args[1]);
+    }
+    k = fino_distribution_evaluate(&distribution_k, element->physical_entity->material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    gsl_matrix_set(Na, 0, 0, h/k);
+    gsl_vector_set(Nb, 0, h*Tinf/k);
+
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, fino.mesh->fem.H, 0, NaH);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, fino.mesh->fem.H, NaH, 1, fino.Ai);
+    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  MatSetValues(fino.A, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ai, 0, 0), ADD_VALUES);
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  gsl_matrix_free(Na);
+  gsl_matrix_free(NaH);
+  
+  return WASORA_RUNTIME_OK;
 }

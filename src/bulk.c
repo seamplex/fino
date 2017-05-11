@@ -172,11 +172,17 @@ int fino_build_element_bc(element_t *element) {
     wasora_var_value(fino.vars.nz) = n[2];
     
     if (element->physical_entity->bc_type_phys == bc_phys_stress) {
-      wasora_call(fino_break_add_stress(element));
+      wasora_call(fino_break_set_stress(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_force) {
-      wasora_call(fino_break_add_force(element));
+      wasora_call(fino_break_set_force(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_pressure) {
-      wasora_call(fino_break_add_pressure(element));
+      wasora_call(fino_break_set_pressure(element));
+    }
+  } else if (fino.problem == problem_bake) {
+    if (element->physical_entity->bc_type_phys == bc_phys_heat_flux) {
+      wasora_call(fino_bake_set_heat_flux(element));
+    } else if (element->physical_entity->bc_type_phys == bc_phys_convection) {
+      wasora_call(fino_bake_set_convection(element));
     }
   }
   

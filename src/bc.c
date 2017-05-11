@@ -157,12 +157,16 @@ int fino_read_bcs(void) {
           if (strcmp(name, "T") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_temperature;
+            // ojo! aca se la ponemos a la bc string, en el resto a la physical entity
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
           } else if (strcmp(name, "q") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_heat_flux;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            if (physical_entity->bc_args == NULL) {
+              physical_entity->bc_args = calloc(1, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, physical_entity->bc_args));
             
           } else if (strcmp(name, "h") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_robin;
@@ -189,10 +193,6 @@ int fino_read_bcs(void) {
             wasora_push_error_message("unknown boundary condition type '%s'", name);
             PetscFunctionReturn(WASORA_PARSER_ERROR);
           }
-          
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
-          
-          
         }
         
         // restauramos el signo igual porque en parametrico en una epoca pasaba de nuevo por aca vamos a volver a pasar por aca
@@ -326,7 +326,8 @@ int fino_set_essential_bc(void) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
 
-            if (bc->bc_type_phys == bc_phys_displacement) {
+            if (bc->bc_type_phys == bc_phys_displacement ||
+                bc->bc_type_phys == bc_phys_temperature) {
               fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
               fino.dirichlet_row[k_dirichlet].dof = bc->dof;
 

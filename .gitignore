@@ -98,6 +98,12 @@ examples/traction.msh
 
 examples/compsolid.msh
 
+examples/holow_sphere.msh
+examples/holow_sphere.vtk
+examples/thermal.msh
+examples/thermal.vtk
+
+
 examples/meta*.msh
 
 cosas

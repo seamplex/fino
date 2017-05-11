@@ -436,13 +436,15 @@ extern int fino_break_build_element(element_t *, int);
 extern int fino_break_compute_C(gsl_matrix *, double, double);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
-extern int fino_break_add_stress(element_t *);
-extern int fino_break_add_force(element_t *);
-extern int fino_break_add_pressure(element_t *);
+extern int fino_break_set_stress(element_t *);
+extern int fino_break_set_force(element_t *);
+extern int fino_break_set_pressure(element_t *);
 
 
 // bake.c
 extern int fino_build_bake(element_t *, int);
+extern int fino_bake_set_heat_flux(element_t *);
+extern int fino_bake_set_convection(element_t *element);
 
 extern const char *plugin_name(void);
 extern const char *plugin_version(void);

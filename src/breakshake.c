@@ -434,8 +434,8 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_break_add_stress"
-int fino_break_add_stress(element_t *element) {
+#define __FUNCT__ "fino_break_set_stress"
+int fino_break_set_stress(element_t *element) {
   int v, g;
   double w_gauss;
   gsl_vector *Nb;
@@ -472,8 +472,8 @@ int fino_break_add_stress(element_t *element) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_break_add_force"
-int fino_break_add_force(element_t *element) {
+#define __FUNCT__ "fino_break_set_force"
+int fino_break_set_force(element_t *element) {
   int v, g;
   double w_gauss;
   gsl_vector *Nb;
@@ -506,8 +506,8 @@ int fino_break_add_force(element_t *element) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_break_add_pressure"
-int fino_break_add_pressure(element_t *element) {
+#define __FUNCT__ "fino_break_set_pressure"
+int fino_break_set_pressure(element_t *element) {
   double w_gauss;
   double p;
   int v;
