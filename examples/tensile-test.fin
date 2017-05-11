@@ -7,9 +7,9 @@ nu = 0.3    # Poisson ratio
 
 # boundary conditions (the names come from the physical entities in the mesh)
 PHYSICAL_ENTITY NAME left  BC fixed
-# PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)  # traction
+PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)  # traction
 # PHYSICAL_ENTITY NAME right BC p=0.002*E*(10/13)   # pressure
-PHYSICAL_ENTITY NAME right BC u=0.3 v=0 w=0  # displacement
+# PHYSICAL_ENTITY NAME right BC u=0.3 v=0 w=0  # displacement
 
 # ask Fino to compute the reaction at left as R_x R_y and R_z
 FINO_REACTION PHYSICAL_ENTITY left NAME_ROOT R
