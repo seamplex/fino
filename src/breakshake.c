@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's construction of linear elastic problem (break) with optional vibration (shake)
  *
- *  Copyright (C) 2015--2016 jeremy theler
+ *  Copyright (C) 2015--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -37,8 +37,8 @@ fino_distribution_t distribution_T;     // temperatura
 
   
 #undef  __FUNCT__
-#define __FUNCT__ "fino_build_breakshake"
-int fino_build_breakshake(element_t *element, int v) {
+#define __FUNCT__ "fino_break_build_element"
+int fino_break_build_element(element_t *element, int v) {
 
   static int J;            // cantidad de nodos locales
   // TODO: hacer un campo descripcion en finto_distribution_t para documentar
@@ -429,4 +429,119 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
   }
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
+}
+
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_break_add_stress"
+int fino_break_add_stress(element_t *element) {
+  int v, g;
+  double w_gauss;
+  gsl_vector *Nb;
+    
+  if (element->type->dim < 2) {
+    wasora_push_error_message("stress BCs can only be applied to surfaces");
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+
+  Nb = gsl_vector_calloc(fino.degrees);
+  gsl_vector_set_zero(fino.bi);
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+
+    for (g = 0; g < fino.degrees; g++) {
+      gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g]));
+    }
+    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  
+  return WASORA_RUNTIME_OK;
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_break_add_force"
+int fino_break_add_force(element_t *element) {
+  int v, g;
+  double w_gauss;
+  gsl_vector *Nb;
+    
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+  
+  Nb = gsl_vector_calloc(fino.degrees);
+  gsl_vector_set_zero(fino.bi);
+  
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+
+    for (g = 0; g < fino.degrees; g++) {
+      gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g])/element->physical_entity->volume);
+    }
+    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  
+  return WASORA_RUNTIME_OK;
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_break_add_pressure"
+int fino_break_add_pressure(element_t *element) {
+  double w_gauss;
+  double p;
+  int v;
+  gsl_vector *Nb;
+    
+  if (element->type->dim < 2) {
+    wasora_push_error_message("pressure BCs can only be applied to surfaces");
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+
+ 
+  Nb = gsl_vector_calloc(fino.degrees);
+  gsl_vector_set_zero(fino.bi);
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    p = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
+    gsl_vector_set(Nb, 0, wasora_var_value(fino.vars.nx) * p);
+    gsl_vector_set(Nb, 1, wasora_var_value(fino.vars.ny) * p);
+    gsl_vector_set(Nb, 2, wasora_var_value(fino.vars.nz) * p);
+    
+    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  
+  return WASORA_RUNTIME_OK;
 }

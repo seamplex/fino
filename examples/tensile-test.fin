@@ -7,8 +7,9 @@ nu = 0.3    # Poisson ratio
 
 # boundary conditions (the names come from the physical entities in the mesh)
 PHYSICAL_ENTITY NAME left  BC fixed
-PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)   # traction
-# PHYSICAL_ENTITY NAME right BC u=0 v=0 w=1        # displacement
+# PHYSICAL_ENTITY NAME right BC tx=0.002*E*(10/13)  # traction
+# PHYSICAL_ENTITY NAME right BC p=0.002*E*(10/13)   # pressure
+PHYSICAL_ENTITY NAME right BC u=0.3 v=0 w=0  # displacement
 
 # ask Fino to compute the reaction at left as R_x R_y and R_z
 FINO_REACTION PHYSICAL_ENTITY left NAME_ROOT R
@@ -25,6 +26,7 @@ FINO_STEP
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
 
 PRINT TEXT "maximum_diplacement   [mm]  =" %g displ_max
+PRINT TEXT "displacement at right [mm]  =" %g u(80,0,0)
 PRINT TEXT "stress_at_the_origin  [MPa] =" %g sigma(0,0,0)
 PRINT TEXT "reaction_at_fixed_end [N]   =" %g TEXT "Rx ="  R_x TEXT "Ry =" R_y TEXT "Rz =" R_z
 PRINT TEXT "iterations                  =" %g fino_iterations

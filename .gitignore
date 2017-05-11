@@ -89,9 +89,9 @@ examples/two-material-beam.msh
 examples/two-material-beam2.msh
 examples/two-material-beam.vtk
 
-examples/cantilever.geo 
-examples/cantilever.msh
-examples/cantilever*.vtk
+examples/cantilever-*.geo 
+examples/cantilever-*.msh
+examples/cantilever-*.vtk
 
 examples/traction.vtk
 examples/traction.msh

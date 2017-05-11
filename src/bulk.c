@@ -59,35 +59,35 @@ int fino_build_bulk(void) {
 
   int i;
   int step = (fino.mesh->n_elements > 99)?fino.mesh->n_elements/100:1;
-  bc_string_based_t *bc;
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
-    
+
+// ------ progress bar ------------------------------------------    
     if ((i % step) == 0) {
       if (fino.shmem_memory != NULL) {
         getrusage(RUSAGE_SELF, &fino.resource_usage);
         *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
       }
-      
       if (fino.shmem_progress_build != NULL) {
         *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
       }
     }
-    
+// --------------------------------------------------------------    
+
     if (fino.mesh->element[i].type->dim == fino.dimensions) {
       // solo los elementos que tengan la dimension del problema
       // son los que usamos para las matrices elementales
-      wasora_call(fino_build_element(&fino.mesh->element[i]));
+      wasora_call(fino_build_element_volumetric(&fino.mesh->element[i]));
       
-    } else if (fino.mesh->element[i].type->dim < fino.dimensions && fino.math_type != math_eigen) {
-      // en problemas de autovalores todas las condiciones de contorno son homogeneas
-      if (fino.mesh->element[i].physical_entity != NULL && fino.mesh->element[i].physical_entity->bc_strings != NULL) {
-        LL_FOREACH(fino.mesh->element[i].physical_entity->bc_strings, bc) {
-          if (bc->bc_type_mathematical == bc_math_neumann) {            
-            wasora_call(fino_add_single_surface_term_to_rhs(&fino.mesh->element[i], bc));
-          }
-        }
-      }
+    } else if (fino.math_type != math_eigen &&
+               fino.mesh->element[i].type->dim < fino.dimensions &&
+               fino.mesh->element[i].physical_entity != NULL &&
+               (fino.mesh->element[i].physical_entity->bc_type_math == bc_math_neumann ||
+                fino.mesh->element[i].physical_entity->bc_type_math == bc_math_robin)) {
+
+      // los otros tienen (o pueden tener) condiciones de contorno de neumann
+      // las de dirichlet set ponen en set_essential despues de ensamblar
+      wasora_call(fino_build_element_bc(&fino.mesh->element[i]));
     }
   }
 
@@ -102,7 +102,9 @@ int fino_build_bulk(void) {
 
 }
 
-int fino_build_element(element_t *element) {
+#undef  __FUNCT__
+#define __FUNCT__ "fino_build_element_volumetric"
+int fino_build_element_volumetric(element_t *element) {
   int v;           // indice del punto de gauss
 
   if (element->physical_entity == NULL) {
@@ -127,7 +129,7 @@ int fino_build_element(element_t *element) {
     for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
       // armamos las matrices
       if (fino.problem == problem_shake || fino.problem == problem_break) {
-        wasora_call(fino_build_breakshake(element, v));
+        wasora_call(fino_break_build_element(element, v));
       } else if (fino.problem == problem_bake) {
         wasora_call(fino_build_bake(element, v));
       }
@@ -157,6 +159,30 @@ int fino_build_element(element_t *element) {
   return WASORA_RUNTIME_OK;
 }
 
+#undef  __FUNCT__
+#define __FUNCT__ "fino_build_element_volumetric"
+int fino_build_element_bc(element_t *element) {
+  
+  double n[3];
+  
+  if (fino.problem == problem_break) {
+    wasora_call(mesh_compute_outward_normal(element, n));
+    wasora_var_value(fino.vars.nx) = n[0];
+    wasora_var_value(fino.vars.ny) = n[1];
+    wasora_var_value(fino.vars.nz) = n[2];
+    
+    if (element->physical_entity->bc_type_phys == bc_phys_stress) {
+      wasora_call(fino_break_add_stress(element));
+    } else if (element->physical_entity->bc_type_phys == bc_phys_force) {
+      wasora_call(fino_break_add_force(element));
+    } else if (element->physical_entity->bc_type_phys == bc_phys_pressure) {
+      wasora_call(fino_break_add_pressure(element));
+    }
+  }
+  
+  return WASORA_RUNTIME_OK;
+  
+}
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_print_gsl_vector"

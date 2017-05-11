@@ -1,20 +1,21 @@
 DEFAULT_ARGUMENT_VALUE 1 1           # use first (1) or second (2) order elements
 DEFAULT_ARGUMENT_VALUE 2 gamg        # use this preconditioner (gamg, lu, etc)
 
-PARAMETRIC c MIN 0.2 MAX 2 NSTEPS 10
-# c = 0.6
+PARAMETRIC c MIN 1 MAX 2 STEP 0.2
 
+OUTPUT_FILE geo  cantilever-$1-%.2f.geo c
 M4 {
  INPUT_FILE_PATH  cantilever.geo.m4
- OUTPUT_FILE_PATH cantilever.geo
+ OUTPUT_FILE geo
  MACRO lc $1/c
 }
 
-SHELL "gmsh -3 -v 0 -order $1 cantilever.geo"
-MESH FILE_PATH cantilever.msh
+SHELL "if [ ! -e cantilever-$1-%.2f.msh ]; then gmsh -v 0 -3 -order $1 cantilever-$1-%.2f.geo > /dev/null; fi" c c
+INPUT_FILE mesh cantilever-$1-%.2f.msh c
+MESH FILE mesh DIMENSIONS 3
 
 PHYSICAL_ENTITY NAME left  BC fixed
-PHYSICAL_ENTITY NAME right BC tz=-1
+PHYSICAL_ENTITY NAME right BC Tz=-1000
 
 E = 200e3
 nu = 0.3
@@ -23,7 +24,7 @@ FINO_SOLVER PC_TYPE $2
 
 FINO_STEP
 
-PRINT 1/c nodes elements displ_max sigma_max fino_iterations time_cpu_build time_cpu_solve memory_usage_global
+PRINT %.4f 1/c %g nodes elements %.5g displ_max sigma_max %g fino_iterations %.2f time_cpu_build time_cpu_solve memory_usage_global/1e9
 
 OUTPUT_FILE vtk cantilever-$1-%.2f.vtk c
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz VECTOR u v w

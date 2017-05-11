@@ -60,9 +60,22 @@ PetscErrorCode petsc_err;
 
 #define DEFAULT_MATRICES_X_SIZE     640
 
-#define BC_UNDEFINED                0
-#define BC_DISPLACEMENT_ALGEBRAIC   132
-#define BC_DISPLACEMENT_FIXED       456
+#define bc_math_undefined                              0
+#define bc_math_dirichlet                              1
+#define bc_math_neumann                                2
+#define bc_math_robin                                  3
+
+#define bc_phys_undefined                              5
+#define bc_phys_displacement_fixed                     6
+#define bc_phys_displacement                           7
+#define bc_phys_displacement_constrained               8
+#define bc_phys_pressure                               9
+#define bc_phys_stress                                10
+#define bc_phys_force                                 11
+#define bc_phys_temperature                           12
+#define bc_phys_heat_flux                             13
+#define bc_phys_convection                            14
+
 
 #define BC_FACTOR 0.1
 
@@ -402,7 +415,8 @@ extern int fino_solve_eigen_slepc(void);
 
 // bulk.c
 extern int fino_build_bulk(void);
-extern int fino_build_element(element_t *);
+extern int fino_build_element_volumetric(element_t *);
+extern int fino_build_element_bc(element_t *);
 
 // bc.c
 extern int fino_set_essential_bc(void);
@@ -418,10 +432,13 @@ PetscErrorCode fino_handler(MPI_Comm comm, int, const char *, const char *, Pets
 extern double fino_get_cpu_time(void);
 
 // breakshake.c
-extern int fino_build_breakshake(element_t *, int);
+extern int fino_break_build_element(element_t *, int);
 extern int fino_break_compute_C(gsl_matrix *, double, double);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
+extern int fino_break_add_stress(element_t *);
+extern int fino_break_add_force(element_t *);
+extern int fino_break_add_pressure(element_t *);
 
 
 // bake.c

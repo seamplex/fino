@@ -1,8 +1,14 @@
 SHELL "gmsh -3 -v 0 traction.geo"
 MESH FILE_PATH traction.msh
 
+
 PHYSICAL_ENTITY NAME left  BC u=0
+
 PHYSICAL_ENTITY NAME right BC u=0.1
+FINO_REACTION PHYSICAL_ENTITY right NAME_ROOT R
+
+# PHYSICAL_ENTITY NAME right BC Tx=20000
+
 
 E = 200e3
 nu = 0.3
@@ -16,6 +22,7 @@ PRINT TEXT "\# elements   =" %g elements
 PRINT TEXT "\# nodes      =" %g nodes
 PRINT TEXT "\# build time = " %.3f time_cpu_build
 PRINT TEXT "\# solve time = " %.3f time_cpu_solve
+PRINT TEXT "\# reaction   = " %.3f R_x
 
 
 PRINT_FUNCTION FORMAT %.5g dipl_in_x dudx(x,5,5) sigma(x,5,5) MIN 0 MAX 100 NSTEPS 10 HEADER

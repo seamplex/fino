@@ -20,6 +20,7 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 #include <string.h>
+#include <ctype.h>
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
@@ -33,19 +34,17 @@
 int fino_read_bcs(void) {
 
   physical_entity_t *physical_entity;
+  bc_string_based_t *bc;
   
   // barremos los physical entities y mapeamos cadenas a valores enteros
-  // TODO: elegir si hay que ser lightweight o quejarnos si no hay un mapeo 1 a 1
   LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
     if (physical_entity->bc_strings != NULL) {
       
-      bc_string_based_t *bc;
       char *equal_sign = NULL;
       char *name = NULL;
       char *expr = NULL;
       
-      // TODO: poner las BCs de diferentes DOFs en un solo vector asi hacemos una sola cuenta y ya
-      // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300      
+      // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
       LL_FOREACH(physical_entity->bc_strings, bc) {
         
         // si creamos una bc dummy entonces tiene string NULL
@@ -64,82 +63,30 @@ int fino_read_bcs(void) {
         }
 
         if (fino.problem == problem_break) {
-          if (strcmp(name, "u") == 0) {
-            bc->dof = 0;
-            bc->bc_type_mathematical = bc_math_dirichlet;
-            bc->bc_type_physical =     bc_phys_displacement;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
-          } else if (strcmp(name, "v") == 0) {
-            bc->dof = 1;
-            bc->bc_type_mathematical = bc_math_dirichlet;
-            bc->bc_type_physical =     bc_phys_displacement;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
-          } else if (strcmp(name, "w") == 0) {
-            bc->dof = 2
-                ;
-            bc->bc_type_mathematical = bc_math_dirichlet;
-            bc->bc_type_physical =     bc_phys_displacement;
+          if (strcmp(name, "fixed") == 0) {
+            physical_entity->bc_type_math = bc_math_dirichlet;
+            physical_entity->bc_type_phys = bc_phys_displacement_fixed;
+            
+          } else if (strcmp(name, "u") == 0 ||
+                     strcmp(name, "v") == 0 ||
+                     strcmp(name, "w") == 0) {
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement;
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
-          // fixed es como u=0 v=0 w=0
-          } else if (strcmp(name, "fixed") == 0) {
-            physical_entity->bc_type_int = BC_DISPLACEMENT_FIXED;
-            bc->bc_type_physical =         bc_phys_displacement_fixed;
+            if (strcmp(name, "u") == 0) {
+              bc->dof = 0;
+            } else if (strcmp(name, "v") == 0) {
+              bc->dof = 1;
+            } else if (strcmp(name, "w") == 0) {
+              bc->dof = 2;
+            }
 
-          // se le dan o las componentes del vector t [tx, ty, tz]
-          // le ponemos a disposicion las componentes del vector n [nx, ny, nz]
-          } else if (strcmp(name, "tx") == 0) {
-            bc->dof = 0;
-            bc->bc_type_mathematical = bc_math_neumann;
-            bc->bc_type_physical =     bc_phys_traction;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
-          } else if (strcmp(name, "ty") == 0) {
-            bc->dof = 1;
-            bc->bc_type_mathematical = bc_math_neumann;
-            bc->bc_type_physical =     bc_phys_traction;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
-          } else if (strcmp(name, "tz") == 0) {
-            bc->dof = 2;
-            bc->bc_type_mathematical = bc_math_neumann;
-            bc->bc_type_physical =     bc_phys_traction;
-            wasora_call(wasora_parse_expression(expr, &bc->expr));
-            
-          } else if (strcmp(name, "p") == 0) {
-            // TODO: capaz que conviene hacer esto al evaluar
-            bc_string_based_t *bc_v, *bc_w;
-            char *buff = malloc(strlen(expr) + 8);
-            
-            bc->dof = 0;
-            bc->bc_type_mathematical = bc_math_neumann;
-            bc->bc_type_physical =     bc_phys_pressure;
-
-            snprintf(buff, strlen(expr) + 7, "-nx*(%s)", expr);
-            wasora_call(wasora_parse_expression(buff, &bc->expr));
-            
-            // agregamos dos mas de prepo para v y w
-            bc_v = calloc(1, sizeof(bc_string_based_t));
-            bc_v->dof = 1;
-            bc_v->bc_type_mathematical = bc_math_neumann;
-            bc_v->bc_type_physical =     bc_phys_pressure;
-            snprintf(buff, strlen(expr) + 7, "-ny*(%s)", expr);
-            wasora_call(wasora_parse_expression(buff, &bc_v->expr));
-            LL_APPEND(physical_entity->bc_strings, bc_v);
-            
-            bc_w = calloc(1, sizeof(bc_string_based_t));
-            bc_w->dof = 2;
-            bc_w->bc_type_mathematical = bc_math_neumann;
-            bc_w->bc_type_physical =     bc_phys_pressure;
-            snprintf(buff, strlen(expr) + 7, "-nz*(%s)", expr);
-            wasora_call(wasora_parse_expression(buff, &bc_w->expr));
-            LL_APPEND(physical_entity->bc_strings, bc_w);
-            
-            free(buff);
-
-          } else if (strcmp(name, "implicit") == 0) {
+          } else if (strcmp(name, "0") == 0 || strcmp(name, "implicit") == 0) {
             char *dummy;
             
-            physical_entity->bc_type_int = BC_DISPLACEMENT_ALGEBRAIC;
-            bc->bc_type_mathematical = bc_math_dirichlet_algebraic_relationship;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_phys_displacement_constrained;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement_constrained;
             
             // el cuento es asi: aca quisieramos que el usuario escriba algo en funcion
             // de x,y,z pero tambien de u,v y w. Pero u,v,w ya son funciones, asi que no
@@ -163,25 +110,84 @@ int fino_read_bcs(void) {
             
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
+          } else if (strcasecmp(name, "tx") == 0 ||
+                     strcasecmp(name, "ty") == 0 ||
+                     strcasecmp(name, "tz") == 0) {
+
+            if (strcmp(name+1, "x") == 0) {
+              bc->dof = 0;
+            } else if (strcmp(name+1, "y") == 0) {
+              bc->dof = 1;
+            } else if (strcmp(name+1, "z") == 0) {
+              bc->dof = 2;
+            }
+            
+            if (isupper(name[0])) {
+              physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+              physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_force;
+            } else {
+              physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+              physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_stress;
+            }
+
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            
+            if (physical_entity->bc_args == NULL) {
+              physical_entity->bc_args = calloc(3, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, &physical_entity->bc_args[bc->dof]));
+            
+
+            
+          } else if (strcmp(name, "p") == 0) {
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_pressure;
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            if (physical_entity->bc_args == NULL) {
+              physical_entity->bc_args = calloc(1, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, physical_entity->bc_args));
+            
           } else {
             wasora_push_error_message("unknown boundary condition type '%s'", name);
-            return WASORA_PARSER_ERROR;
+            PetscFunctionReturn(WASORA_PARSER_ERROR);
           }
          
         } else if (fino.problem == problem_bake) {
           if (strcmp(name, "T") == 0) {
-            bc->dof = 0;
-            bc->bc_type_mathematical = bc_math_dirichlet;
-            bc->bc_type_physical     = bc_phys_temperature;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_temperature;
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
             
           } else if (strcmp(name, "q") == 0) {
-            bc->dof = 0;
-            bc->bc_type_mathematical = bc_math_neumann;
-            bc->bc_type_physical     = bc_phys_heat_flux;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_heat_flux;
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
             
+          } else if (strcmp(name, "h") == 0) {
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_robin;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_convection;
+
+            if (physical_entity->bc_args == NULL) {
+              physical_entity->bc_args = calloc(2, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, &physical_entity->bc_args[0]));
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            
+
+          } else if (strcmp(name, "Tinf") == 0) {
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_robin;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_convection;
+
+            if (physical_entity->bc_args == NULL) {
+              physical_entity->bc_args = calloc(2, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, &physical_entity->bc_args[1]));
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+
           } else {
             wasora_push_error_message("unknown boundary condition type '%s'", name);
-            return WASORA_PARSER_ERROR;
+            PetscFunctionReturn(WASORA_PARSER_ERROR);
           }
           
           wasora_call(wasora_parse_expression(expr, &bc->expr));
@@ -199,20 +205,7 @@ int fino_read_bcs(void) {
     }
   }
   
-  return WASORA_RUNTIME_OK;
-}
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_count_bc_expressions"
-int fino_count_bc_expressions(expr_t *bc_args) {
-  expr_t *bc_arg;
-  int n = 0;
-  
-  LL_FOREACH(bc_args, bc_arg) {
-    n++;
-  }
-  
-  return n;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
 #undef  __FUNCT__
@@ -223,21 +216,19 @@ int fino_evaluate_bc_expressions(physical_entity_t *physical_entity, node_t *nod
   expr_t *bc_arg = physical_entity->bc_args;
 
   // las cc dependen de la posicion
-  wasora_var(wasora_mesh.vars.x) = node->x[0];
-  wasora_var(wasora_mesh.vars.y) = node->x[1];
-  wasora_var(wasora_mesh.vars.z) = node->x[2];
+  mesh_update_coord_vars(node->x);
 
   for (g = 0; g < degrees; g++) {
     if (bc_arg == NULL) {
       wasora_push_error_message("boundary condition '%s' needs %d expressions", physical_entity->name, degrees);
-      return WASORA_RUNTIME_ERROR;
+      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
 
     result[g] = multiplier * wasora_evaluate_expression(bc_arg);
     bc_arg = bc_arg->next;
   }
   
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
 #undef  __FUNCT__
@@ -321,7 +312,7 @@ int fino_set_essential_bc(void) {
           fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
 
-        if (physical_entity->bc_type_int == BC_DISPLACEMENT_FIXED) {
+        if (physical_entity->bc_type_phys == bc_phys_displacement_fixed) {
           for (d = 0; d < fino.degrees; d++) {
             fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
             fino.dirichlet_row[k_dirichlet].dof = d;
@@ -331,11 +322,11 @@ int fino_set_essential_bc(void) {
           }
           found = 1;
 
-        } else if (physical_entity->bc_strings != NULL) {
+        } else if (physical_entity->bc_type_math == bc_math_dirichlet && physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
 
-            if (bc->bc_type_mathematical == bc_math_dirichlet) {
+            if (bc->bc_type_phys == bc_phys_displacement) {
               fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
               fino.dirichlet_row[k_dirichlet].dof = bc->dof;
 
@@ -353,7 +344,7 @@ int fino_set_essential_bc(void) {
               k_dirichlet++;
               found = 1;
               
-            } else if (bc->bc_type_mathematical == bc_math_dirichlet_algebraic_relationship) {
+            } else if (bc->bc_type_math == bc_phys_displacement_constrained) {
 
               fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
@@ -421,7 +412,7 @@ int fino_set_essential_bc(void) {
       petsc_call(MatRestoreRow(fino.A, indexes_dirichlet[i], &ncols, &cols, &vals));
     } else {
       wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
-      return WASORA_RUNTIME_ERROR;
+      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
     // el cuento es asi: hay que poner un cero en fino.b para romper las fuerzas volumetricas
@@ -433,7 +424,6 @@ int fino_set_essential_bc(void) {
   petsc_call(MatCreateVecs(fino.A, &vec_rhs_dirichlet, NULL));
   petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
   petsc_call(MatZeroRowsColumns(fino.A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, fino.b));
-//  petsc_call(MatZeroRows(fino.A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, fino.b));  
   petsc_call(VecDestroy(&vec_rhs_dirichlet));
   
   if (fino.math_type == math_eigen) {
@@ -457,7 +447,7 @@ int fino_set_essential_bc(void) {
 
   wasora_call(fino_assembly());
 
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 
 }
 
@@ -550,7 +540,7 @@ int fino_build_surface_objects(element_t *element, expr_t *bc_a, expr_t *bc_b) {
     gsl_matrix_free(NaH);
   }
   
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
 
@@ -596,6 +586,8 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
   } else {
     // sino hacemos la cuenta general
 
+    // esto es solo para la presion!
+    // viene de sn_elements_compute_outward_normal
     // calculamos el vector normal para las variables nx ny y nx
     mesh_subtract(element->node[0]->x, element->node[1]->x, a);
     mesh_subtract(element->node[0]->x, element->node[2]->x, b);
@@ -644,5 +636,7 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
     gsl_vector_free(Nb);
   }
   
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
+
+
