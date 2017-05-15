@@ -179,7 +179,7 @@ int fino_read_bcs(void) {
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             
 
-          } else if (strcmp(name, "Tinf") == 0) {
+          } else if (strcmp(name, "Tref") == 0 || strcmp(name, "Tinf") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_robin;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_convection;
 
