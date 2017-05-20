@@ -64,6 +64,9 @@ Output is 100% defined in the input file. If no explicit output instruction is p
 
 # Examples
 
+See the directory `examples` for further cases.
+
+
 ## Tensile test 
 
 Let us consider the example input file [`examples/tensile-test.fin`](examples/tensile-test.fin):
@@ -109,10 +112,87 @@ $
 
 We can process the `VTK` output file with the free tool [ParaView](http://www.paraview.org/):
 
-![Tensile test results.](examples/tensile-test.png){.img-responsive}\ 
+![Tensile test results.](examples/tensile-test.png){.img-responsive}
 
 
-See the directory `examples` for further cases.
+## Cantilever beam with first & second order elements
+
+```wasora
+DEFAULT_ARGUMENT_VALUE 1 1        # use first (1) or second (2) order elements
+DEFAULT_ARGUMENT_VALUE 2 0        # use structured (1) or unstructured (0) tets
+
+PARAMETRIC c MIN 0.4 MAX 1.2 NSTEPS 5
+
+OUTPUT_FILE geo  cantilever-$1-$2-%.2f.geo c
+M4 {
+ INPUT_FILE_PATH  cantilever.geo.m4
+ OUTPUT_FILE geo
+ MACRO lc     $1/c
+ MACRO struct $2
+}
+
+SHELL "if [ ! -e cantilever-$1-$2-%.2f.msh ]; then gmsh -v 0 -3 -order $1 cantilever-$1-$2-%.2f.geo > /dev/null; fi" c c
+INPUT_FILE mesh cantilever-$1-$2-%.2f.msh c
+MESH FILE mesh DIMENSIONS 3
+
+PHYSICAL_ENTITY NAME left  BC fixed
+PHYSICAL_ENTITY NAME right BC Tz=-1000
+
+E = 200e3
+nu = 0.3
+
+FINO_STEP
+
+PRINT %.2f 1/c c %g nodes elements %.5g displ_max sigma_max %g fino_iterations %.2f time_cpu_build time_cpu_solve %.0f memory_usage_global/1e6
+
+OUTPUT_FILE vtk cantilever-$1-$2-%.2f.vtk c
+MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+```
+
+![Cantilever beam displacement for different grids and element order.](examples/cantilever.png){.img-responsive}
+
+
+
+## Thermal conduction in a piston engine
+
+Problem taken from [Simscale’s thermal tutorial](https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html):
+
+
+```wasora
+# thermal conductivity in an engine piston as in
+# https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html
+
+SHELL "if [ ! -e engine-piston.msh ]; then gmsh -v 0 -3 engine-piston.geo; fi"
+MESH FILE_PATH engine-piston.msh  # the mesh is in mm
+FINO_PROBLEM BAKE DIMENSIONS 3
+
+f = 1e-3   # factor to convert from m to mm
+# thermal conductivity numerically in W/(m*K) set in W/(mm*K)
+k = 160*f
+
+# heat transfer coefficient in W/(m^2*K) set in W/(mm^2*K)
+PHYSICAL_ENTITY NAME "top"                BC   h=450*f^2   Tref=1400
+PHYSICAL_ENTITY NAME "ring 1"             BC   h=150*f^2   Tref=450
+PHYSICAL_ENTITY NAME "ring 1 groove"      BC  h=1000*f^2   Tref=450
+PHYSICAL_ENTITY NAME "ring 2"             BC   h=150*f^2   Tref=450
+PHYSICAL_ENTITY NAME "ring 2 groove"      BC   h=400*f^2   Tref=380
+PHYSICAL_ENTITY NAME "ring 3"             BC   h=150*f^2   Tref=380
+PHYSICAL_ENTITY NAME "ring 3 groove"      BC   h=400*f^2   Tref=380
+PHYSICAL_ENTITY NAME "interior and skirt" BC   h=650*f^2   Tref=380
+
+FINO_STEP
+
+MESH_POST FILE_PATH engine-piston.vtk T
+
+# PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
+PRINT %.1f T(0,0,0)
+
+```
+
+![Fino results.](examples/engine-piston.png){.img-responsive}
+
+![Simscale (CalculiX) results.](examples/piston-simscale.png){.img-responsive}
+
 
 ## Conic valve
 
@@ -152,6 +232,9 @@ MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w dudx dvdx dwdx dudy dvdy 
 See the original tweet at <https://twitter.com/seamplex/status/789440535329181696>
 
 ## Thermal expansion of finite cylinders
+
+![Veeder Benchmark problem](examples/veeder.png){.img-responsive}
+
 
 See <https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf>.
 

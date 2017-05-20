@@ -1,0 +1,28 @@
+set preamble "\usepackage{amsmath}"
+
+set width 14*unit(cm)
+set axis x arrow nomirrored
+set axis y arrow nomirrored
+set key bottom left
+
+set xrange [0:3]
+set yrange [0:2.5]
+
+#set xtics 0.1
+#set ytics 0.1
+#set mxtics 0.05
+#set mytics 0.05
+
+set grid
+
+set terminal png
+
+set xlabel "inverse of the characteristic element size $1/\ell_c$"
+set ylabel "maximum displacement"
+
+set output "cantilever.png"
+
+plot 'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 2  color red    ti "First order unstructured",\
+     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 3  color brown  ti "First order structured",\
+     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 16 color green  ti "Second order unstructured",\
+     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 17 color blue   ti "Second order structured"
