@@ -2,7 +2,7 @@
 Merge "square-beam.step";
 
 //lc = 2;
-struct = 0;
+//struct = 0;
 //hex = 1;
 
 If ( struct != 0 )

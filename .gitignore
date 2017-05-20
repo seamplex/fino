@@ -71,13 +71,13 @@ nbproject
 examples/*.trs
 examples/*.log
 
+examples/*.dat
+
 examples/tensile-test.vtk
-examples/tensile-sigma.dat
 
 examples/veeder.geo
 examples/veeder*.msh
 examples/veeder.vtk
-examples/veeder_*.dat
 
 examples/prism.msh
 examples/prism.vtk
@@ -92,6 +92,9 @@ examples/two-material-beam.vtk
 examples/cantilever-*.geo 
 examples/cantilever-*.msh
 examples/cantilever-*.vtk
+
+examples/engine-piston.msh
+examples/engine-piston.vtk
 
 examples/traction.vtk
 examples/traction.msh

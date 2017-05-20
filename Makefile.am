@@ -7,7 +7,9 @@ ACLOCAL_AMFLAGS = -I wasora/m4
 dist_doc_DATA = AUTHORS ChangeLog README TODO
 EXTRA_DIST = examples doc
 
-TESTS = examples/test.sh
+TESTS = examples/test-tensile.sh \
+        examples/test-cantilever.sh \
+        examples/test-piston.sh
 
 all-local:
 	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
