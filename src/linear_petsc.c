@@ -67,11 +67,7 @@ int fino_solve_linear_petsc(void) {
   if (fino.pc_type != NULL) {
     petsc_call(PCSetType(fino.pc, fino.pc_type));
   } else {
-    if (fino.problem == problem_break) {
-      petsc_call(PCSetType(fino.pc, "gamg"));
-    } else {
-      petsc_call(PCSetType(fino.pc, "lu"));
-    }
+    petsc_call(PCSetType(fino.pc, "gamg"));
   }
   
   petsc_call(PCGetType(fino.pc, &pc_type));
