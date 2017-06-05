@@ -105,7 +105,8 @@ examples/holow_sphere.msh
 examples/holow_sphere.vtk
 examples/thermal.msh
 examples/thermal.vtk
-
+examples/thin-rotating-disk.msh
+examples/thin-rotating-disk.vtk
 
 examples/meta*.msh
 

@@ -1,0 +1,25 @@
+t = 1
+R = 20
+
+MESH FILE_PATH thin-rotating-disk.msh
+
+PHYSICAL_ENTITY NAME 00  BC fixed
+PHYSICAL_ENTITY NAME 01  BC u=0 v=0
+PHYSICAL_ENTITY NAME 10  BC v=0 w=0
+
+omega = 1000*(2*pi/60)  # rpm -> rad/seg
+rho = 7800*1e-9         # kg/m^3 -> kg/mm^3
+E = 200e3               # MPa
+nu = 0.3
+
+fx(x,y,z) := rho*omega^2*x
+fy(x,y,z) := rho*omega^2*y
+
+FINO_STEP
+
+# reference solution
+sigma_at_center = 1/8*(rho * omega^2) * (3+nu) * R^2
+
+MESH_POST FILE_PATH thin-rotating-disk.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+PRINT sigma(0,0,0) sigma_at_center
