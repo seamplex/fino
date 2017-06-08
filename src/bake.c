@@ -93,7 +93,7 @@ int fino_bake_set_heat_flux(element_t *element) {
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
     q = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
-    gsl_vector_set(Nb, 0, q);
+    gsl_vector_set(Nb, 0, -q);
     
     gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }

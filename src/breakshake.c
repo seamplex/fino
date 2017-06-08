@@ -293,7 +293,7 @@ int fino_break_compute_stresses(void) {
     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
     
     material = NULL;
-    if (distribution_nu.variable == NULL) {
+    if (distribution_nu.physical_property != NULL) {
       // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
       // pesando toda la funcion completa con los elementos adyacentes
       LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
@@ -316,7 +316,7 @@ int fino_break_compute_stresses(void) {
       }      
     }
     
-    if (distribution_E.variable == NULL) {
+    if (distribution_E.physical_property != NULL) {
       if (material == NULL) {
         LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
           if (associated_element->element->physical_entity != NULL) {
