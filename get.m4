@@ -12,6 +12,10 @@ GET_STEP4
 GET_PETSC
 GET_STEP5
 GET_STEP6
+# god forbids...
+if [ ! -z "`uname | grep CYGWIN`" ]; then
+  ln -s libs/petsc-petsc_version/arch-linux2-c-opt/lib/libpetsc-petsc_version
+fi
 GET_STEP7
 GET_STEP8
 GET_FOOTER
