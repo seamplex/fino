@@ -24,15 +24,18 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
 If you are impatient to run Fino, open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
 
 ```
+sudo apt-get install curl m4 make autoconf automake findutils gcc git wget libgsl0-dev
 curl https://www.seamplex.com/fino/get.sh | sh
 ```
 
-Make sure you have `curl` installed and if you are behind a proxy, that both `http_proxy` and `https_proxy` are properly set. If you get any error, either
+You might need to use a different package manager if your distribution is not [Debian](http://www.debian.org)-based.
+If you are behind a proxy, make sure that both `http_proxy` and `https_proxy` are properly set. If you get any error, either
 
  a. See the detailed explanation in [INSTALL](INSTALL.md)  
  b. Ask for help in the mailing list at <https://groups.google.com/a/seamplex.com/forum/#!forum/wasora>
 
 If these instructions are non-sense to you, go directly to point b.
+
 
 # Features 
 
