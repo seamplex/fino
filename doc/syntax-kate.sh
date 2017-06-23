@@ -2,13 +2,13 @@
 # take the output of this script as a kate syntax definition file for fino
 #
 # ./syntax-kate.sh > $HOME/.kde/share/apps/katepart/syntax/fino.xml
+# ./syntax-kate.sh > $HOME/.local/share/katepart5/syntax/fino.xml
 #
 
 . ./keywords.sh
 
 cat << EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE language SYSTEM "language.dtd">
 <language name="fino" version="0.3" kateversion="3.7.4" section="Scientific" extensions="*.fin" author="jeremy theler" license="GPL">
 EOF
 

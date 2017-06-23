@@ -27,7 +27,7 @@
 #include "fino.h"
 
 fino_distribution_t distribution_E;     // modulo de young
-fino_distribution_t distribution_nu;    // coef de poisson
+fino_distribution_t distribution_k;    // coef de poisson
 fino_distribution_t distribution_rho;   // densidad
 fino_distribution_t distribution_fx;    // fuerza volumetrica en x
 fino_distribution_t distribution_fy;    // fuerza volumetrica en y
@@ -76,7 +76,7 @@ int fino_break_build_element(element_t *element, int v) {
   // buscamos las distribuciones espaciales de parametros
   if (C == NULL) {
     wasora_call(fino_distribution_init(&distribution_E, "E"));
-    wasora_call(fino_distribution_init(&distribution_nu, "nu"));
+    wasora_call(fino_distribution_init(&distribution_k, "nu"));
     wasora_call(fino_distribution_init(&distribution_rho, "rho"));
     wasora_call(fino_distribution_init(&distribution_fx, "fx"));
     wasora_call(fino_distribution_init(&distribution_fy, "fy"));
@@ -88,7 +88,7 @@ int fino_break_build_element(element_t *element, int v) {
     if (distribution_E.defined == 0) {
       wasora_push_error_message("cannot find Young modulus 'E'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    } else if (distribution_nu.defined == 0) {
+    } else if (distribution_k.defined == 0) {
       wasora_push_error_message("cannot find Poisson coefficient 'nu'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
@@ -101,12 +101,12 @@ int fino_break_build_element(element_t *element, int v) {
     C = gsl_matrix_calloc(6, 6);
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
-    if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+    if (distribution_E.variable != NULL && distribution_k.variable != NULL) {
 //       if (material == NULL) {
 //         wasora_push_error_message("element %d does not have an associated material", element->id);
 //         PetscFunctionReturn(WASORA_RUNTIME_ERROR);
 //       }
-      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_nu, material,NULL)));
+      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_k, material,NULL)));
     }
     
     // expansion termica
@@ -155,13 +155,13 @@ int fino_break_build_element(element_t *element, int v) {
   
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
-  if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+  if (distribution_E.variable == NULL || distribution_k.variable == NULL) {
 //     if (material == NULL) {
 //       wasora_push_error_message("element %d does not have an associated material", element->id);
 //       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
 //     }
 
-    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
+    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
   }
 
   // calculamos Bt*C*B
@@ -269,8 +269,8 @@ int fino_break_compute_stresses(void) {
 
   
   // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
-  if (distribution_nu.variable != NULL) {
-    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
+  if (distribution_k.variable != NULL) {
+    nu = fino_distribution_evaluate(&distribution_k, NULL, NULL);
     if (nu > 0.5) {
       wasora_push_error_message("nu is greater than 1/2");
       return WASORA_RUNTIME_ERROR;
@@ -293,7 +293,7 @@ int fino_break_compute_stresses(void) {
     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
     
     material = NULL;
-    if (distribution_nu.physical_property != NULL) {
+    if (distribution_k.physical_property != NULL) {
       // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
       // pesando toda la funcion completa con los elementos adyacentes
       LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
@@ -306,7 +306,7 @@ int fino_break_compute_stresses(void) {
         wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
         return WASORA_RUNTIME_ERROR;
       }
-      nu = fino_distribution_evaluate(&distribution_nu, material, fino.mesh->node[j].x);
+      nu = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
       if (nu > 0.5) {
         wasora_push_error_message("nu is greater than 1/2");
         return WASORA_RUNTIME_ERROR;

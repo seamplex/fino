@@ -222,6 +222,15 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+w_at_sigma_max+desc The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.w_at_sigma_max = wasora_define_variable("w_at_sigma_max");
   
+
+///va+T_max+name T_max
+///va+T_max+desc The maximum temperature\ $T_\text{max}$ of the thermal problem.
+  fino.vars.T_max = wasora_define_variable("T_max");
+
+///va+T_min+name T_min
+///va+T_min+desc The minimum temperature\ $T_\text{min}$ of the thermal problem.
+  fino.vars.T_min = wasora_define_variable("T_min");
+
   // variables internas
 ///va+lambda+name lambda
 ///va+lambda+desc 

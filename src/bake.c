@@ -156,3 +156,73 @@ int fino_bake_set_convection(element_t *element) {
   
   return WASORA_RUNTIME_OK;
 }
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_bake_compute_fluxes"
+int fino_bake_compute_fluxes(void) {
+  
+  material_t *material = NULL;
+  element_list_item_t *associated_element = NULL;
+  
+  double k;
+  double T_max = -INFTY;
+  double T_min = +INFTY;
+  
+  int j;
+  
+  PetscFunctionBegin;
+  
+  // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
+  if (distribution_k.variable != NULL) {
+    k = fino_distribution_evaluate(&distribution_k, NULL, NULL);
+    if (k < 0) {
+      wasora_push_error_message("nu is negative");
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+ 
+  for (j = 0; j < fino.mesh->n_nodes; j++) {
+    
+    wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+    wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+    wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+    
+    material = NULL;
+    if (distribution_k.physical_property != NULL) {
+      // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
+      // pesando toda la funcion completa con los elementos adyacentes
+      LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
+        if (associated_element->element->type->dim == fino.dimensions &&
+            associated_element->element->physical_entity != NULL) {
+          material = associated_element->element->physical_entity->material;
+        }
+      }
+      if (material == NULL) {
+        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
+        return WASORA_RUNTIME_ERROR;
+      }
+      k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
+      if (k < 0) {
+        wasora_push_error_message("nu is negative");
+        return WASORA_RUNTIME_ERROR;
+      }      
+    }
+    
+    // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
+    if (fino.solution[0]->data_value[j] >= T_max) {
+      T_max = fino.solution[0]->data_value[j];
+    }
+    if (fino.solution[0]->data_value[j] <= T_min) {
+      T_min = fino.solution[0]->data_value[j];
+    }
+    
+  }
+
+  wasora_var(fino.vars.T_max) = T_max;
+  wasora_var(fino.vars.T_min) = T_min;
+
+  
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
+}
+

@@ -113,6 +113,8 @@ int fino_instruction_step(void *arg) {
       if (fino.problem == problem_break) {
         wasora_call(fino_break_compute_reactions());
         wasora_call(fino_break_compute_stresses());
+      } else if (fino.problem == problem_bake) {
+        wasora_call(fino_bake_compute_fluxes());
       }
     }
     time_checkpoint(solve_end);

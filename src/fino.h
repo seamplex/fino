@@ -170,6 +170,9 @@ struct {
     var_t *u_at_sigma_max;
     var_t *v_at_sigma_max;
     var_t *w_at_sigma_max;
+
+    var_t *T_max;
+    var_t *T_min;
     
     var_t *lambda;
 
