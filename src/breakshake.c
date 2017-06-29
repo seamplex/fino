@@ -63,7 +63,7 @@ int fino_break_build_element(element_t *element, int v) {
   int j;
 
   PetscFunctionBegin;
-
+  
   if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
     material =  element->physical_entity->material;
   } else {
@@ -102,10 +102,6 @@ int fino_break_build_element(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_k.variable != NULL) {
-//       if (material == NULL) {
-//         wasora_push_error_message("element %d does not have an associated material", element->id);
-//         PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-//       }
       wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_k, material,NULL)));
     }
     
@@ -156,10 +152,10 @@ int fino_break_build_element(element_t *element, int v) {
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_k.variable == NULL) {
-//     if (material == NULL) {
-//       wasora_push_error_message("element %d does not have an associated material", element->id);
-//       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-//     }
+     if (material == NULL) {
+       wasora_push_error_message("element %d does not have an associated material", element->id);
+       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+     }
 
     wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
   }
@@ -170,12 +166,16 @@ int fino_break_build_element(element_t *element, int v) {
 
   // expansion termica
   if (distribution_alpha.defined != 0) {
-    alphaT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0))*fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
-    gsl_vector_set(et, 0, alphaT);
-    gsl_vector_set(et, 1, alphaT);
-    gsl_vector_set(et, 2, alphaT);
-    gsl_blas_dgemv(CblasTrans, 1.0, C, et, 0, Cet);
-    gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
+    // este debe ser el medio!
+    alphaT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    if (alphaT != 0) {
+      alphaT *= fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+      gsl_vector_set(et, 0, alphaT);
+      gsl_vector_set(et, 1, alphaT);
+      gsl_vector_set(et, 2, alphaT);
+      gsl_blas_dgemv(CblasTrans, 1.0, C, et, 0, Cet);
+      gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
+    }
   }
   
   if (fino.problem == problem_shake) {
