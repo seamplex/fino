@@ -1,12 +1,12 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.34-g32c3dd8
+This reference sheet is for [Fino](index.html) v0.5.68-g933d602
 . 
 
 ~~~
 $ fino
-fino v0.5.34-g32c3dd8+Δ 
+fino v0.5.66-g82ac6db+Δ 
 a partial differential equation solver based on the finite element method
 $
 ~~~
@@ -29,7 +29,7 @@ FINO_DEBUG [ FILE <file_id> | [ FILE_PATH <file_path> ] [ MATRICES_ASCII ] [ MAT
 
 
 ~~~wasora
-FINO_PROBLEM [ BAKE | SHAKE | BREAK ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ] [ SHAPE <name> ] [ MATRIX <name> ] [ VECTOR <name> ] [ EIGEN_MATRIX <name> ]
+FINO_PROBLEM [ BAKE | SHAKE | BREAK ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
 ~~~
 
 
@@ -49,7 +49,7 @@ FINO_REACTION PHYSICAL_ENTITY <physical_entity> [ NAME_ROOT <name> ]
 Sets options related to the eigen-solver.
 
 ~~~wasora
-FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE [ rigidbody | fino | none ] ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ]
+FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ] [ GRADIENT_EVALUATION { mass_matrix_consistent mass_matrix_row_sum mass_matrix_lobatto mass_matrix_diagonal node_average_all node_average_corner gauss_average none } ] [ GRADIENT_JACOBIAN_THRESHOLD <expr> ] [ SHMEM_PROGRESS_BUILD <shmobject> ] [ SHMEM_PROGRESS_SOLVE <shmobject> ] [ MEMORY_SHMEM <shmobject> ]
 ~~~
 
 
@@ -161,7 +161,7 @@ Default `1e-6`.
 
 
 
-##  `fino_residual`
+##  `fino_residual_norm`
 
 This variable contains the residual obtained
 by the solver. It is set after `FINO_STEP`.
@@ -265,6 +265,18 @@ Wall time insumed to solve the eigen-problem, in seconds.
 Wall time insumed to initialize, build and solve, in seconds.
 CPU time insumed to initialize, build and solve, in seconds.
 CPU time insumed by PETSc to initialize, build and solve, in seconds.
+
+
+
+##  `T_max`
+
+The maximum temperature\ $T_\text{max}$ of the thermal problem.
+
+
+
+##  `T_min`
+
+The minimum temperature\ $T_\text{min}$ of the thermal problem.
 
 
 
