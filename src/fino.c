@@ -72,7 +72,7 @@ int fino_instruction_step(void *arg) {
   // ------------------------------------
   // solve
   // ------------------------------------
-  if (fino_step->do_not_solve == 0) {
+   if (fino_step->do_not_solve == 0) {
     time_checkpoint(solve_begin);
     
     if (fino.math_type == math_linear) {

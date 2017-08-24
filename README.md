@@ -24,7 +24,7 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
 If you are impatient to run Fino, open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
 
 ```
-sudo apt-get install curl m4 make autoconf automake findutils gcc git wget libgsl0-dev
+sudo apt-get install curl m4 make autoconf automake gcc git libgsl0-dev wget findutils
 curl https://www.seamplex.com/fino/get.sh | sh
 ```
 

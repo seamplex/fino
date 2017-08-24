@@ -252,10 +252,12 @@ int fino_compute_gradients(void) {
           // esto da exactamente ceros o unos
           wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
           
+          // TODO: esto da lo mismo para todos los nodos en primer orden
           mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
           det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
           
           if (det > fino.gradient_jacobian_threshold) {
+//            printf("%d %g\n", element->id, det);
             mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
             mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
