@@ -67,8 +67,25 @@ int fino_compute_gradients(void) {
  
   // defaults
   if (fino.gradient_evaluation == gradient_undefined) {
-    fino.gradient_evaluation = (fino.mesh->order == 1) ? gradient_mass_matrix_row_sum : gradient_gauss_average;
+    if (fino.mesh->order > 1) {
+      if (wasora_mesh.materials != NULL) {
+        fino.gradient_evaluation = gradient_node_average_all;
+      } else {
+        fino.gradient_evaluation = gradient_gauss_average; 
+      }
+    } else {
+      fino.gradient_evaluation = gradient_mass_matrix_row_sum;
+    }
+  } else if (fino.mesh->order > 1 && wasora_mesh.materials != NULL && (
+             fino.gradient_evaluation == gradient_gauss_average ||
+             fino.gradient_evaluation == gradient_mass_matrix_consistent ||
+             fino.gradient_evaluation == gradient_mass_matrix_diagonal ||
+             fino.gradient_evaluation == gradient_node_average_corner)) {
+    
+      wasora_push_error_message("high-element meshes with multi-part geometries can only use mass_matrix_row_sum, mass_matrix_lobatto or node_average_all for GRADIENT_EVALUATION");
+      return WASORA_RUNTIME_ERROR;
   }
+  
   if (fino.gradient_jacobian_threshold == 0) {
     fino.gradient_jacobian_threshold = 1e-3;
   }

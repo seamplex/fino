@@ -21,5 +21,6 @@ FINO_STEP
 sigma_at_center = 1/8*(rho * omega^2) * (3+nu) * R^2
 
 MESH_POST FILE_PATH thin-rotating-disk.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH derivatives.msh dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz
 
 PRINT sigma(0,0,0) sigma_at_center

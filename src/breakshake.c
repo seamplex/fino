@@ -237,11 +237,14 @@ int fino_break_compute_stresses(void) {
   double max_displ2 = 0;
   double nu = 0;
   double E = 0;
+  double nu1 = 0;
+  double E1, Edummy, Emin, Emax;
   
-  material_t *material = NULL;
-  element_list_item_t *associated_element = NULL;
+  material_list_item_t *material_item = NULL;
+  element_list_item_t *element_item = NULL;
+  element_t *element = NULL;
   
-  int j;
+  int n, j;
   
   PetscFunctionBegin;
 
@@ -281,6 +284,10 @@ int fino_break_compute_stresses(void) {
   }
   if (distribution_E.variable != NULL) {
     E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
+    if (E < 0) {
+      wasora_push_error_message("E is negative (%g)", E);
+      return WASORA_RUNTIME_ERROR;
+    }
   }
   
  
@@ -292,43 +299,143 @@ int fino_break_compute_stresses(void) {
     wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
     
-    material = NULL;
     if (distribution_nu.physical_property != NULL) {
-      // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
-      // pesando toda la funcion completa con los elementos adyacentes
-      LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
-        if (associated_element->element->type->dim == fino.dimensions &&
-            associated_element->element->physical_entity != NULL) {
-          material = associated_element->element->physical_entity->material;
-        }
-      }
-      if (material == NULL) {
+      
+      if (fino.mesh->node[j].materials_list == NULL) {
         wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
         return WASORA_RUNTIME_ERROR;
+      
+      } else if (fino.mesh->node[j].materials_list->next == NULL) {
+      
+        // si el nodo tiene solo un material asociado no hay tanta historia con la evaluacion
+        // de las tensiones a partir del valor nodal de la derivada porque se supone que las
+        // propiedades del material estan bien definidas en el nodo
+        nu = fino_distribution_evaluate(&distribution_nu, fino.mesh->node[j].materials_list->material, fino.mesh->node[j].x);
+      
+      } else {
+        // pero si hay varios materiales asociados al nodo, para nu lo que hacemos es promediar y ta
+        
+        nu = 0;
+        n = 0;
+        LL_FOREACH(fino.mesh->node[j].materials_list, material_item) {
+          nu += fino_distribution_evaluate(&distribution_nu, material_item->material, fino.mesh->node[j].x);
+          n++;
+        }
+        nu /= n;
       }
-      nu = fino_distribution_evaluate(&distribution_nu, material, fino.mesh->node[j].x);
+      
       if (nu > 0.5) {
-        wasora_push_error_message("nu is greater than 1/2");
+        wasora_push_error_message("nu is greater than 1/2 at node %d", j+1);
         return WASORA_RUNTIME_ERROR;
       } else if (nu < 0) {
-        wasora_push_error_message("nu is negative");
+        wasora_push_error_message("nu is negative at node %d", j+1);
         return WASORA_RUNTIME_ERROR;
       }      
     }
     
     if (distribution_E.physical_property != NULL) {
-      if (material == NULL) {
-        LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
-          if (associated_element->element->physical_entity != NULL) {
-            material = associated_element->element->physical_entity->material;
+      if (fino.mesh->node[j].materials_list == NULL) {
+        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
+        return WASORA_RUNTIME_ERROR;
+      
+      } else if (fino.mesh->node[j].materials_list->next == NULL) {
+      
+        // si el nodo tiene solo un material asociado no hay tanta historia con la evaluacion
+        // de las tensiones a partir del valor nodal de la derivada porque se supone que las
+        // propiedades del material estan bien definidas en el nodo
+        E = fino_distribution_evaluate(&distribution_E, fino.mesh->node[j].materials_list->material, fino.mesh->node[j].x);
+      
+      } else {
+        // pero si hay varios materiales asociados al nodo, entonces hay que hacer algo como
+        // en difusion de neutrones!
+        // como la tensiones tienen que ser continuas, entonces hay que estimar que
+        // modulo de young habria que asignarle al nodo para que las tensiones sean
+        // justamente continuas, que en este caso quiere decir que valgan lo mismo calculadas
+        // con las propiedades de un lado que del otro
+        double num, den, vol, det, xi;
+        int m, g;
+        int j_local, j_local_prime, j_global_prime;
+
+        num = 0;
+        den = 0;
+        LL_FOREACH(fino.mesh->node[j].associated_elements, element_item) {
+          // con esto elegimos el primero
+          if (element_item->element->physical_entity != NULL && element_item->element->physical_entity->material != NULL &&
+              element_item->element->physical_entity->material == fino.mesh->node[j].materials_list->material) {
+            element = element_item->element;
+            
+            if ((j_local = mesh_compute_local_node_index(element, j)) == -1) {
+              wasora_push_error_message("cannot find local index for global %d in element %d", j, element->id);
+              return WASORA_RUNTIME_ERROR;
+            }
+            
+            // esto da exactamente ceros o unos
+            wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
+          
+            mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+            det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+          
+            if (det > fino.gradient_jacobian_threshold) {
+              mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+              mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+
+              vol = element->type->element_volume(element);
+              den += fino.degrees * vol;  // esto es por la explicacion de abajo, estamos sumando 3 sigmas
+//              den += vol;
+              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+                j_global_prime = element->node[j_local_prime]->id - 1;
+
+                // lo que pedimos es que el stress invariant I1 que es sigmax+sigmay+sigmaz
+                // (i.e. el unico que es lineal en E) calculado con un unico material
+                // sea igual al producto de un E ficticio (monio) por las derivadas del nodo
+                
+                // no se si usar degrees o dimensions
+                for (g = 0; g < fino.degrees; g++) {
+//                  m = g = 0;  // con esto hacemos sigmas
+                  m = g;
+                  xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                  num += vol * xi;
+                }
+              }
+            }
           }
         }
-        if (material == NULL) {
-          wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
-          return WASORA_RUNTIME_ERROR;
+        E1 = fino_distribution_evaluate(&distribution_E, fino.mesh->node[j].materials_list->material, fino.mesh->node[j].x);
+        nu1 = fino_distribution_evaluate(&distribution_nu, fino.mesh->node[j].materials_list->material, fino.mesh->node[j].x);
+        
+        E = E1 * (num/den)/(fino.gradient[0][0]->data_value[j]+fino.gradient[1][1]->data_value[j]+fino.gradient[2][2]->data_value[j]) * (1-2*nu)/(1-2*nu1);
+
+        // en lugares donde la tension es muy chiquita, grad es chiquito y al estar dividiendo puede
+        // dar fruta, y que E sea muy grande (o negativo) entonces el E nuevo no puede ser
+        // mayor que el mayor E ni menor que el menor E
+        
+        Emin = 1e10;
+        Emax = 0;
+        LL_FOREACH(fino.mesh->node[j].materials_list, material_item) {
+          Edummy = fino_distribution_evaluate(&distribution_E, material_item->material, fino.mesh->node[j].x);
+          if (Edummy < Emin) {
+            Emin = Edummy;
+          }
+          if (Edummy > Emax) {
+            Emax = Edummy;
+          }
         }
+        if (E < Emin) {
+          E = Emin;
+        }
+        if (E > Emax) {
+          E = Emax;
+        }
+        
+        
+
       }
-      E = fino_distribution_evaluate(&distribution_E, material, fino.mesh->node[j].x);
+      
+      if (E < 0) {
+        wasora_push_error_message("E is negative at node %d", j+1);
+        return WASORA_RUNTIME_ERROR;
+      }      
+      
     }
 
     // deformaciones
@@ -396,6 +503,10 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
 //    sigma = sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
 //                                                    6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
     sigma = sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));
+    
+//    if (j < 12) {
+//      printf("%d\t%g\t%.1f\t%.1f\t%.1f\n", j, E, ex, sigmax, sigma);
+//    }
     
     if ((fino.sigma->data_value[j] = sigma) > wasora_var(fino.vars.sigma_max)) {
       wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j];

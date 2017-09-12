@@ -93,6 +93,9 @@ examples/cantilever-*.geo
 examples/cantilever-*.msh
 examples/cantilever-*.vtk
 
+examples/two-cubes.msh
+examples/two-cubes.vtk
+
 examples/engine-piston.msh
 examples/engine-piston.vtk
 

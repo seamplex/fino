@@ -448,6 +448,7 @@ extern int fino_break_set_pressure(element_t *);
 extern int fino_build_bake(element_t *, int);
 extern int fino_bake_set_heat_flux(element_t *);
 extern int fino_bake_set_convection(element_t *element);
+extern int fino_bake_compute_fluxes(void);
 
 extern const char *plugin_name(void);
 extern const char *plugin_version(void);

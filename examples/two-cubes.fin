@@ -1,0 +1,76 @@
+MESH FILE_PATH two-cubes.msh DIMENSIONS 3
+
+# MATERIAL solid1   E 205e3   nu 0.28
+# MATERIAL solid2   E 230e3   nu 0.35
+
+# PARAMETRIC xi MIN 1e3 MAX 100e3 STEP 2.5e3
+
+MATERIAL solid2   E 1e3     nu 0
+MATERIAL solid1   E 100e3   nu 0
+
+# MATERIAL solid1   E 205000    nu 0.28    rho 7870    yield 400
+# MATERIAL solid2   E 210000    nu 0.3     rho 7800    yield 275
+
+
+
+# PHYSICAL_ENTITY NAME fixed BC fixed
+# PHYSICAL_ENTITY NAME load  BC p=-20 # compression
+
+PHYSICAL_ENTITY ID 1 BC fixed
+PHYSICAL_ENTITY ID 2 BC p=-20 # compression
+# PHYSICAL_ENTITY ID 2 BC Tz=1000 # compression
+
+# PRINT %g xi*1e-3 NONEWLINE
+FINO_STEP
+
+# strains
+ex(x,y,z) := dudx(x,y,z)
+ey(x,y,z) := dvdy(x,y,z)
+ez(x,y,z) := dwdz(x,y,z)
+gammaxy(x,y,z) := dudy(x,y,z) + dvdx(x,y,z)
+gammayz(x,y,z) := dvdz(x,y,z) + dwdy(x,y,z)
+gammazx(x,y,z) := dwdx(x,y,z) + dudz(x,y,z)
+
+# stresses
+c1(x,y,z) := E(x,y,z)/((1+nu(x,y,z))*(1-2*nu(x,y,z)))
+c1c2(x,y,z) := c1(x,y,z) * 0.5*(1-2*nu(x,y,z))
+
+sigmax(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ex(x,y,z) + nu(x,y,z)*(ey(x,y,z)+ez(x,y,z)))
+sigmay(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ey(x,y,z) + nu(x,y,z)*(ex(x,y,z)+ez(x,y,z)))
+sigmaz(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ez(x,y,z) + nu(x,y,z)*(ex(x,y,z)+ey(x,y,z)))
+tauxy(x,y,z) :=  c1c2(x,y,z) * gammaxy(x,y,z)
+tauyz(x,y,z) :=  c1c2(x,y,z) * gammayz(x,y,z)
+tauzx(x,y,z) :=  c1c2(x,y,z) * gammazx(x,y,z)
+
+# stress invariants
+I1(x,y,z) := sigmax(x,y,z) + sigmay(x,y,z) + sigmaz(x,y,z)
+I2(x,y,z) := sigmax(x,y,z)*sigmay(x,y,z) + sigmay(x,y,z)*sigmaz(x,y,z) + sigmaz(x,y,z)*sigmax(x,y,z) - tauxy(x,y,z)^2 - tauyz(x,y,z)^2 - tauzx(x,y,z)^2
+I3(x,y,z) := sigmax(x,y,z)*sigmay(x,y,z)*sigmaz(x,y,z) - sigmax(x,y,z)*tauyz(x,y,z)^2 - sigmay(x,y,z)*tauzx(x,y,z)^2 - sigmaz(x,y,z)*tauxy(x,y,z)^2 + 2*tauxy(x,y,z)*tauyz(x,y,z)*tauzx(x,y,z)
+
+# principal stresses
+c5(x,y,z) := sqrt(abs(I1(x,y,z)^2 - 3*I2(x,y,z)))
+phi(x,y,z) := 1.0/3.0 * acos((2.0*I1(x,y,z)^3 - 9.0*I1(x,y,z)*I2(x,y,z) + 27.0*I3(x,y,z))/(2.0*c5(x,y,z)^3))
+c3(x,y,z) := I1(x,y,z)/3.0
+c4(x,y,z) := 2.0/3.0 * c5(x,y,z)
+
+# sigma1(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z))
+# sigma2(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 2.0*pi/3.0)
+# sigma3(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 4.0*pi/3.0)
+
+
+pepe(x,y,z) := sqrt(0.5*((sigmax(x,y,z)-sigmay(x,y,z))^2 + (sigmay(x,y,z)-sigmaz(x,y,z))^2 + (sigmaz(x,y,z)-sigmax(x,y,z))^2 + 6*(tauxy(x,y,z)^2 + tauyz(x,y,z)^2 + tauzx(x,y,z)^2)))
+pepe3(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 4.0*pi/3.0)
+
+# MESH_POST FILE_PATH two-cubes.vtk dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx I1 I2 I3 phi sigma sigma1 sigma2 sigma3 E VECTOR u v w
+
+MESH_POST FILE_PATH two-cubes.vtk dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx I1 I2 I3 sigma sigma1 sigma2 sigma3 E VECTOR u v w
+
+# FINO_DEBUG MATRICES_X
+# PRINT_FUNCTION FILE_PATH two-cubes-displacements.dat u v w
+
+# PRINT_FUNCTION u dudx E sigma3 MIN 0 0 0 MAX 20 0 0 STEP 0.01 1 1
+# PRINT %g sigmax(20,0,0) sigmay(20,0,0) sigmaz(20,0,0) tauxy(20,0,0) tauyz(20,0,0) tauzx(20,0,0)
+# PRINT %g sigma(20,0,0) c1(20,0,0) c3(20,0,0)+c4(20,0,0)*cos(phi(20,0,0)-4.0*pi/3.0) sigma3(20,0,0) pepe(20,0,0) pepe3(20,0,0)
+# PRINT %g E(0,0,0) E(20,0,0) c1(0,0,0) c1(20,0,0) sigmax(0,0,0) sigmax(20,0,0)
+# PRINT %g sigma(0,0,0) sigma(9.9,0,0) sigma(10,0,0) sigma(10.1,0,0) sigma(20,0,0)
+
