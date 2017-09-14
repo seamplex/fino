@@ -69,7 +69,7 @@ int fino_compute_gradients(void) {
   if (fino.gradient_evaluation == gradient_undefined) {
     if (fino.mesh->order > 1) {
       if (wasora_mesh.materials != NULL) {
-        fino.gradient_evaluation = gradient_node_average_all;
+        fino.gradient_evaluation = gradient_node_average_corner;
       } else {
         fino.gradient_evaluation = gradient_gauss_average; 
       }
@@ -80,9 +80,9 @@ int fino_compute_gradients(void) {
              fino.gradient_evaluation == gradient_gauss_average ||
              fino.gradient_evaluation == gradient_mass_matrix_consistent ||
              fino.gradient_evaluation == gradient_mass_matrix_diagonal ||
-             fino.gradient_evaluation == gradient_node_average_corner)) {
+             fino.gradient_evaluation == gradient_node_average_all)) {
     
-      wasora_push_error_message("high-element meshes with multi-part geometries can only use mass_matrix_row_sum, mass_matrix_lobatto or node_average_all for GRADIENT_EVALUATION");
+      wasora_push_error_message("high-order meshes with multi-part geometries can only use mass_matrix_row_sum, mass_matrix_lobatto or node_average_all for GRADIENT_EVALUATION");
       return WASORA_RUNTIME_ERROR;
   }
   

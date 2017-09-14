@@ -72,6 +72,7 @@ examples/*.trs
 examples/*.log
 
 examples/*.dat
+examples/LloydInit.pos
 
 examples/tensile-test.vtk
 
