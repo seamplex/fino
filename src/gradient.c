@@ -46,6 +46,7 @@ int fino_compute_gradients(void) {
   gsl_vector *diag_M;
   double trace_M;
   element_t *element;
+  element_list_item_t *item;
 
   int i, v;
   int m, g;
@@ -53,8 +54,6 @@ int fino_compute_gradients(void) {
   int j_local,  j_local_prime;
   int j1, j2;
   
-    
-  element_list_item_t *item;
 
   for (g = 0; g < fino.degrees; g++) {
     for (m = 0; m <fino.dimensions; m++) {
@@ -68,28 +67,24 @@ int fino_compute_gradients(void) {
   // defaults
   if (fino.gradient_evaluation == gradient_undefined) {
     if (fino.mesh->order > 1) {
-      if (wasora_mesh.materials != NULL) {
-        fino.gradient_evaluation = gradient_node_average_corner;
-      } else {
-        fino.gradient_evaluation = gradient_gauss_average; 
-      }
+      fino.gradient_evaluation = gradient_gauss_average; 
     } else {
       fino.gradient_evaluation = gradient_mass_matrix_row_sum;
     }
-  } else if (fino.mesh->order > 1 && wasora_mesh.materials != NULL && (
-             fino.gradient_evaluation == gradient_gauss_average ||
-             fino.gradient_evaluation == gradient_mass_matrix_consistent ||
-             fino.gradient_evaluation == gradient_mass_matrix_diagonal ||
-             fino.gradient_evaluation == gradient_node_average_all)) {
-    
-      wasora_push_error_message("high-order meshes with multi-part geometries can only use mass_matrix_row_sum, mass_matrix_lobatto or node_average_all for GRADIENT_EVALUATION");
+  } else {
+    if (wasora_mesh.materials != NULL &&
+         (fino.gradient_evaluation == gradient_mass_matrix_diagonal ||
+          fino.gradient_evaluation == gradient_mass_matrix_consistent)) {
+      wasora_push_error_message("neither the mass_matrix_diagonal nor mass_matrix_consistent methods for GRADIENT_EVALUATION does not work with multi-part geometries");
       return WASORA_RUNTIME_ERROR;
+    }
   }
   
   if (fino.gradient_jacobian_threshold == 0) {
     fino.gradient_jacobian_threshold = 1e-3;
   }
-  
+
+  // ahora viene la milonga  
   if (fino.gradient_evaluation == gradient_none) {
     return WASORA_RUNTIME_OK;
   } else if (fino.gradient_evaluation == gradient_mass_matrix_consistent ||
@@ -119,8 +114,12 @@ int fino_compute_gradients(void) {
     for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
       LL_FOREACH (fino.mesh->node[j_global].associated_elements, item) {
         element = item->element;
-        if (element->type->dim == fino.dimensions) {
-
+        if (element->type->dim == fino.dimensions &&
+            (fino.mesh->node[j_global].master_material == NULL ||       // no hay interfaces 
+             fino.mesh->node[j_global].materials_list == NULL ||        // no hay materiales diferentes
+             fino.mesh->node[j_global].materials_list->next == NULL ||  // todos los elementos asociados tienen un solo material
+             element->physical_entity->material == fino.mesh->node[j_global].master_material) // hay una interfaz pero el material es el master (TODO: falla con 3 materiales)
+           ) {
           // calcular el j_local
           if ((j_local = mesh_compute_local_node_index(element, j_global)) == -1) {
             wasora_push_error_message("cannot find local index for global %d in element %d", j_global, element->id);
@@ -176,6 +175,7 @@ int fino_compute_gradients(void) {
 
       total_mass = 0;
       for (i = 0; i < fino.mesh->n_elements; i++) {
+        // TODO: MAL!
         if (fino.mesh->element[i].type->dim == fino.dimensions) {
           total_mass += fino.mesh->element[i].type->element_volume(&fino.mesh->element[i]);
         }
@@ -266,26 +266,33 @@ int fino_compute_gradients(void) {
         vol = element->type->element_volume(element);
         for (j_local = 0; j_local < element->type->nodes; j_local++) {
 
-          // esto da exactamente ceros o unos
-          wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
+          if (element->node[j_local]->master_material == NULL ||       // no hay interfaces 
+               element->node[j_local]->materials_list == NULL ||        // no hay materiales diferentes
+               element->node[j_local]->materials_list->next == NULL ||  // todos los elementos asociados tienen un solo material
+               element->physical_entity->material == element->node[j_local]->master_material // hay una interfaz pero el material es el master
+             ) {
+            
+            // esto da exactamente ceros o unos
+            wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
           
-          // TODO: esto da lo mismo para todos los nodos en primer orden
-          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-          det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+            // TODO: esto da lo mismo para todos los nodos en primer orden
+            mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+            det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
           
-          if (det > fino.gradient_jacobian_threshold) {
-//            printf("%d %g\n", element->id, det);
-            mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-            mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+            if (det > fino.gradient_jacobian_threshold) {
+//              printf("%d %g\n", element->id, det);
+              mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+              mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-            j_global = element->node[j_local]->id - 1;
-            den[j_global] += vol;
-            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
-              j_global_prime = element->node[j_local_prime]->id - 1;
-              for (g = 0; g < fino.degrees; g++) {
-                for (m = 0; m < fino.dimensions; m++) {
-                  xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
-                  fino.gradient[g][m]->data_value[j_global] += vol * xi;
+              j_global = element->node[j_local]->id - 1;
+              den[j_global] += vol;
+              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+                j_global_prime = element->node[j_local_prime]->id - 1;
+                for (g = 0; g < fino.degrees; g++) {
+                  for (m = 0; m < fino.dimensions; m++) {
+                    xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                    fino.gradient[g][m]->data_value[j_global] += vol * xi;
+                  }
                 }
               }
             }
@@ -326,24 +333,71 @@ int fino_compute_gradients(void) {
       element = &fino.mesh->element[i];
       if (element->type->dim == fino.dimensions) {
         vol = element->type->element_volume(element);
-        for (j_local = 0; j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V; j_local++) {
+        for (j_local = 0; j_local < element->type->nodes; j_local++) {
           
-          w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
-          mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-          mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
-          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-          det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
-          
-          if (det > fino.gradient_jacobian_threshold) {
-            j_global = element->node[j_local]->id - 1;
-            den[j_global] += vol;
-            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
-              j_global_prime = element->node[j_local_prime]->id - 1;
-              for (g = 0; g < fino.degrees; g++) {
-                for (m = 0; m < fino.dimensions; m++) {
-                  xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
-                  fino.gradient[g][m]->data_value[j_global] += vol * xi;
+          if (element->type->dim == fino.dimensions &&
+              (element->node[j_local]->master_material == NULL ||       // no hay interfaces 
+               element->node[j_local]->materials_list == NULL ||        // no hay materiales diferentes
+               element->node[j_local]->materials_list->next == NULL ||  // todos los elementos asociados tienen un solo material
+               element->physical_entity->material == element->node[j_local]->master_material) // hay una interfaz pero el material es el master (TODO: falla con 3 materiales)
+             ) {
+
+            if (j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V) {
+              w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
+            } else {
+              gsl_vector *r = gsl_vector_alloc(fino.dimensions);
+              
+              // TODO: esto solo funciona con tet10
+              switch (j_local) {
+                case 4:
+                  j1 = 0;
+                  j2 = 1;
+                break;
+                case 5:
+                  j1 = 1;
+                  j2 = 2;
+                break;
+                case 6:
+                  j1 = 0;
+                  j2 = 2;
+                break;
+                case 7:
+                  j1 = 0;
+                  j2 = 3;
+                break;
+                case 8:
+                  j1 = 2;
+                  j2 = 3;
+                break;
+                case 9:
+                  j1 = 1;
+                  j2 = 3;
+                break;
+              }
+              
+              w_gauss = mesh_integration_weight(fino.mesh, element, j1);
+              gsl_vector_memcpy (r, fino.mesh->fem.r);
+              w_gauss = mesh_integration_weight(fino.mesh, element, j2);
+              gsl_vector_add(fino.mesh->fem.r, r);
+              gsl_vector_scale(fino.mesh->fem.r, 0.5);
+            }
+            
+            mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+            mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+            mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+            mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+            det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+
+            if (det > fino.gradient_jacobian_threshold) {
+              j_global = element->node[j_local]->id - 1;
+              den[j_global] += vol;
+              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+                j_global_prime = element->node[j_local_prime]->id - 1;
+                for (g = 0; g < fino.degrees; g++) {
+                  for (m = 0; m < fino.dimensions; m++) {
+                    xi = gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                    fino.gradient[g][m]->data_value[j_global] += vol * xi;
+                  }
                 }
               }
             }
@@ -376,48 +430,65 @@ int fino_compute_gradients(void) {
     
   }
   
- if (fino.gradient_evaluation == gradient_node_average_corner ||
-     fino.gradient_evaluation == gradient_gauss_average) {
+  if (fino.gradient_evaluation == gradient_node_average_corner) {
 
+    int interface_flag;
+   
     for (i = 0; i < fino.mesh->n_elements; i++) {
       element = &fino.mesh->element[i];
-      if (element->type->id == ELEMENT_TYPE_TETRAHEDRON10) {
-        for (j_local = 4; j_local < 10; j_local++) {
-          j_global = element->node[j_local]->id - 1;
+      interface_flag = 0;
+      
+      for (j_local = 0; j_local < element->type->nodes; j_local++) {
+        if (element->node[j_local]->master_material != NULL &&
+            element->node[j_local]->materials_list != NULL &&
+            element->node[j_local]->materials_list->next != NULL) {
+          interface_flag = 1;
+        }
+      }
 
-          switch (j_local) {
-            case 4:
-              j1 = 0;
-              j2 = 1;
-            break;
-            case 5:
-              j1 = 1;
-              j2 = 2;
-            break;
-            case 6:
-              j1 = 0;
-              j2 = 2;
-            break;
-            case 7:
-              j1 = 0;
-              j2 = 3;
-            break;
-            case 8:
-              j1 = 2;
-              j2 = 3;
-            break;
-            case 9:
-              j1 = 1;
-              j2 = 3;
-            break;
-          }
+      if (interface_flag == 0) {
+        // esto del promedio lo hacemos solo si no estamos en una interfaz, sino lo dejamos asi como estaba
+      
+        if (element->type->id == ELEMENT_TYPE_TETRAHEDRON10) {
 
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
 
-              fino.gradient[g][m]->data_value[j_global] = 0.5*(fino.gradient[g][m]->data_value[element->node[j1]->id - 1] +
-                                                               fino.gradient[g][m]->data_value[element->node[j2]->id - 1]);
+          for (j_local = 4; j_local < 10; j_local++) {
+            j_global = element->node[j_local]->id - 1;
 
+            switch (j_local) {
+              case 4:
+                j1 = 0;
+                j2 = 1;
+              break;
+              case 5:
+                j1 = 1;
+                j2 = 2;
+              break;
+              case 6:
+                j1 = 0;
+                j2 = 2;
+              break;
+              case 7:
+                j1 = 0;
+                j2 = 3;
+              break;
+              case 8:
+                j1 = 2;
+                j2 = 3;
+              break;
+              case 9:
+                j1 = 1;
+                j2 = 3;
+              break;
+            }
+
+            for (g = 0; g < fino.degrees; g++) {
+              for (m = 0; m < fino.dimensions; m++) {
+
+                fino.gradient[g][m]->data_value[j_global] = 0.5*(fino.gradient[g][m]->data_value[element->node[j1]->id - 1] +
+                                                                 fino.gradient[g][m]->data_value[element->node[j2]->id - 1]);
+
+              }
             }
           }
         }

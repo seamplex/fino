@@ -2,7 +2,7 @@
 SetFactory("OpenCASCADE");
 a() = ShapeFromFile("two-cubes.brep");
 p() = PointsOf{ Volume{a()}; };
-Characteristic Length { p() } = 0.711;
+Characteristic Length { p() } = 1.113;
 Mesh.CharacteristicLengthMin = 0.5 * 0.711;
 Mesh.CharacteristicLengthMax = 1.25 * 0.711;
 Mesh.ElementOrder = 1;

@@ -1,3 +1,4 @@
+FINO_SOLVER GRADIENT_EVALUATION node_average_all
 MESH FILE_PATH two-cubes.msh DIMENSIONS 3
 
 # MATERIAL solid1   E 205e3   nu 0.28
@@ -5,7 +6,7 @@ MESH FILE_PATH two-cubes.msh DIMENSIONS 3
 
 # PARAMETRIC xi MIN 1e3 MAX 100e3 STEP 2.5e3
 
-MATERIAL solid2   E 1e3     nu 0
+MATERIAL solid2   E 10e3    nu 0
 MATERIAL solid1   E 100e3   nu 0
 
 # MATERIAL solid1   E 205000    nu 0.28    rho 7870    yield 400
@@ -68,7 +69,7 @@ MESH_POST FILE_PATH two-cubes.vtk dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz s
 # FINO_DEBUG MATRICES_X
 # PRINT_FUNCTION FILE_PATH two-cubes-displacements.dat u v w
 
-# PRINT_FUNCTION u dudx E sigma3 MIN 0 0 0 MAX 20 0 0 STEP 0.01 1 1
+PRINT_FUNCTION u dudx E MIN 0 0 0 MAX 20 0 0 STEP 0.01 1 1
 # PRINT %g sigmax(20,0,0) sigmay(20,0,0) sigmaz(20,0,0) tauxy(20,0,0) tauyz(20,0,0) tauzx(20,0,0)
 # PRINT %g sigma(20,0,0) c1(20,0,0) c3(20,0,0)+c4(20,0,0)*cos(phi(20,0,0)-4.0*pi/3.0) sigma3(20,0,0) pepe(20,0,0) pepe3(20,0,0)
 # PRINT %g E(0,0,0) E(20,0,0) c1(0,0,0) c1(20,0,0) sigmax(0,0,0) sigmax(20,0,0)
