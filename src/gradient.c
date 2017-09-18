@@ -67,7 +67,7 @@ int fino_compute_gradients(void) {
   // defaults
   if (fino.gradient_evaluation == gradient_undefined) {
     if (fino.mesh->order > 1) {
-      fino.gradient_evaluation = gradient_gauss_average; 
+      fino.gradient_evaluation = gradient_node_average_all; 
     } else {
       fino.gradient_evaluation = gradient_mass_matrix_row_sum;
     }
@@ -380,6 +380,7 @@ int fino_compute_gradients(void) {
               w_gauss = mesh_integration_weight(fino.mesh, element, j2);
               gsl_vector_add(fino.mesh->fem.r, r);
               gsl_vector_scale(fino.mesh->fem.r, 0.5);
+              gsl_vector_free(r);
             }
             
             mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
