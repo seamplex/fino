@@ -1,8 +1,8 @@
 Merge "engine-piston.stp";
 
-Characteristic Length { 1: 104 } = 1.5e+0;
-Mesh.CharacteristicLengthMin = 5.000e-1 * 1.5e+0;
-Mesh.CharacteristicLengthMax = 1.500e+0 * 1.5e+0;
+Characteristic Length { 1: 104 } = 1.75e+0;
+Mesh.CharacteristicLengthMin = 5.000e-1 * 1.75e+0;
+Mesh.CharacteristicLengthMax = 1.500e+0 * 1.75e+0;
 Mesh.CharacteristicLengthExtendFromBoundary = 0;
 Mesh.ElementOrder = 1;
 Mesh.Algorithm = 2;
