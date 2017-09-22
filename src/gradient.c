@@ -67,11 +67,14 @@ int fino_compute_gradients(void) {
   // defaults
   if (fino.gradient_evaluation == gradient_undefined) {
     if (fino.mesh->order > 1) {
+/*      
       if (wasora_mesh.materials != NULL) {
         fino.gradient_evaluation = gradient_node_average_corner; 
       } else {
         fino.gradient_evaluation = gradient_gauss_average; 
       }
+ */
+      fino.gradient_evaluation = gradient_gauss_average; 
     } else {
       fino.gradient_evaluation = gradient_mass_matrix_row_sum;
     }
@@ -82,11 +85,12 @@ int fino_compute_gradients(void) {
           fino.gradient_evaluation == gradient_mass_matrix_lobatto)) {
       wasora_push_error_message("neither the mass_matrix_diagonal nor mass_matrix_consistent nor the gradient_mass_matrix_lobatto methods for GRADIENT_EVALUATION does not work with multi-part geometries");
       return WASORA_RUNTIME_ERROR;
+/*
     } else if (wasora_mesh.materials != NULL && fino.mesh->order > 1 &&
           fino.gradient_evaluation == gradient_gauss_average) {
       wasora_push_error_message("the gauss_average method for GRADIENT_EVALUATION does not work with multi-part geometries and high-order meshes");
       return WASORA_RUNTIME_ERROR;
-      
+*/    
     }
   }
   
@@ -343,7 +347,7 @@ int fino_compute_gradients(void) {
       element = &fino.mesh->element[i];
       if (element->type->dim == fino.dimensions) {
         vol = element->type->element_volume(element);
-        for (j_local = 0; j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V; j_local++) {
+        for (j_local = 0; j_local < element->type->nodes; j_local++) {
           
           if (element->type->dim == fino.dimensions &&
               (element->node[j_local]->master_material == NULL ||       // no hay interfaces 
@@ -352,7 +356,14 @@ int fino_compute_gradients(void) {
                element->physical_entity->material == element->node[j_local]->master_material) // hay una interfaz pero el material es el master (TODO: falla con 3 materiales)
              ) {
             
-            w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
+            if (j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V) {
+              // para los nodos principales, hacemos gauss como siempre
+              w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
+            } else {
+              // para los nodos secundarios evaluamos en el nodo
+              wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
+            }
+
             mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
             mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
             mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
