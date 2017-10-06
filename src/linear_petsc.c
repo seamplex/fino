@@ -72,7 +72,11 @@ int fino_solve_linear_petsc(void) {
   
   petsc_call(PCGetType(fino.pc, &pc_type));
   if (strcmp(pc_type, PCGAMG) == 0) {
+#if PETSC_VERSION_LT(3,8,0)
     PCGAMGSetThreshold(fino.pc, (PetscReal)wasora_var_value(fino.vars.gamg_threshold));
+#else
+    PCGAMGSetThreshold(fino.pc, (PetscReal *)(wasora_value_ptr(fino.vars.gamg_threshold)), 1);
+#endif
   }
 
   if (fino.problem == problem_break) {

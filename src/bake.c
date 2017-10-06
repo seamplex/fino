@@ -190,8 +190,6 @@ int fino_bake_compute_fluxes(void) {
     
     material = NULL;
     if (distribution_k.physical_property != NULL) {
-      // TODO: esto esta mal, lo que hay que hacer es calcular las tensiones como las derivadas,
-      // pesando toda la funcion completa con los elementos adyacentes
       LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
         if (associated_element->element->type->dim == fino.dimensions &&
             associated_element->element->physical_entity != NULL) {
@@ -204,12 +202,12 @@ int fino_bake_compute_fluxes(void) {
       }
       k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
       if (k < 0) {
-        wasora_push_error_message("nu is negative");
+        wasora_push_error_message("k is negative");
         return WASORA_RUNTIME_ERROR;
       }      
     }
     
-    // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
+    // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
     if (fino.solution[0]->data_value[j] >= T_max) {
       T_max = fino.solution[0]->data_value[j];
     }
