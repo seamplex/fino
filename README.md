@@ -43,7 +43,13 @@ If you are behind a proxy, make sure that both `http_proxy` and `https_proxy` ar
  a. See the detailed explanation in [INSTALL](INSTALL.md)  
  b. Ask for help in the mailing list at <https://groups.google.com/a/seamplex.com/forum/#!forum/wasora>
 
-If these instructions are non-sense to you, go directly to point b.
+Should you want to directly clone the repository, knock yourself out with:
+
+```
+git clone https://bitbucket.org/seamplex/fino
+```
+
+If these instructions are non-sense to you, go directly to point (b) above.
 
 
 # Features 
