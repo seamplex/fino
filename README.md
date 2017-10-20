@@ -1,4 +1,4 @@
-% Fino: FINite elements Optimization
+% fino: FINite elements Optimization
 
 ![Fino: a free finite-element solver](doc/fino.svg){.img-responsive}\ 
 
