@@ -255,6 +255,19 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 
     gsl_matrix_set(C, 2, 2, c1*0.5*(1-nu));
     
+  } else if (fino.problem_kind == problem_kind_plane_strain) {
+    
+    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
+    c2 = nu/(1-nu) * c1;
+    gsl_matrix_set(C, 0, 0, c1);
+    gsl_matrix_set(C, 0, 1, c2);
+    
+    gsl_matrix_set(C, 1, 0, c2);
+    gsl_matrix_set(C, 1, 1, c1);
+
+    gsl_matrix_set(C, 2, 2, c1*0.5*(1-2*nu)/(1-nu));
+    
+    
   }
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);

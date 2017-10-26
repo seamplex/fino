@@ -82,7 +82,7 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
 
           ///kw+FINO_PROBLEM+usage PLANE_STRAIN ]
-        } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
+        } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
           fino.dimensions = 2;
