@@ -110,10 +110,10 @@ int fino_instruction_step(void *arg) {
     
     if (fino_step->do_not_compute_gradients == 0) {
       wasora_call(fino_compute_gradients());
-      if (fino.problem == problem_break) {
+      if (fino.problem_family == problem_family_break) {
         wasora_call(fino_break_compute_reactions());
         wasora_call(fino_break_compute_stresses());
-      } else if (fino.problem == problem_bake) {
+      } else if (fino.problem_family == problem_family_bake) {
         wasora_call(fino_bake_compute_fluxes());
       }
     }

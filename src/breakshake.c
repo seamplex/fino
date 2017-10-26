@@ -41,9 +41,10 @@ fino_distribution_t distribution_T;     // temperatura
 #define __FUNCT__ "fino_break_build_element"
 int fino_break_build_element(element_t *element, int v) {
 
-  static int J;            // cantidad de nodos locales
+  static size_t J;            // cantidad de nodos locales
   // TODO: hacer un campo descripcion en finto_distribution_t para documentar
  
+  static size_t stress_strain_size = 0;
   // matrices de la formulacion del problema
   static gsl_matrix *C = NULL;
   static gsl_matrix *B = NULL;
@@ -99,53 +100,74 @@ int fino_break_build_element(element_t *element, int v) {
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
-    C = gsl_matrix_calloc(6, 6);
+    if (fino.problem_kind == problem_kind_full3d) {
+      stress_strain_size = 6;
+    } else {
+      stress_strain_size = 3;
+    }
+
+    // matriz de stress-strain
+    C = gsl_matrix_calloc(stress_strain_size, stress_strain_size);
+    // expansion termica
+    et = gsl_vector_calloc(stress_strain_size);
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
       wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_nu, material,NULL)));
     }
     
-    // expansion termica
-    et = gsl_vector_calloc(6);
   }
   
   if (J != element->type->nodes) {
     J = element->type->nodes;
     gsl_matrix_free(B);
-    B = gsl_matrix_alloc(6, 3*J);
+    B = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
     gsl_matrix_free(CB);
-    CB = gsl_matrix_alloc(6, 3*J);
+    CB = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
     gsl_vector_free(Cet);
-    Cet = gsl_vector_alloc(6);
+    Cet = gsl_vector_alloc(stress_strain_size);
   }  
   
   // la H es la del framework fem, pero la B no es la misma 
-  // porque la formulacion es reducida, i.e hace un 6x6 cuando deberia ser 9x9
+  // porque la formulacion es reducida, i.e hace un 6x6 (o 3x3) cuando deberia ser 9x9
+  
   gsl_matrix_set_zero(B);
 
   for (j = 0; j < J; j++) {
-    gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
-    gsl_matrix_set(B, 1, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
-    gsl_matrix_set(B, 2, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
+    if (fino.dimensions == 3) {
+      gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 1, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 2, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
     
-    gsl_matrix_set(B, 3, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
-    gsl_matrix_set(B, 3, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 3, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 3, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
 
-    gsl_matrix_set(B, 4, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
-    gsl_matrix_set(B, 4, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 4, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
+      gsl_matrix_set(B, 4, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
 
-    gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
-    gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
+      gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
     
-    if (fino.problem == problem_break && (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
+    } else if (fino.dimensions == 2) {
+      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+    
+      gsl_matrix_set(B, 2, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 2, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      
+    }
+    
+    if ((fino.problem_family == problem_family_break) &&
+        (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
       c = w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
-      gsl_vector_add_to_element(fino.bi, 3*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
-      gsl_vector_add_to_element(fino.bi, 3*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
-      gsl_vector_add_to_element(fino.bi, 3*j+2, c * fino_distribution_evaluate(&distribution_fz, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      if (fino.degrees == 3) {
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      }
     }
     
   }
@@ -179,8 +201,8 @@ int fino_break_build_element(element_t *element, int v) {
     }
   }
   
-  if (fino.problem == problem_shake) {
-    // calculamos Ht*rho*H
+  if (fino.problem_family == problem_family_shake) {
+    // calculamos la matriz de masa Ht*rho*H
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
   } 
   
@@ -195,27 +217,45 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   double c1, c2, c3, c4;
   
   PetscFunctionBegin;
-
-  c1 = E/((1+nu)*(1-2*nu));
-  c2 = c1 * nu;
-  c3 = c1 * (1-nu);
-  c4 = c1 * (1-2*nu)/2;
-    
-  gsl_matrix_set(C, 0, 0, c3);
-  gsl_matrix_set(C, 0, 1, c2);
-  gsl_matrix_set(C, 0, 2, c2);
-
-  gsl_matrix_set(C, 1, 0, c2);
-  gsl_matrix_set(C, 1, 1, c3);
-  gsl_matrix_set(C, 1, 2, c2);
-
-  gsl_matrix_set(C, 2, 0, c2);
-  gsl_matrix_set(C, 2, 1, c2);
-  gsl_matrix_set(C, 2, 2, c3);
   
-  gsl_matrix_set(C, 3, 3, c4);
-  gsl_matrix_set(C, 4, 4, c4);
-  gsl_matrix_set(C, 5, 5, c4);
+  // tabla 4.3 pag 194 Bathe
+
+  if (fino.problem_kind == problem_kind_full3d) {
+  
+    c1 = E/((1+nu)*(1-2*nu));
+    c2 = c1 * nu;
+    c3 = c1 * (1-nu);
+    c4 = c1 * (1-2*nu)/2;
+    
+    gsl_matrix_set(C, 0, 0, c3);
+    gsl_matrix_set(C, 0, 1, c2);
+    gsl_matrix_set(C, 0, 2, c2);
+
+    gsl_matrix_set(C, 1, 0, c2);
+    gsl_matrix_set(C, 1, 1, c3);
+    gsl_matrix_set(C, 1, 2, c2);
+
+    gsl_matrix_set(C, 2, 0, c2);
+    gsl_matrix_set(C, 2, 1, c2);
+    gsl_matrix_set(C, 2, 2, c3);
+  
+    gsl_matrix_set(C, 3, 3, c4);
+    gsl_matrix_set(C, 4, 4, c4);
+    gsl_matrix_set(C, 5, 5, c4);
+    
+  } else if (fino.problem_kind == problem_kind_plane_stress) {
+    
+    c1 = E/(1-nu*nu);
+    c2 = nu * c1;
+    gsl_matrix_set(C, 0, 0, c1);
+    gsl_matrix_set(C, 0, 1, c2);
+    
+    gsl_matrix_set(C, 1, 0, c2);
+    gsl_matrix_set(C, 1, 1, c1);
+
+    gsl_matrix_set(C, 2, 2, c1*0.5*(1-nu));
+    
+  }
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }    
@@ -239,7 +279,7 @@ int fino_break_compute_stresses(void) {
   double nu = 0;
   double E = 0;
   
-  int j;
+  int j, m;
   
   PetscFunctionBegin;
 
@@ -326,11 +366,15 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 */    
     ex = fino.gradient[0][0]->data_value[j];
     ey = fino.gradient[1][1]->data_value[j];
-    ez = fino.gradient[2][2]->data_value[j];
+    if (fino.dimensions == 3) {
+      ez = fino.gradient[2][2]->data_value[j];
+    }
+    
     gammaxy = fino.gradient[0][1]->data_value[j] + fino.gradient[1][0]->data_value[j];
-    gammayz = fino.gradient[1][2]->data_value[j] + fino.gradient[2][1]->data_value[j];
-    gammazx = fino.gradient[2][0]->data_value[j] + fino.gradient[0][2]->data_value[j];
-
+    if (fino.dimensions == 3) {
+      gammayz = fino.gradient[1][2]->data_value[j] + fino.gradient[2][1]->data_value[j];
+      gammazx = fino.gradient[2][0]->data_value[j] + fino.gradient[0][2]->data_value[j];
+    }
     // tensiones
 /*
 sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
@@ -394,12 +438,15 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
       
       wasora_var(fino.vars.u_at_sigma_max) = fino.solution[0]->data_value[j];
       wasora_var(fino.vars.v_at_sigma_max) = fino.solution[1]->data_value[j];
-      wasora_var(fino.vars.w_at_sigma_max) = fino.solution[2]->data_value[j];
+      if (fino.dimensions == 3) {
+        wasora_var(fino.vars.w_at_sigma_max) = fino.solution[2]->data_value[j];
+      }
     }
     
-    displ2 = gsl_pow_2(fino.solution[0]->data_value[j]) +
-             gsl_pow_2(fino.solution[1]->data_value[j]) +        
-             gsl_pow_2(fino.solution[2]->data_value[j]);
+    displ2 = 0;
+    for (m = 0; m < fino.dimensions; m++) {
+      displ2 += gsl_pow_2(fino.solution[m]->data_value[j]);
+    }
     
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
     if (displ2 >= max_displ2) {
@@ -407,11 +454,15 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
       wasora_var(fino.vars.displ_max) = sqrt(displ2);
       wasora_var(fino.vars.displ_max_x) = fino.mesh->node[j].x[0];
       wasora_var(fino.vars.displ_max_y) = fino.mesh->node[j].x[1];
-      wasora_var(fino.vars.displ_max_z) = fino.mesh->node[j].x[2];
+      if (fino.dimensions == 3) {
+        wasora_var(fino.vars.displ_max_z) = fino.mesh->node[j].x[2];
+      }
       
       wasora_var(fino.vars.u_at_displ_max) = fino.solution[0]->data_value[j];
       wasora_var(fino.vars.v_at_displ_max) = fino.solution[1]->data_value[j];
-      wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j];
+      if (fino.dimensions == 3) {
+        wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j];
+      }
     }
     
   }
@@ -428,7 +479,8 @@ int fino_break_set_stress(element_t *element) {
   double w_gauss;
   gsl_vector *Nb;
     
-  if (element->type->dim < 2) {
+  if ((fino.dimensions == 3 && element->type->dim != 2) ||
+      (fino.dimensions == 2 && element->type->dim != 1)) {
     wasora_push_error_message("stress BCs can only be applied to surfaces");
     return WASORA_RUNTIME_ERROR;
   }
@@ -500,8 +552,9 @@ int fino_break_set_pressure(element_t *element) {
   double p;
   int v;
   gsl_vector *Nb;
-    
-  if (element->type->dim < 2) {
+
+  if ((fino.dimensions == 3 && element->type->dim != 2) ||
+      (fino.dimensions == 2 && element->type->dim != 1)) {
     wasora_push_error_message("pressure BCs can only be applied to surfaces");
     return WASORA_RUNTIME_ERROR;
   }
@@ -522,7 +575,9 @@ int fino_break_set_pressure(element_t *element) {
     p = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
     gsl_vector_set(Nb, 0, wasora_var_value(fino.vars.nx) * p);
     gsl_vector_set(Nb, 1, wasora_var_value(fino.vars.ny) * p);
-    gsl_vector_set(Nb, 2, wasora_var_value(fino.vars.nz) * p);
+    if (fino.dimensions == 3) {
+      gsl_vector_set(Nb, 2, wasora_var_value(fino.vars.nz) * p);
+    }
     
     gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }

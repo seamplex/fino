@@ -110,15 +110,18 @@ struct {
   } math_type;
   
   enum {
-    problem_undefined,
-    problem_bake,
-    problem_break,
-    problem_shake,
-    problem_break_plane_stress,
-    problem_shake_plane_stress,
-    problem_break_plane_strain,
-    problem_shake_plane_strain,
-  } problem;
+    problem_family_undefined,
+    problem_family_bake,
+    problem_family_break,
+    problem_family_shake,
+  } problem_family;
+  
+  enum {
+    problem_kind_undefined,
+    problem_kind_full3d,
+    problem_kind_plane_stress,
+    problem_kind_plane_strain,
+  } problem_kind;
 
   int spatial_unknowns;  // cant de incognitas espaciales (= celdas o nodos)
   int degrees;

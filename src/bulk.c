@@ -128,9 +128,9 @@ int fino_build_element_volumetric(element_t *element) {
     // para cada punto de gauss
     for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
       // armamos las matrices
-      if (fino.problem == problem_shake || fino.problem == problem_break) {
+      if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
         wasora_call(fino_break_build_element(element, v));
-      } else if (fino.problem == problem_bake) {
+      } else if (fino.problem_family == problem_family_bake) {
         wasora_call(fino_build_bake(element, v));
       }
     }
@@ -142,6 +142,11 @@ int fino_build_element_volumetric(element_t *element) {
       MatSetValues(fino.B, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Bi, 0, 0), ADD_VALUES);
     }
 
+/*    
+    printf("\nelement %d\n", element->id);
+    fino_print_gsl_matrix(fino.Ai, stdout);
+    printf("\n");
+*/
 /*    
     if (fino.dump != NULL) {
       fprintf(fino.dump, "\nelement %d\n", element->id);
@@ -165,7 +170,7 @@ int fino_build_element_bc(element_t *element) {
   
   double n[3];
   
-  if (fino.problem == problem_break) {
+  if (fino.problem_family == problem_family_break) {
     wasora_call(mesh_compute_outward_normal(element, n));
     wasora_var_value(fino.vars.nx) = n[0];
     wasora_var_value(fino.vars.ny) = n[1];
@@ -178,7 +183,7 @@ int fino_build_element_bc(element_t *element) {
     } else if (element->physical_entity->bc_type_phys == bc_phys_pressure) {
       wasora_call(fino_break_set_pressure(element));
     }
-  } else if (fino.problem == problem_bake) {
+  } else if (fino.problem_family == problem_family_bake) {
     if (element->physical_entity->bc_type_phys == bc_phys_heat_flux) {
       wasora_call(fino_bake_set_heat_flux(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_convection) {

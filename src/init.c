@@ -319,29 +319,46 @@ int plugin_init_after_parser(void) {
   wasora_call(fino_read_bcs());  
   
   // desplazamientos (y derivadas) anteriores
-  if (fino.problem == problem_break && fino.dimensions == 3) {
+  if (fino.problem_family == problem_family_break) {
     fino.base_solution = calloc(fino.degrees, sizeof(function_t *));
-
-    fino.base_solution[0] = wasora_get_function_ptr("u0");
-    fino.base_solution[1] = wasora_get_function_ptr("v0");
-    fino.base_solution[2] = wasora_get_function_ptr("w0");
-
     fino.base_gradient = calloc(fino.degrees, sizeof(function_t **));
-
-    fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
-    fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
-    fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
-    fino.base_gradient[0][2] = wasora_get_function_ptr("du0dz");
     
-    fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
-    fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
-    fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
-    fino.base_gradient[1][2] = wasora_get_function_ptr("dv0dz");
+    if (fino.dimensions == 3) {
+      
+      fino.base_solution[0] = wasora_get_function_ptr("u0");
+      fino.base_solution[1] = wasora_get_function_ptr("v0");
+      fino.base_solution[2] = wasora_get_function_ptr("w0");
 
-    fino.base_gradient[2] = calloc(fino.dimensions, sizeof(function_t *));
-    fino.base_gradient[2][0] = wasora_get_function_ptr("dw0dx");
-    fino.base_gradient[2][1] = wasora_get_function_ptr("dw0dy");
-    fino.base_gradient[2][2] = wasora_get_function_ptr("dw0dz");
+      fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
+      fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
+      fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
+      fino.base_gradient[0][2] = wasora_get_function_ptr("du0dz");
+    
+      fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
+      fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
+      fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
+      fino.base_gradient[1][2] = wasora_get_function_ptr("dv0dz");
+
+      fino.base_gradient[2] = calloc(fino.dimensions, sizeof(function_t *));
+      fino.base_gradient[2][0] = wasora_get_function_ptr("dw0dx");
+      fino.base_gradient[2][1] = wasora_get_function_ptr("dw0dy");
+      fino.base_gradient[2][2] = wasora_get_function_ptr("dw0dz");
+      
+    } else if (fino.dimensions == 2) {
+      
+      fino.base_solution[0] = wasora_get_function_ptr("u0");
+      fino.base_solution[1] = wasora_get_function_ptr("v0");
+
+      fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
+      fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
+      fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
+    
+      fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
+      fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
+      fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
+      
+    }
+    
 
     for (g = 0; g < fino.degrees; g++) {
       if (fino.base_solution[g] != NULL && fino.base_solution[g]->n_arguments != fino.dimensions) {

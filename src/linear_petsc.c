@@ -79,7 +79,7 @@ int fino_solve_linear_petsc(void) {
 #endif
   }
 
-  if (fino.problem == problem_break) {
+  if (fino.problem_family == problem_family_break) {
     // las coordenadas (solo para break)
   // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
     // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody

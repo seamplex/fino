@@ -62,7 +62,7 @@ int fino_read_bcs(void) {
           expr = NULL;
         }
 
-        if (fino.problem == problem_break) {
+        if (fino.problem_family == problem_family_break) {
           if (strcmp(name, "fixed") == 0) {
             physical_entity->bc_type_math = bc_math_dirichlet;
             physical_entity->bc_type_phys = bc_phys_displacement_fixed;
@@ -153,7 +153,7 @@ int fino_read_bcs(void) {
             PetscFunctionReturn(WASORA_PARSER_ERROR);
           }
          
-        } else if (fino.problem == problem_bake) {
+        } else if (fino.problem_family == problem_family_bake) {
           if (strcmp(name, "T") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_temperature;

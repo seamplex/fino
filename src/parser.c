@@ -40,8 +40,8 @@ int plugin_parse_line(char *line) {
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 
 ///kw+FINO_PROBLEM+usage [ BAKE |
-        if (strcasecmp(token, "BAKE") == 0) {
-          fino.problem = problem_bake;
+        if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0) {
+          fino.problem_family = problem_family_bake;
           fino.math_type = math_linear;
           fino.degrees = 1;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -49,7 +49,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage SHAKE |
         } else if (strcasecmp(token, "SHAKE") == 0) {
-          fino.problem = problem_shake;
+          fino.problem_family = problem_family_shake;
           fino.math_type = math_eigen;
           fino.dimensions = 3;
           fino.degrees = 3;
@@ -58,9 +58,10 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
           
-///kw+FINO_PROBLEM+usage BREAK ]
-        } else if (strcasecmp(token, "BREAK") == 0) {
-          fino.problem = problem_break;
+///kw+FINO_PROBLEM+usage BREAK |
+        } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0) {
+          fino.problem_family = problem_family_break;
+          fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_linear;
           fino.dimensions = 3;
           fino.degrees = 3;
@@ -69,6 +70,27 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
 
+///kw+FINO_PROBLEM+usage PLANE_STRESS |
+        } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
+          fino.problem_family = problem_family_break;
+          fino.problem_kind = problem_kind_plane_stress;
+          fino.math_type = math_linear;
+          fino.dimensions = 2;
+          fino.degrees = 2;
+          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+          fino.unknown_name[0] = strdup("u");
+          fino.unknown_name[1] = strdup("v");
+
+          ///kw+FINO_PROBLEM+usage PLANE_STRAIN ]
+        } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
+          fino.problem_family = problem_family_break;
+          fino.problem_kind = problem_kind_plane_strain;
+          fino.dimensions = 2;
+          fino.degrees = 2;
+          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+          fino.unknown_name[0] = strdup("u");
+          fino.unknown_name[1] = strdup("v");
+          
 ///kw+FINO_PROBLEM+usage [ DIMENSIONS <expr> ]
         } else if (strcasecmp(token, "DIMENSIONS") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
@@ -148,8 +170,8 @@ int plugin_parse_line(char *line) {
         fino.mesh->spatial_dimensions = fino.dimensions;
       }
       
-      
-      switch (fino.problem) {
+/*      
+      switch (fino.problem_family) {
         case problem_shake:
           if (fino.dimensions != 0 && fino.dimensions != 3) {
             wasora_push_error_message("SHAKE works only for three-dimensional cases");
@@ -186,7 +208,7 @@ int plugin_parse_line(char *line) {
         default:
         break;
       }
-
+*/
 
      
       wasora_call(fino_define_functions());
@@ -319,8 +341,9 @@ int plugin_parse_line(char *line) {
       }
         
       // defaulteamos a break
-      if (fino.problem == problem_undefined) {
-        fino.problem = problem_break;
+      if (fino.problem_family == problem_family_undefined) {
+        fino.problem_family = problem_family_break;
+        fino.problem_kind = problem_kind_full3d;
         fino.math_type = math_linear;
         fino.degrees = 3;
         fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -619,7 +642,7 @@ int fino_define_functions(void) {
     free(name);
   }
 
-  if (fino.problem == problem_break) {
+  if (fino.problem_family == problem_family_break) {
     if ((fino.sigma = wasora_define_function("sigma", fino.dimensions)) == NULL) {
       wasora_push_error_message("sigma defined twice");
       return WASORA_RUNTIME_ERROR;
