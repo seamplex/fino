@@ -81,7 +81,7 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
 
-          ///kw+FINO_PROBLEM+usage PLANE_STRAIN ]
+///kw+FINO_PROBLEM+usage PLANE_STRAIN | 
         } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
@@ -91,6 +91,16 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
           
+///kw+FINO_PROBLEM+usage AXISYMMETRIC | 
+        } else if (strcasecmp(token, "AXISYMMETRIC") == 0) {
+          fino.problem_family = problem_family_break;
+          fino.problem_kind = problem_kind_axisymmetric;
+          fino.dimensions = 2;
+          fino.degrees = 2;
+          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+          fino.unknown_name[0] = strdup("u");
+          fino.unknown_name[1] = strdup("v");
+
 ///kw+FINO_PROBLEM+usage [ DIMENSIONS <expr> ]
         } else if (strcasecmp(token, "DIMENSIONS") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));

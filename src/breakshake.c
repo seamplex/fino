@@ -62,6 +62,7 @@ int fino_break_build_element(element_t *element, int v) {
   double alphaT;
   
   double w_gauss;
+  double r_for_axisymmetric = 1.0;
   int j;
 
   PetscFunctionBegin;
@@ -102,6 +103,8 @@ int fino_break_build_element(element_t *element, int v) {
     
     if (fino.problem_kind == problem_kind_full3d) {
       stress_strain_size = 6;
+    } else if (fino.problem_kind == problem_kind_axisymmetric) {
+      stress_strain_size = 4;
     } else {
       stress_strain_size = 3;
     }
@@ -136,9 +139,11 @@ int fino_break_build_element(element_t *element, int v) {
   gsl_matrix_set_zero(B);
 
   for (j = 0; j < J; j++) {
-    if (fino.dimensions == 3) {
+    if (fino.problem_kind == problem_kind_full3d) {
       gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      
       gsl_matrix_set(B, 1, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      
       gsl_matrix_set(B, 2, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
     
       gsl_matrix_set(B, 3, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
@@ -150,8 +155,28 @@ int fino_break_build_element(element_t *element, int v) {
       gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
       gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
     
-    } else if (fino.dimensions == 2) {
+    } else if (fino.problem_kind == problem_kind_axisymmetric) {
+
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
+        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+      
+      // ecuacion 3.5 AFEM CH.03 sec 3.3.2 pag 3.5
       gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      
+      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+
+      gsl_matrix_set(B, 2, 2*j+0, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+      
+      gsl_matrix_set(B, 3, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 3, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+
+    } else  {
+      // plane stress y plane strain son iguales
+      // ecuacion 14.18 IFEM CH.14 sec 14.4.1 pag 14-11
+      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      
       gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
     
       gsl_matrix_set(B, 2, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
@@ -162,7 +187,7 @@ int fino_break_build_element(element_t *element, int v) {
     if ((fino.problem_family == problem_family_break) &&
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
-      c = w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
+      c = r_for_axisymmetric * w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
       gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
       gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
       if (fino.degrees == 3) {
@@ -184,7 +209,7 @@ int fino_break_build_element(element_t *element, int v) {
   }
 
   // calculamos Bt*C*B
-  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, C, B, 0, CB);
+  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, r_for_axisymmetric, C, B, 0, CB);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, B, CB, 1.0, fino.Ai);
 
   // expansion termica
@@ -196,7 +221,7 @@ int fino_break_build_element(element_t *element, int v) {
       gsl_vector_set(et, 0, alphaT);
       gsl_vector_set(et, 1, alphaT);
       gsl_vector_set(et, 2, alphaT);
-      gsl_blas_dgemv(CblasTrans, 1.0, C, et, 0, Cet);
+      gsl_blas_dgemv(CblasTrans, r_for_axisymmetric, C, et, 0, Cet);
       gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
     }
   }
@@ -267,6 +292,23 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 
     gsl_matrix_set(C, 2, 2, c1*0.5*(1-2*nu)/(1-nu));
     
+  } else if (fino.problem_kind == problem_kind_axisymmetric) {
+    
+    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
+    c2 = nu/(1-nu) * c1;
+    gsl_matrix_set(C, 0, 0, c1);
+    gsl_matrix_set(C, 0, 1, c2);
+    gsl_matrix_set(C, 0, 2, c2);
+    
+    gsl_matrix_set(C, 1, 0, c2);
+    gsl_matrix_set(C, 1, 1, c1);
+    gsl_matrix_set(C, 1, 2, c2);
+
+    gsl_matrix_set(C, 2, 0, c2);
+    gsl_matrix_set(C, 2, 1, c2);
+    gsl_matrix_set(C, 2, 2, c1);
+
+    gsl_matrix_set(C, 3, 3, c1*0.5*(1-2*nu)/(1-nu));
     
   }
 

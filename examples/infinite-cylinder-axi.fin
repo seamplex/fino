@@ -1,0 +1,17 @@
+MESH FILE_PATH infinite-cylinder-axi.msh
+FINO_PROBLEM AXISYMMETRIC
+# FINO_PROBLEM PLANE_STRESS
+
+w(x,y) := 0
+
+E = 205e3
+nu = 0.28
+
+PHYSICAL_ENTITY NAME inner  BC p=-10
+PHYSICAL_ENTITY NAME outer  BC fixed
+PHYSICAL_ENTITY NAME infinite   BC v=0
+
+FINO_STEP
+
+MESH_POST FILE_PATH infinite-cylinder-axi.vtk VECTOR u v w sigma
+PRINT_FUNCTION u

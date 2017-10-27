@@ -1,0 +1,18 @@
+MESH FILE_PATH quarter-sphere-axi.msh
+FINO_PROBLEM AXISYMMETRIC
+
+w(x,y) := 0
+
+E = 210
+nu = 0
+
+PHYSICAL_ENTITY NAME inner  BC p=10
+# PHYSICAL_ENTITY NAME outer  BC u=0
+
+PHYSICAL_ENTITY NAME vertical   BC u=0
+PHYSICAL_ENTITY NAME horizontal BC v=0
+
+FINO_STEP
+
+MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v w sigma
+# PRINT_FUNCTION u

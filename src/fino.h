@@ -121,6 +121,7 @@ struct {
     problem_kind_full3d,
     problem_kind_plane_stress,
     problem_kind_plane_strain,
+    problem_kind_axisymmetric    
   } problem_kind;
 
   int spatial_unknowns;  // cant de incognitas espaciales (= celdas o nodos)
