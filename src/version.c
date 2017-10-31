@@ -59,6 +59,8 @@ const char *plugin_longversion(void) {
   PetscGetArchType(petscarch, BUFFER_SIZE);
 #ifdef HAVE_SLEPC
   SlepcGetVersion(slepcversion, BUFFER_SIZE);  
+#else
+  snprintf(slepcversion, BUFFER_SIZE-1, "no SLEPc support");
 #endif  
     
   sprintf(finolongversion, "\n\
