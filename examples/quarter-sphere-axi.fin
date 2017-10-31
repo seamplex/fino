@@ -14,5 +14,7 @@ PHYSICAL_ENTITY NAME horizontal BC v=0
 
 FINO_STEP
 
+# http://solidmechanics.org/text/Chapter4_1/Chapter4_1.htm
+
 MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v w sigma
 # PRINT_FUNCTION u

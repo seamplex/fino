@@ -7,11 +7,21 @@ w(x,y) := 0
 E = 205e3
 nu = 0.28
 
-PHYSICAL_ENTITY NAME inner  BC p=-10
-PHYSICAL_ENTITY NAME outer  BC fixed
+a = 1
+b = 2
+p = 10
+
+PHYSICAL_ENTITY NAME inner  BC p=-p
+# PHYSICAL_ENTITY NAME outer  BC u=0
 PHYSICAL_ENTITY NAME infinite   BC v=0
 
 FINO_STEP
 
+# solucion analitica
+# http://eprints.whiterose.ac.uk/110536/1/art%253A10.1007%252Fs00707-016-1762-7.pdf
+ur(x) := (p*a^2*x)/(E*(b^2-a^2)) * ((1-2*nu)*(1+nu) + (1+nu)*b^2/x^2)
+
 MESH_POST FILE_PATH infinite-cylinder-axi.vtk VECTOR u v w sigma
-PRINT_FUNCTION u
+PRINT_FUNCTION u 
+
+PRINT_FUNCTION FILE_PATH ur.dat ur MIN a MAX b NSTEPS 100
