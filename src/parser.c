@@ -685,6 +685,13 @@ int fino_define_functions(void) {
     fino.sigma3->var_argument = fino.solution[0]->var_argument;
     fino.sigma3->type = type_pointwise_mesh_node;
     
+    if ((fino.tresca = wasora_define_function("tresca", fino.dimensions)) == NULL) {
+      wasora_push_error_message("tresca defined twice");
+      return WASORA_RUNTIME_ERROR;
+    }
+    fino.tresca->mesh = fino.mesh;
+    fino.tresca->var_argument = fino.solution[0]->var_argument;
+    fino.tresca->type = type_pointwise_mesh_node;
     
   }
   // TODO: heat flux

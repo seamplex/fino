@@ -327,7 +327,7 @@ int fino_break_compute_stresses(void) {
   double tauxy, tauyz, tauzx;
   double I1, I2, I3, phi;
   double c1, c1c2, c3, c4, c5;
-  double sigma, sigma1, sigma2, sigma3;
+  double sigma, sigma1, sigma2, sigma3, tresca;
   double displ2;
 
   double max_displ2 = 0;
@@ -360,6 +360,11 @@ int fino_break_compute_stresses(void) {
   fino.sigma3->data_size = fino.mesh->n_nodes;
   fino.sigma3->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
+  // tresca
+  fino.tresca->data_argument = fino.gradient[0][0]->data_argument;
+  free(fino.tresca->data_value);
+  fino.tresca->data_size = fino.mesh->n_nodes;
+  fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   
   // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
   if (distribution_nu.variable != NULL) {
@@ -421,48 +426,64 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 */    
     ex = fino.gradient[0][0]->data_value[j];
     ey = fino.gradient[1][1]->data_value[j];
-    if (fino.dimensions == 3) {
+    if (fino.problem_kind == problem_kind_full3d) {
       ez = fino.gradient[2][2]->data_value[j];
+    } else if (fino.problem_kind == problem_kind_axisymmetric) {
+      // etheta = u/r
+      if (fino.solution[0]->data_argument[0][j] > 1e-3) {
+        ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+      }
     }
     
     gammaxy = fino.gradient[0][1]->data_value[j] + fino.gradient[1][0]->data_value[j];
-    if (fino.dimensions == 3) {
+    if (fino.problem_kind == problem_kind_full3d) {
       gammayz = fino.gradient[1][2]->data_value[j] + fino.gradient[2][1]->data_value[j];
       gammazx = fino.gradient[2][0]->data_value[j] + fino.gradient[0][2]->data_value[j];
     }
-    // tensiones
-/*
-sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
-sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
-sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
-tau_xy(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
-tau_yz(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
-tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
-VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
-*/
-    // constantes    
-    c1 = E/((1+nu)*(1-2*nu));
-    c1c2 = c1 * 0.5*(1-2*nu);
     
+    
+    // tensiones
+    if (fino.problem_kind == problem_kind_axisymmetric) {
+      c1 = E/((1+nu)*(1-2*nu));
+      c1c2 = c1 * 0.5*(1-2*nu);
+      
+    } else if (fino.problem_kind == problem_kind_full3d) {
+  /*
+  sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
+  sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
+  sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
+  tau_xy(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
+  tau_yz(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
+  tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
+  VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
+  */
+      // constantes    
+      c1 = E/((1+nu)*(1-2*nu));
+      c1c2 = c1 * 0.5*(1-2*nu);
+    }
+
     sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
     sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
     sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));
     tauxy =  c1c2 * gammaxy;
-    tauyz =  c1c2 * gammayz;
-    tauzx =  c1c2 * gammazx;
-    
+    if (fino.dimensions == 3) {
+      tauyz =  c1c2 * gammayz;
+      tauzx =  c1c2 * gammazx;
+    }
+
     // stress invariants
+    // https://en.wikiversity.org/wiki/Principal_stresses
     I1 = sigmax + sigmay + sigmaz;
     I2 = sigmax*sigmay + sigmay*sigmaz + sigmaz*sigmax - gsl_pow_2(tauxy) - gsl_pow_2(tauyz) - gsl_pow_2(tauzx);
     I3 = sigmax*sigmay*sigmaz - sigmax*gsl_pow_2(tauyz) - sigmay*gsl_pow_2(tauzx) - sigmaz*gsl_pow_2(tauxy) + 2*tauxy*tauyz*tauzx;
 
-   // principal stresses
+    // principal stresses
     c5 = sqrt(fabs(gsl_pow_2(I1) - 3*I2));
     phi = 1.0/3.0 * acos((2.0*gsl_pow_3(I1) - 9.0*I1*I2 + 27.0*I3)/(2.0*gsl_pow_3(c5)));
     if (isnan(phi)) {
       phi = 0;
     }
-    
+
     c3 = I1/3.0;
     c4 = 2.0/3.0 * c5;
     sigma1 = c3 + c4 * cos(phi);
@@ -472,17 +493,21 @@ VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z
     fino.sigma1->data_value[j] = sigma1;
     fino.sigma2->data_value[j] = sigma2;
     fino.sigma3->data_value[j] = sigma3;
-    
 
-    
-    // von misses
-//    sigma = sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
-//                                                    6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
+      // von misses
+  //    sigma = sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
+  //                                                    6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
     sigma = sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));
-    
-//    if (j < 12) {
-//      printf("%d\t%g\t%.1f\t%.1f\t%.1f\n", j, E, ex, sigmax, sigma);
-//    }
+      
+    // tresca
+    if (fabs(sigma1-sigma2) > fabs(sigma2-sigma3) && fabs(sigma1-sigma2) > fabs(sigma1-sigma3)) {
+      tresca = fabs(sigma1-sigma2);
+    } else if (fabs(sigma2-sigma3) > fabs(sigma1-sigma2) && fabs(sigma2-sigma3) > fabs(sigma1-sigma3)) {
+      tresca = fabs(sigma2-sigma3);
+    } else if (fabs(sigma1-sigma3) > fabs(sigma1-sigma2) && fabs(sigma1-sigma3) > fabs(sigma2-sigma3)) {
+      tresca = fabs(sigma1-sigma3);
+    }
+    fino.tresca->data_value[j] = tresca;
     
     if ((fino.sigma->data_value[j] = sigma) > wasora_var(fino.vars.sigma_max)) {
       wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j];

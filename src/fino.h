@@ -308,9 +308,10 @@ struct {
   double gradient_jacobian_threshold;
   
   function_t *sigma;     // von misses
-  function_t *sigma1;    // principal
+  function_t *sigma1;    // principales
   function_t *sigma2;
   function_t *sigma3;
+  function_t *tresca;
 
   // cosas del eigensolver
   // las pongo al final por si acaso (mezcla de plugins compilados con difentes libs, no se)
