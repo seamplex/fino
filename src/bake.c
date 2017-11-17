@@ -32,10 +32,10 @@ fino_distribution_t distribution_Q;    // heat source
 #undef  __FUNCT__
 #define __FUNCT__ "fino_build_bake"
 int fino_build_bake(element_t *element, int v) {
-  // constantes para hacer mas rapida la milonga
-//  static double k;
-//  static double Q;
+  
   double w_gauss;
+  double r_for_axisymmetric = 1.0;
+  
   material_t *material;
   int j;
 
@@ -54,19 +54,19 @@ int fino_build_bake(element_t *element, int v) {
     material = NULL;
   }
   
-  
   w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v); 
+  r_for_axisymmetric = fino_compute_r_for_axisymmetric();
 
   if (distribution_Q.defined != 0) {
     // el vector de fuente de calor volumetrica
     for (j = 0; j < element->type->nodes; j++) {
-      gsl_vector_add_to_element(fino.bi, j, w_gauss * gsl_vector_get(fino.mesh->fem.h, j) * fino_distribution_evaluate(&distribution_Q, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, j, w_gauss * r_for_axisymmetric * gsl_vector_get(fino.mesh->fem.h, j) * fino_distribution_evaluate(&distribution_Q, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
     }
   }
 
   // calculamos la matriz de stiffness
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ai);
-  
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ai);
+
   return WASORA_RUNTIME_OK;
   
 }

@@ -42,6 +42,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage [ BAKE |
         if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0) {
           fino.problem_family = problem_family_bake;
+          fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_linear;
           fino.degrees = 1;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -70,10 +71,26 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
 
+///kw+FINO_PROBLEM+usage HEAT_AXISYMMETRIC |
+        } else if (strcasecmp(token, "HEAT_AXISYMMETRIC") == 0) {
+          fino.problem_family = problem_family_bake;
+          fino.problem_kind = problem_kind_axisymmetric;
+          if (fino.symmetry_axis == symmetry_axis_none) {
+            fino.symmetry_axis = symmetry_axis_y;
+          }
+          fino.math_type = math_linear;
+          fino.dimensions = 2;
+          fino.degrees = 1;
+          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+          fino.unknown_name[0] = strdup("T");
+          
 ///kw+FINO_PROBLEM+usage PLANE_STRESS |
         } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_stress;
+          if (fino.symmetry_axis == symmetry_axis_none) {
+            fino.symmetry_axis = symmetry_axis_y;
+          }
           fino.math_type = math_linear;
           fino.dimensions = 2;
           fino.degrees = 2;
@@ -91,8 +108,8 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
           
-///kw+FINO_PROBLEM+usage AXISYMMETRIC | 
-        } else if (strcasecmp(token, "AXISYMMETRIC") == 0) {
+///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC | 
+        } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_axisymmetric;
           fino.dimensions = 2;
@@ -118,6 +135,12 @@ int plugin_parse_line(char *line) {
             wasora_push_error_message("a positive number of degrees should be given instead of '%d'", fino.degrees);
             return WASORA_PARSER_ERROR;
           }
+          
+///kw+FINO_PROBLEM+usage [ SYMMETRY_AXIS { x | y } ]
+        } else if (strcasecmp(token, "SYMMETRY_AXIS") == 0) {
+          char *keywords[] = { "x", "y" };
+          int values[] = {symmetry_axis_x, symmetry_axis_y, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.symmetry_axis));
           
 ///kw+FINO_PROBLEM+usage [ MESH <identifier> ]
         } else if (strcasecmp(token, "MESH") == 0) {
@@ -179,46 +202,6 @@ int plugin_parse_line(char *line) {
       if (fino.mesh != NULL && fino.mesh->spatial_dimensions == 0 && fino.dimensions != 0) {
         fino.mesh->spatial_dimensions = fino.dimensions;
       }
-      
-/*      
-      switch (fino.problem_family) {
-        case problem_shake:
-          if (fino.dimensions != 0 && fino.dimensions != 3) {
-            wasora_push_error_message("SHAKE works only for three-dimensional cases");
-            return WASORA_PARSER_ERROR;
-          } else if (fino.degrees != 0 && fino.degrees != 3) {
-            wasora_push_error_message("SHAKE works only for three degrees of freedom");
-            return WASORA_PARSER_ERROR;
-          } else if (fino.math_type != math_eigen) {
-            wasora_push_error_message("SHAKE works only for eigenvalue problem types");
-            return WASORA_PARSER_ERROR;
-          }
-        break;
-        case problem_break:
-          if (fino.dimensions != 0 && fino.dimensions != 3) {
-            wasora_push_error_message("BREAK works only for three-dimensional cases");
-            return WASORA_PARSER_ERROR;
-          } else if (fino.degrees != 0 && fino.degrees != 3) {
-            wasora_push_error_message("BREAK works only for three degrees of freedom");
-            return WASORA_PARSER_ERROR;
-          } else if (fino.math_type != math_linear) {
-            wasora_push_error_message("BREAK works only for linear problem types");
-            return WASORA_PARSER_ERROR;
-          }
-        break;
-        case problem_bake:
-          if (fino.dimensions == 0) {
-            wasora_push_error_message("BAKE needs a DIMENSION setting");
-            return WASORA_PARSER_ERROR;
-          } else if (fino.degrees != 0 && fino.degrees != 1) {
-            wasora_push_error_message("BAKE works only for one degree of freedom");
-            return WASORA_PARSER_ERROR;
-          }
-        break;
-        default:
-        break;
-      }
-*/
 
      
       wasora_call(fino_define_functions());
@@ -599,7 +582,8 @@ int fino_define_functions(void) {
   int g, d;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
-   if (fino.dimensions == 0) {
+  if (fino.dimensions == 0) {
+    wasora_push_error_message("do not know how many dimensions the problem has");
     return WASORA_PARSER_ERROR;
   } else if (fino.degrees == 0) {
     return WASORA_PARSER_ERROR;

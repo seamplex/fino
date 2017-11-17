@@ -157,17 +157,18 @@ int fino_break_build_element(element_t *element, int v) {
     
     } else if (fino.problem_kind == problem_kind_axisymmetric) {
 
-      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
-        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
-        return WASORA_RUNTIME_ERROR;
-      }
+      r_for_axisymmetric = fino_compute_r_for_axisymmetric();
       
       // ecuacion 3.5 AFEM CH.03 sec 3.3.2 pag 3.5
       gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
       
       gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
 
-      gsl_matrix_set(B, 2, 2*j+0, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+      if (fino.symmetry_axis == symmetry_axis_y) {
+        gsl_matrix_set(B, 2, 2*j+0, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+      } else if (fino.symmetry_axis == symmetry_axis_x) {
+        gsl_matrix_set(B, 2, 2*j+1, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+      }
       
       gsl_matrix_set(B, 3, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
       gsl_matrix_set(B, 3, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));

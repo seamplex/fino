@@ -123,6 +123,12 @@ struct {
     problem_kind_plane_strain,
     problem_kind_axisymmetric    
   } problem_kind;
+  
+  enum {
+    symmetry_axis_none,
+    symmetry_axis_x,
+    symmetry_axis_y
+  } symmetry_axis;
 
   int spatial_unknowns;  // cant de incognitas espaciales (= celdas o nodos)
   int degrees;
@@ -386,6 +392,11 @@ extern int fino_add_single_surface_term_to_rhs(element_t *, bc_string_based_t *)
 
 // bulk.c
 extern int fino_allocate_elemental_objects(element_t *);
+extern int fino_build_bulk(void);
+extern int fino_build_element_volumetric(element_t *);
+extern int fino_build_element_bc(element_t *);
+
+extern double fino_compute_r_for_axisymmetric(void);
 
 extern int fino_print_gsl_vector(gsl_vector *, FILE *);
 extern int fino_print_gsl_matrix(gsl_matrix *, FILE *);

@@ -196,6 +196,29 @@ int fino_build_element_bc(element_t *element) {
 }
 
 #undef  __FUNCT__
+#define __FUNCT__ "fino_compute_r_for_axisymmetric"
+double fino_compute_r_for_axisymmetric(void) {
+
+  double r_for_axisymmetric = 1.0;
+  
+  if (fino.problem_kind == problem_kind_axisymmetric) {
+    if (fino.symmetry_axis == symmetry_axis_y) {
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
+        wasora_push_error_message("axisymmetric problems with respect to y cannot have nodes with x < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+    } else if (fino.symmetry_axis == symmetry_axis_x) {
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 1)) < 0) {
+        wasora_push_error_message("axisymmetric problems with respect to x cannot have nodes with y < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+    }
+  }
+  
+  return r_for_axisymmetric;
+}
+
+#undef  __FUNCT__
 #define __FUNCT__ "fino_print_gsl_vector"
 int fino_print_gsl_vector(gsl_vector *b, FILE *file) {
 
