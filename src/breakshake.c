@@ -430,9 +430,16 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     if (fino.problem_kind == problem_kind_full3d) {
       ez = fino.gradient[2][2]->data_value[j];
     } else if (fino.problem_kind == problem_kind_axisymmetric) {
-      // etheta = u/r
-      if (fino.solution[0]->data_argument[0][j] > 1e-3) {
-        ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+      if (fino.symmetry_axis == symmetry_axis_y) {
+        // etheta = u/r
+        if (fino.solution[0]->data_argument[0][j] > 1e-3) {
+          ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+        }
+      } else if (fino.symmetry_axis == symmetry_axis_x) {
+        // etheta = v/r
+        if (fino.solution[1]->data_argument[1][j] > 1e-3) {
+          ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
+        }
       }
     }
     
@@ -558,7 +565,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 int fino_break_set_stress(element_t *element) {
   int v, g;
   double w_gauss;
-  double r_for_axisymmetric = 1.0;  
+  double r_for_axisymmetric;  
   gsl_vector *Nb;
     
   if ((fino.dimensions == 3 && element->type->dim != 2) ||
@@ -576,12 +583,7 @@ int fino_break_set_stress(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    if (fino.problem_kind == problem_kind_axisymmetric) {
-      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
-        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
-        return WASORA_RUNTIME_ERROR;
-      }
-    }
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
@@ -604,7 +606,7 @@ int fino_break_set_stress(element_t *element) {
 int fino_break_set_force(element_t *element) {
   int v, g;
   double w_gauss;
-  double r_for_axisymmetric = 1.0;  
+  double r_for_axisymmetric;
   gsl_vector *Nb;
     
   if (fino.n_local_nodes != element->type->nodes) {
@@ -617,12 +619,8 @@ int fino_break_set_force(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    if (fino.problem_kind == problem_kind_axisymmetric) {
-      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
-        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
-        return WASORA_RUNTIME_ERROR;
-      }
-    }
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
+
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
@@ -645,7 +643,7 @@ int fino_break_set_force(element_t *element) {
 int fino_break_set_pressure(element_t *element) {
   double w_gauss;
   double p;
-  double r_for_axisymmetric = 1.0;
+  double r_for_axisymmetric;
   int v;
   gsl_vector *Nb;
 
@@ -664,12 +662,7 @@ int fino_break_set_pressure(element_t *element) {
   
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    if (fino.problem_kind == problem_kind_axisymmetric) {
-      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
-        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
-        return WASORA_RUNTIME_ERROR;
-      }
-    }
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
