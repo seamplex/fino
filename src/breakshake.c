@@ -558,6 +558,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 int fino_break_set_stress(element_t *element) {
   int v, g;
   double w_gauss;
+  double r_for_axisymmetric = 1.0;  
   gsl_vector *Nb;
     
   if ((fino.dimensions == 3 && element->type->dim != 2) ||
@@ -575,13 +576,19 @@ int fino_break_set_stress(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    if (fino.problem_kind == problem_kind_axisymmetric) {
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
+        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+    }
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
     for (g = 0; g < fino.degrees; g++) {
       gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g]));
     }
-    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
   VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
@@ -597,6 +604,7 @@ int fino_break_set_stress(element_t *element) {
 int fino_break_set_force(element_t *element) {
   int v, g;
   double w_gauss;
+  double r_for_axisymmetric = 1.0;  
   gsl_vector *Nb;
     
   if (fino.n_local_nodes != element->type->nodes) {
@@ -609,13 +617,19 @@ int fino_break_set_force(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    if (fino.problem_kind == problem_kind_axisymmetric) {
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
+        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+    }
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
     for (g = 0; g < fino.degrees; g++) {
       gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g])/element->physical_entity->volume);
     }
-    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
   VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
@@ -631,6 +645,7 @@ int fino_break_set_force(element_t *element) {
 int fino_break_set_pressure(element_t *element) {
   double w_gauss;
   double p;
+  double r_for_axisymmetric = 1.0;
   int v;
   gsl_vector *Nb;
 
@@ -644,12 +659,17 @@ int fino_break_set_pressure(element_t *element) {
     wasora_call(fino_allocate_elemental_objects(element));
   }
 
- 
   Nb = gsl_vector_calloc(fino.degrees);
   gsl_vector_set_zero(fino.bi);
-
+  
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    if (fino.problem_kind == problem_kind_axisymmetric) {
+      if ((r_for_axisymmetric = gsl_vector_get(fino.mesh->fem.x, 0)) < 0) {
+        wasora_push_error_message("axisymmetric problems cannot have nodes with x < 0");
+        return WASORA_RUNTIME_ERROR;
+      }
+    }
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
@@ -660,7 +680,7 @@ int fino_break_set_pressure(element_t *element) {
       gsl_vector_set(Nb, 2, wasora_var_value(fino.vars.nz) * p);
     }
     
-    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
   VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
