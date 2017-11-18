@@ -43,7 +43,7 @@ int fino_compute_gradients(void) {
   PetscScalar  *data;
   KSP ksp;
   
-  gsl_vector *diag_M;
+  gsl_vector *diag_M = NULL;
   double trace_M;
   element_t *element;
   element_list_item_t *item;

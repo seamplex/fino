@@ -529,19 +529,19 @@ int fino_problem_free(void) {
     mesh_free(fino.mesh);
   }
   
-  // TODO: por que fino.sigma != NULL al arrancar?
-  if (fino.sigma != NULL) {
+  if (fino.problem_family == problem_family_break) {
+    // TODO: hacer una funcion para limpiar funciones
     free(fino.sigma->data_value);
-    fino.sigma->data_value = NULL;
-    
     free(fino.sigma1->data_value);
-    fino.sigma1->data_value = NULL;
-
     free(fino.sigma2->data_value);
-    fino.sigma2->data_value = NULL;
-
     free(fino.sigma3->data_value);
+    free(fino.tresca->data_value);
+    
+    fino.sigma->data_value = NULL;
+    fino.sigma1->data_value = NULL;
+    fino.sigma2->data_value = NULL;
     fino.sigma3->data_value = NULL;
+    fino.tresca->data_value = NULL;
   }
   
      

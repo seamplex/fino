@@ -340,32 +340,34 @@ int fino_break_compute_stresses(void) {
   PetscFunctionBegin;
 
   // von misses  
-  fino.sigma->data_argument = fino.gradient[0][0]->data_argument;
-  free(fino.sigma->data_value);
-  fino.sigma->data_size = fino.mesh->n_nodes;
-  fino.sigma->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
-  
-  // principal
-  fino.sigma1->data_argument = fino.gradient[0][0]->data_argument;
-  free(fino.sigma1->data_value);
-  fino.sigma1->data_size = fino.mesh->n_nodes;
-  fino.sigma1->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
-  
-  fino.sigma2->data_argument = fino.gradient[0][0]->data_argument;
-  free(fino.sigma2->data_value);
-  fino.sigma2->data_size = fino.mesh->n_nodes;
-  fino.sigma2->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+  if (fino.sigma->data_value == NULL) {
+    fino.sigma->data_argument = fino.gradient[0][0]->data_argument;
+    free(fino.sigma->data_value);
+    fino.sigma->data_size = fino.mesh->n_nodes;
+    fino.sigma->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-  fino.sigma3->data_argument = fino.gradient[0][0]->data_argument;
-  free(fino.sigma3->data_value);
-  fino.sigma3->data_size = fino.mesh->n_nodes;
-  fino.sigma3->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    // principal
+    fino.sigma1->data_argument = fino.gradient[0][0]->data_argument;
+    free(fino.sigma1->data_value);
+    fino.sigma1->data_size = fino.mesh->n_nodes;
+    fino.sigma1->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-  // tresca
-  fino.tresca->data_argument = fino.gradient[0][0]->data_argument;
-  free(fino.tresca->data_value);
-  fino.tresca->data_size = fino.mesh->n_nodes;
-  fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    fino.sigma2->data_argument = fino.gradient[0][0]->data_argument;
+    free(fino.sigma2->data_value);
+    fino.sigma2->data_size = fino.mesh->n_nodes;
+    fino.sigma2->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+
+    fino.sigma3->data_argument = fino.gradient[0][0]->data_argument;
+    free(fino.sigma3->data_value);
+    fino.sigma3->data_size = fino.mesh->n_nodes;
+    fino.sigma3->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+
+    // tresca
+    fino.tresca->data_argument = fino.gradient[0][0]->data_argument;
+    free(fino.tresca->data_value);
+    fino.tresca->data_size = fino.mesh->n_nodes;
+    fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+  }
   
   // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
   if (distribution_nu.variable != NULL) {
