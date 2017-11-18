@@ -36,7 +36,11 @@ fino_distribution_t distribution_fz;    // fuerza volumetrica en z
 fino_distribution_t distribution_alpha; // coeficiente de expansion termica
 fino_distribution_t distribution_T;     // temperatura
 
-  
+// este es un escalar pero lo ponemos como dist para ver si ya lo inicializamos
+fino_distribution_t distribution_T0;    // temperatura de referencia (i.e. sin deformacion)
+
+double T0;  // este es el escalar
+
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_build_element"
 int fino_break_build_element(element_t *element, int v) {
@@ -59,7 +63,7 @@ int fino_break_build_element(element_t *element, int v) {
   material_t *material;
 
   double c;
-  double alphaT;
+  double alphaDT;
   
   double w_gauss;
   double r_for_axisymmetric = 1.0;
@@ -86,6 +90,13 @@ int fino_break_build_element(element_t *element, int v) {
     wasora_call(fino_distribution_init(&distribution_fz, "fz"));
     wasora_call(fino_distribution_init(&distribution_alpha, "alpha"));
     wasora_call(fino_distribution_init(&distribution_T, "T"));
+    
+    wasora_call(fino_distribution_init(&distribution_T0, "T0"));
+    if (distribution_T0.defined) {
+      T0 = fino_distribution_evaluate(&distribution_T0, NULL, NULL);
+    } else {
+      T0 = 0;
+    }
     
     // TODO: allow lambda+mu
     if (distribution_E.defined == 0) {
@@ -216,12 +227,12 @@ int fino_break_build_element(element_t *element, int v) {
   // expansion termica
   if (distribution_alpha.defined != 0) {
     // este debe ser el medio!
-    alphaT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
-    if (alphaT != 0) {
-      alphaT *= fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
-      gsl_vector_set(et, 0, alphaT);
-      gsl_vector_set(et, 1, alphaT);
-      gsl_vector_set(et, 2, alphaT);
+    alphaDT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    if (alphaDT != 0) {
+      alphaDT *= fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0))-T0;
+      gsl_vector_set(et, 0, alphaDT);
+      gsl_vector_set(et, 1, alphaDT);
+      gsl_vector_set(et, 2, alphaDT);
       gsl_blas_dgemv(CblasTrans, r_for_axisymmetric, C, et, 0, Cet);
       gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
     }
