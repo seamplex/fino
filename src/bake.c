@@ -34,7 +34,7 @@ fino_distribution_t distribution_Q;    // heat source
 int fino_build_bake(element_t *element, int v) {
   
   double w_gauss;
-  double r_for_axisymmetric = 1.0;
+  double r_for_axisymmetric;
   
   material_t *material;
   int j;
@@ -76,6 +76,7 @@ int fino_build_bake(element_t *element, int v) {
 #define __FUNCT__ "fino_bake_set_heat_flux"
 int fino_bake_set_heat_flux(element_t *element) {
   double w_gauss;
+  double r_for_axisymmetric;
   double q;
   int v;
   gsl_vector *Nb;
@@ -89,13 +90,14 @@ int fino_bake_set_heat_flux(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
     q = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
     gsl_vector_set(Nb, 0, -q);
     
-    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
   VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
@@ -111,6 +113,7 @@ int fino_bake_set_heat_flux(element_t *element) {
 #define __FUNCT__ "fino_bake_set_heat_flux"
 int fino_bake_set_convection(element_t *element) {
   double w_gauss;
+  double r_for_axisymmetric;
   double h = 0;
   double Tinf = 0;
   int v;
@@ -131,6 +134,7 @@ int fino_bake_set_convection(element_t *element) {
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
     w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
@@ -143,8 +147,8 @@ int fino_bake_set_convection(element_t *element) {
     gsl_vector_set(Nb, 0, h*Tinf);
 
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, fino.mesh->fem.H, 0, NaH);
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, fino.mesh->fem.H, NaH, 1, fino.Ai);
-    gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, NaH, 1, fino.Ai);
+    gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
   MatSetValues(fino.A, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ai, 0, 0), ADD_VALUES);
