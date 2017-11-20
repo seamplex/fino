@@ -352,30 +352,53 @@ int fino_break_compute_stresses(void) {
 
   // von misses  
   if (fino.sigma->data_value == NULL) {
-    fino.sigma->data_argument = fino.gradient[0][0]->data_argument;
-    free(fino.sigma->data_value);
-    fino.sigma->data_size = fino.mesh->n_nodes;
-    fino.sigma->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    // tensor de tensiones
+    fino.sigmax->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmax->data_size = fino.mesh->n_nodes;
+    fino.sigmax->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-    // principal
+    fino.sigmay->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmay->data_size = fino.mesh->n_nodes;
+    fino.sigmay->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+
+    fino.sigmaz->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmaz->data_size = fino.mesh->n_nodes;
+    fino.sigmaz->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+      
+    fino.tauxy->data_argument = fino.gradient[0][0]->data_argument;
+    fino.tauxy->data_size = fino.mesh->n_nodes;
+    fino.tauxy->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    
+    if (fino.dimensions == 3) {
+      fino.tauyz->data_argument = fino.gradient[0][0]->data_argument;
+      fino.tauyz->data_size = fino.mesh->n_nodes;
+      fino.tauyz->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+      
+      fino.tauzx->data_argument = fino.gradient[0][0]->data_argument;
+      fino.tauzx->data_size = fino.mesh->n_nodes;
+      fino.tauzx->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    }
+
+    // tensiones principales
     fino.sigma1->data_argument = fino.gradient[0][0]->data_argument;
-    free(fino.sigma1->data_value);
     fino.sigma1->data_size = fino.mesh->n_nodes;
     fino.sigma1->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
     fino.sigma2->data_argument = fino.gradient[0][0]->data_argument;
-    free(fino.sigma2->data_value);
     fino.sigma2->data_size = fino.mesh->n_nodes;
     fino.sigma2->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
     fino.sigma3->data_argument = fino.gradient[0][0]->data_argument;
-    free(fino.sigma3->data_value);
     fino.sigma3->data_size = fino.mesh->n_nodes;
     fino.sigma3->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
+    // von mises
+    fino.sigma->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigma->data_size = fino.mesh->n_nodes;
+    fino.sigma->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+    
     // tresca
     fino.tresca->data_argument = fino.gradient[0][0]->data_argument;
-    free(fino.tresca->data_value);
     fino.tresca->data_size = fino.mesh->n_nodes;
     fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   }
@@ -464,11 +487,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     
     
     // tensiones
-    if (fino.problem_kind == problem_kind_axisymmetric) {
-      c1 = E/((1+nu)*(1-2*nu));
-      c1c2 = c1 * 0.5*(1-2*nu);
-      
-    } else if (fino.problem_kind == problem_kind_full3d) {
+    if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
   /*
   sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
   sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
@@ -485,7 +504,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 
     sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
     sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
-    sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));
+    sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));  // esta es sigmatheta en axi
     tauxy =  c1c2 * gammaxy;
     if (fino.dimensions == 3) {
       tauyz =  c1c2 * gammayz;
@@ -511,11 +530,21 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     sigma2 = c3 + c4 * cos(phi - 2.0*M_PI/3.0);
     sigma3 = c3 + c4 * cos(phi - 4.0*M_PI/3.0);
 
+    fino.sigmax->data_value[j] = sigmax;
+    fino.sigmay->data_value[j] = sigmay;
+    fino.tauxy->data_value[j] = tauxy;
+    fino.sigmaz->data_value[j] = sigmaz;
+    
+    if (fino.dimensions == 3) {
+      fino.tauyz->data_value[j] = tauyz;
+      fino.tauzx->data_value[j] = tauzx;
+    }
+
     fino.sigma1->data_value[j] = sigma1;
     fino.sigma2->data_value[j] = sigma2;
     fino.sigma3->data_value[j] = sigma3;
 
-      // von misses
+      // von mises
   //    sigma = sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
   //                                                    6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
     sigma = sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));

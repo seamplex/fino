@@ -313,10 +313,18 @@ struct {
   
   double gradient_jacobian_threshold;
   
-  function_t *sigma;     // von misses
+  // tensor de tensiones
+  function_t *sigmax;
+  function_t *sigmay;
+  function_t *sigmaz;
+  function_t *tauxy;
+  function_t *tauyz;
+  function_t *tauzx;
+
   function_t *sigma1;    // principales
   function_t *sigma2;
   function_t *sigma3;
+  function_t *sigma;     // von misses
   function_t *tresca;
 
   // cosas del eigensolver
@@ -416,6 +424,9 @@ extern int plugin_init_after_parser(void);
 extern int plugin_init_before_run(void);
 extern int plugin_finalize(void);
 extern int fino_problem_free(void);
+extern int fino_function_clean_nodal_data(function_t *);
+extern int fino_function_clean_nodal_arguments(function_t *);
+extern int fino_define_result_function(char *, function_t **);
 
 // parser.c
 extern int fino_parse_line(char *);

@@ -25,6 +25,8 @@
 
 #define NAME_SIZE 32
 
+#undef  __FUNCT__
+#define __FUNCT__ "plugin_init_before_parser"
 int plugin_init_before_parser(void) {
 
   char *dummy;
@@ -312,6 +314,8 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   return WASORA_PARSER_OK;
 }
 
+#undef  __FUNCT__
+#define __FUNCT__ "plugin_init_after_parser"
 int plugin_init_after_parser(void) {
 
   int m, g;
@@ -390,7 +394,8 @@ int plugin_init_after_parser(void) {
   return WASORA_RUNTIME_OK;
 }
 
-
+#undef  __FUNCT__
+#define __FUNCT__ "plugin_init_before_run"
 int plugin_init_before_run(void) {
 
   fino.problem_size = 0;
@@ -402,6 +407,8 @@ int plugin_init_before_run(void) {
 }
 
 
+#undef  __FUNCT__
+#define __FUNCT__ "plugin_finalize"
 int plugin_finalize(void) {
 
   wasora_call(fino_problem_free());
@@ -429,6 +436,8 @@ int plugin_finalize(void) {
 }
 
 
+#undef  __FUNCT__
+#define __FUNCT__ "fino_problem_init"
 // esto viene despues de haber leido la malla
 int fino_problem_init(void) {
 
@@ -504,6 +513,8 @@ int fino_problem_init(void) {
   return WASORA_PARSER_OK;
 }
 
+#undef  __FUNCT__
+#define __FUNCT__ "fino_problem_free"
 int fino_problem_free(void) {
   int g, d;
 
@@ -530,18 +541,11 @@ int fino_problem_free(void) {
   }
   
   if (fino.problem_family == problem_family_break) {
-    // TODO: hacer una funcion para limpiar funciones
-    free(fino.sigma->data_value);
-    free(fino.sigma1->data_value);
-    free(fino.sigma2->data_value);
-    free(fino.sigma3->data_value);
-    free(fino.tresca->data_value);
-    
-    fino.sigma->data_value = NULL;
-    fino.sigma1->data_value = NULL;
-    fino.sigma2->data_value = NULL;
-    fino.sigma3->data_value = NULL;
-    fino.tresca->data_value = NULL;
+    fino_function_clean_nodal_data(fino.sigma1);
+    fino_function_clean_nodal_data(fino.sigma2);
+    fino_function_clean_nodal_data(fino.sigma3);
+    fino_function_clean_nodal_data(fino.sigma);
+    fino_function_clean_nodal_data(fino.tresca);
   }
   
      
@@ -569,3 +573,48 @@ int fino_problem_free(void) {
   return WASORA_RUNTIME_OK;
 
 }
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_function_clean_nodal_data"
+int fino_function_clean_nodal_data(function_t *function) {
+ 
+  if (function->data_value != NULL) {  
+    free(function->data_value);
+    function->data_value = NULL;
+  }
+  
+  return 0;
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_function_clean_nodal_data"
+int fino_function_clean_nodal_arguments(function_t *function) {
+ 
+  int d;
+
+  if (function->data_argument != NULL) {
+    for (d = 0; d < fino.dimensions; d++) {
+      free(function->data_argument[d]);
+    }
+    free(function->data_argument);
+  }
+  
+  return 0;
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_define_result_function"
+int fino_define_result_function(char *name, function_t **function) {
+
+  if ((*function = wasora_define_function(name, fino.dimensions)) == NULL) {
+    wasora_push_error_message("result function '%s' defined twice", name);
+    return WASORA_RUNTIME_ERROR;
+  }
+  (*function)->mesh = fino.mesh;
+  fino_function_clean_nodal_arguments(*function);
+  (*function)->var_argument = fino.solution[0]->var_argument;
+  (*function)->type = type_pointwise_mesh_node;
+
+  return 0;
+}
+

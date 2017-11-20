@@ -193,7 +193,7 @@ int plugin_parse_line(char *line) {
         wasora_push_error_message("unknown mesh for FINO_PROBLEM (no MESH keyword)", token);
         return WASORA_PARSER_ERROR;
       }
-      
+
       // por si ya nos dieron mesh, usamos las dimensiones de la malla si no nos las dieron aca
       if (fino.dimensions == 0 && fino.mesh->spatial_dimensions != 0) {
         fino.dimensions = fino.mesh->spatial_dimensions;
@@ -637,46 +637,23 @@ int fino_define_functions(void) {
   }
 
   if (fino.problem_family == problem_family_break) {
-    if ((fino.sigma = wasora_define_function("sigma", fino.dimensions)) == NULL) {
-      wasora_push_error_message("sigma defined twice");
-      return WASORA_RUNTIME_ERROR;
-    }
-    fino.sigma->mesh = fino.mesh;
-    fino.sigma->var_argument = fino.solution[0]->var_argument;
-    fino.sigma->type = type_pointwise_mesh_node;
 
-    if ((fino.sigma1 = wasora_define_function("sigma1", fino.dimensions)) == NULL) {
-      wasora_push_error_message("sigma1 defined twice");
-      return WASORA_RUNTIME_ERROR;
-    }
-    fino.sigma1->mesh = fino.mesh;
-    fino.sigma1->var_argument = fino.solution[0]->var_argument;
-    fino.sigma1->type = type_pointwise_mesh_node;
+    fino_define_result_function("sigmax", &fino.sigmax);
+    fino_define_result_function("sigmay", &fino.sigmay);
+    fino_define_result_function("sigmaz", &fino.sigmaz);
+    fino_define_result_function("tauxy", &fino.tauxy);
 
-    if ((fino.sigma2 = wasora_define_function("sigma2", fino.dimensions)) == NULL) {
-      wasora_push_error_message("sigma2 defined twice");
-      return WASORA_RUNTIME_ERROR;
+    if (fino.dimensions == 3) {
+      fino_define_result_function("tauyz", &fino.tauyz);
+      fino_define_result_function("tauzx", &fino.tauzx);
     }
-    fino.sigma2->mesh = fino.mesh;
-    fino.sigma2->var_argument = fino.solution[0]->var_argument;
-    fino.sigma2->type = type_pointwise_mesh_node;
     
-    if ((fino.sigma3 = wasora_define_function("sigma3", fino.dimensions)) == NULL) {
-      wasora_push_error_message("sigma3 defined twice");
-      return WASORA_RUNTIME_ERROR;
-    }
-    fino.sigma3->mesh = fino.mesh;
-    fino.sigma3->var_argument = fino.solution[0]->var_argument;
-    fino.sigma3->type = type_pointwise_mesh_node;
-    
-    if ((fino.tresca = wasora_define_function("tresca", fino.dimensions)) == NULL) {
-      wasora_push_error_message("tresca defined twice");
-      return WASORA_RUNTIME_ERROR;
-    }
-    fino.tresca->mesh = fino.mesh;
-    fino.tresca->var_argument = fino.solution[0]->var_argument;
-    fino.tresca->type = type_pointwise_mesh_node;
-    
+    fino_define_result_function("sigma1", &fino.sigma1);
+    fino_define_result_function("sigma2", &fino.sigma2);
+    fino_define_result_function("sigma3", &fino.sigma3);
+    fino_define_result_function("sigma", &fino.sigma);
+    fino_define_result_function("tresca", &fino.tresca);
+        
   }
   // TODO: heat flux
   
