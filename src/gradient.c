@@ -95,7 +95,7 @@ int fino_compute_gradients(void) {
   }
   
   if (fino.gradient_jacobian_threshold == 0) {
-    fino.gradient_jacobian_threshold = 1e-3;
+    fino.gradient_jacobian_threshold = 1e-9;
   }
 
   // ahora viene la milonga  
@@ -346,11 +346,11 @@ int fino_compute_gradients(void) {
     for (i = 0; i < fino.mesh->n_elements; i++) {
       element = &fino.mesh->element[i];
       if (element->type->dim == fino.dimensions) {
+        
         vol = element->type->element_volume(element);
         for (j_local = 0; j_local < element->type->nodes; j_local++) {
           
-          if (element->type->dim == fino.dimensions &&
-              (element->node[j_local]->master_material == NULL ||       // no hay interfaces 
+          if ((element->node[j_local]->master_material == NULL ||       // no hay interfaces 
                element->node[j_local]->materials_list == NULL ||        // no hay materiales diferentes
                element->node[j_local]->materials_list->next == NULL ||  // todos los elementos asociados tienen un solo material
                element->physical_entity->material == element->node[j_local]->master_material) // hay una interfaz pero el material es el master (TODO: falla con 3 materiales)
@@ -359,6 +359,7 @@ int fino_compute_gradients(void) {
             if (j_local < element->type->gauss[GAUSS_POINTS_CANONICAL].V) {
               // para los nodos principales, hacemos gauss como siempre
               w_gauss = mesh_integration_weight(fino.mesh, element, j_local);
+
             } else {
               // para los nodos secundarios evaluamos en el nodo
               wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
@@ -387,7 +388,7 @@ int fino_compute_gradients(void) {
         }
       }
     }
-   
+
     for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
       if (den[j_global] != 0) {
         for (g = 0; g < fino.degrees; g++) {
@@ -407,7 +408,7 @@ int fino_compute_gradients(void) {
         }
       }
     }
-    
+
     free(den);
     
   }
@@ -433,8 +434,6 @@ int fino_compute_gradients(void) {
         // esto del promedio lo hacemos solo si no estamos en una interfaz, sino lo dejamos asi como estaba
       
         if (element->type->id == ELEMENT_TYPE_TETRAHEDRON10) {
-
-
           for (j_local = 4; j_local < 10; j_local++) {
             j_global = element->node[j_local]->id - 1;
 
@@ -462,6 +461,73 @@ int fino_compute_gradients(void) {
               case 9:
                 j1 = 1;
                 j2 = 3;
+              break;
+            }
+
+            for (g = 0; g < fino.degrees; g++) {
+              for (m = 0; m < fino.dimensions; m++) {
+
+                fino.gradient[g][m]->data_value[j_global] = 0.5*(fino.gradient[g][m]->data_value[element->node[j1]->id - 1] +
+                                                                 fino.gradient[g][m]->data_value[element->node[j2]->id - 1]);
+
+              }
+            }
+          }
+        }
+        
+        
+        if (element->type->id == ELEMENT_TYPE_HEXAHEDRON20) {
+          for (j_local = 8; j_local < 20; j_local++) {
+            j_global = element->node[j_local]->id - 1;
+
+            switch (j_local) {
+              case 8:
+                j1 = 0;
+                j2 = 1;
+              break;
+              case 9:
+                j1 = 0;
+                j2 = 3;
+              break;
+              case 10:
+                j1 = 0;
+                j2 = 4;
+              break;
+              case 11:
+                j1 = 1;
+                j2 = 2;
+              break;
+              case 12:
+                j1 = 1;
+                j2 = 5;
+              break;
+              case 13:
+                j1 = 2;
+                j2 = 3;
+              break;
+              case 14:
+                j1 = 2;
+                j2 = 6;
+              break;
+              case 15:
+                j1 = 3;
+                j2 = 7;
+              break;
+              case 16:
+                j1 = 4;
+                j2 = 5;
+              break;
+              case 17:
+                j1 = 4;
+                j2 = 7;
+              break;
+              case 18:
+                j1 = 5;
+                j2 = 6;
+              break;
+              case 19:
+                j1 = 6;
+                j2 = 7;
               break;
             }
 

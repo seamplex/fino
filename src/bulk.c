@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's bulk routines
  *
- *  Copyright (C) 2015-2016 jeremy theler
+ *  Copyright (C) 2015-2017 jeremy theler
  *
  *  This file is part of fino.
  *
