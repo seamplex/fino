@@ -69,12 +69,13 @@ PetscErrorCode petsc_err;
 #define bc_phys_displacement_fixed                     6
 #define bc_phys_displacement                           7
 #define bc_phys_displacement_constrained               8
-#define bc_phys_pressure                               9
-#define bc_phys_stress                                10
-#define bc_phys_force                                 11
-#define bc_phys_temperature                           12
-#define bc_phys_heat_flux                             13
-#define bc_phys_convection                            14
+#define bc_phys_displacement_mimic                     9
+#define bc_phys_pressure                              16
+#define bc_phys_stress                                17
+#define bc_phys_force                                 18
+#define bc_phys_temperature                           32
+#define bc_phys_heat_flux                             33
+#define bc_phys_convection                            34
 
 
 #define BC_FACTOR 0.1
@@ -90,6 +91,7 @@ typedef struct debug_t debug_t;
 typedef struct {
   physical_entity_t *physical_entity;
   
+  int n_cols;
   PetscScalar *alg_val;
   PetscInt *alg_col;
   

@@ -64,8 +64,41 @@ int fino_read_bcs(void) {
 
         if (fino.problem_family == problem_family_break) {
           if (strcmp(name, "fixed") == 0) {
-            physical_entity->bc_type_math = bc_math_dirichlet;
-            physical_entity->bc_type_phys = bc_phys_displacement_fixed;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement_fixed;
+            
+          } else if (strncmp(name, "mimic(", 6) == 0) {
+            char *closing_bracket;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement_mimic;
+            
+            if (name[6] == 'u') {
+              bc->dof = 0;
+            } else if (name[6] == 'v') {
+              bc->dof = 0;
+            } else if (name[6] == 'w') {
+              bc->dof = 0;
+            } else {
+              wasora_push_error_message("expected either 'u_', 'v_' or 'w_' instead of '%s' in mimic()", name+5);
+              return WASORA_PARSER_ERROR;
+            }
+            
+            if (name[7] != '_') {
+              wasora_push_error_message("expected underscore after '%c' instead of '%s' in mimic()", name[6], name+5);
+              return WASORA_PARSER_ERROR;
+            }
+            
+            if ((closing_bracket = strchr(name, ')')) == NULL) {
+              wasora_push_error_message("cannot find closing bracket in '%s'", name);
+              return WASORA_PARSER_ERROR;
+            }
+            *closing_bracket = '\0';
+            
+            if ((bc->mimic_to = wasora_get_physical_entity_ptr(name+8)) == NULL) {
+              wasora_push_error_message("unknown phyisical entity '%s'", name+8);
+              return WASORA_PARSER_ERROR;
+            }
+            
             
           } else if (strcmp(name, "u") == 0 ||
                      strcmp(name, "v") == 0 ||
@@ -312,6 +345,8 @@ int fino_set_essential_bc(void) {
           fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
 
+        
+        // empezamos a ver que nos dieron
         if (physical_entity->bc_type_phys == bc_phys_displacement_fixed) {
           for (d = 0; d < fino.degrees; d++) {
             fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
@@ -322,6 +357,55 @@ int fino_set_essential_bc(void) {
           }
           found = 1;
 
+        } else if (physical_entity->bc_type_phys == bc_phys_displacement_mimic) {
+          
+          int dof;
+          int i, target_index;
+          
+          
+          // ponemos +1 nosotros -1 lo que hay que mimicar = 0
+          fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
+
+          // shorthand
+          dof = physical_entity->bc_strings->dof;
+          
+          // dos terminos
+          fino.algebraic_row[k_algebraic].n_cols = 2;
+          fino.algebraic_row[k_algebraic].alg_col = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscInt));
+          fino.algebraic_row[k_algebraic].alg_val = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscScalar));
+
+          // igual a cero
+          rhs_algebraic[k_algebraic] = 0;
+            
+          // nosotros
+          fino.algebraic_row[k_algebraic].alg_col[0] = fino.mesh->node[j].index[dof];
+          fino.algebraic_row[k_algebraic].alg_val[0] = +wasora_var(fino.vars.dirichlet_diagonal);
+
+          // lo que hay que mimicar
+          target_index = -1;
+          for (i = 0; i < fino.mesh->n_elements; i++) {
+            if (fino.mesh->element[i].physical_entity != NULL &&
+                fino.mesh->element[i].physical_entity == physical_entity->bc_strings->mimic_to) {
+              target_index = fino.mesh->element[i].node[0]->index[dof];
+              break;
+            }
+          }
+          
+          if (target_index == -1) {
+            wasora_push_error_message("cannot find who to mimic");
+            return WASORA_RUNTIME_ERROR;
+          }
+            
+          fino.algebraic_row[k_algebraic].alg_col[1] = target_index;
+          fino.algebraic_row[k_algebraic].alg_val[1] = -wasora_var(fino.vars.dirichlet_diagonal);
+            
+          // la fila y el dof
+          indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[dof];
+          fino.algebraic_row[k_algebraic].dof = dof;
+                
+          k_algebraic++;
+          found = 1;          
+          
         } else if (physical_entity->bc_type_math == bc_math_dirichlet && physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
@@ -358,8 +442,9 @@ int fino_set_essential_bc(void) {
 
               rhs_algebraic[k_algebraic] = wasora_evaluate_expression(&bc->expr);
               
-              fino.algebraic_row[k_algebraic].alg_col = calloc(fino.degrees, sizeof(PetscInt));
-              fino.algebraic_row[k_algebraic].alg_val = calloc(fino.degrees, sizeof(PetscScalar));
+              fino.algebraic_row[k_algebraic].n_cols = fino.degrees;
+              fino.algebraic_row[k_algebraic].alg_col = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscInt));
+              fino.algebraic_row[k_algebraic].alg_val = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscScalar));
 
               for (d = 0; d < fino.degrees; d++) {
                 fino.algebraic_row[k_algebraic].alg_col[d] = fino.mesh->node[j].index[d];
@@ -433,13 +518,18 @@ int fino_set_essential_bc(void) {
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
   // TODO: esto rompe simetria como loco!
+  
+  // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
+  petsc_call(MatSetOption(fino.A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  
   petsc_call(MatZeroRows(fino.A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
   petsc_call(VecGetArray(fino.b, &b));
   for (i = 0; i < fino.n_algebraic_rows; i++) {
-    petsc_call(MatSetValues(fino.A, 1, &indexes_algebraic[i], fino.degrees, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
+    petsc_call(MatSetValues(fino.A, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
     b[indexes_algebraic[i]] = rhs_algebraic[i];
   }
   petsc_call(VecRestoreArray(fino.b, &b));
+  petsc_call(MatSetOption(fino.A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
   
   free(indexes_dirichlet);
   free(indexes_algebraic);
