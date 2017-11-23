@@ -42,10 +42,10 @@ int fino_allocate_elemental_objects(element_t *element) {
   gsl_matrix_free(fino.mesh->fem.B);
   fino.mesh->fem.B = gsl_matrix_calloc(fino.mesh->degrees_of_freedom * fino.mesh->bulk_dimensions, fino.elemental_size);
 
-  gsl_matrix_free(fino.Ai);
-  fino.Ai = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
-  gsl_matrix_free(fino.Bi);
-  fino.Bi = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
+  gsl_matrix_free(fino.Ki);
+  fino.Ki = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
+  gsl_matrix_free(fino.Mi);
+  fino.Mi = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
   gsl_vector_free(fino.bi);
   fino.bi = gsl_vector_calloc(fino.elemental_size);
   
@@ -119,8 +119,8 @@ int fino_build_element_volumetric(element_t *element) {
     }  
     
     // inicializamos en cero los objetos elementales
-    gsl_matrix_set_zero(fino.Ai);
-    gsl_matrix_set_zero(fino.Bi);
+    gsl_matrix_set_zero(fino.Ki);
+    gsl_matrix_set_zero(fino.Mi);
     gsl_vector_set_zero(fino.bi);
 
     // TODO: hacer el loop de gauss adentro de cada funcion asi podemos
@@ -135,11 +135,11 @@ int fino_build_element_volumetric(element_t *element) {
       }
     }
 
-    MatSetValues(fino.A, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ai, 0, 0), ADD_VALUES);
+    MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
     if (fino.math_type == math_linear) {
       VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
     } else if (fino.math_type == math_eigen)  {
-      MatSetValues(fino.B, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Bi, 0, 0), ADD_VALUES);
+      MatSetValues(fino.M, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES);
     }
 
 /*    

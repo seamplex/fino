@@ -218,13 +218,20 @@ struct {
   // objetos globales
   Vec phi;       // el vector incognita
   Vec b;         // el vector del miembro derecho
-  Mat A;         // la matriz
-  Mat B;         // la matriz del miembro derecho (autovalores)
+  Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
+  Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
   PetscScalar lambda; // el autovalor
 
+  Mat A;         // las matrices para el transient de calor
+  Mat B;
+  
   // contexto del solver de krylov
   KSP ksp;
   PC pc;
+  
+  int has_mass;
+  int has_rhs;
+  int has_transient;
 
   loadable_routine_t *user_provided_linearsolver;
   
@@ -269,8 +276,8 @@ struct {
   // objectos locales
   int n_local_nodes;            // cantidad de nodos locales actual
   int elemental_size;           // tamanio actual del elemento
-  gsl_matrix *Ai;               // la matriz elemental
-  gsl_matrix *Bi;               // la matriz del miembro derecho elemental (para autovalores)
+  gsl_matrix *Ki;               // la matriz de rigidez elemental
+  gsl_matrix *Mi;               // la matriz de masa elemental
   gsl_vector *bi;               // el vector del miembro derecho elemental
 
   // holder para calcular las reacciones de vinculo de BCs dirichlet
@@ -439,10 +446,10 @@ extern void fino_usage(char *);
 extern void fino_version(FILE *, int, int);
 extern void fino_license(FILE *);
 
-// eigen_slepc.c
-extern int fino_solve_linear_petsc(void);
-
 // linear_petsc.c
+extern int fino_solve_linear_petsc(Mat, Vec);
+
+// eigen_slepc.c
 extern int fino_solve_eigen_slepc(void);
 
 // bulk.c

@@ -29,7 +29,7 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_linear_petsc"
-int fino_solve_linear_petsc(void) {
+int fino_solve_linear_petsc(Mat A, Vec b) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
@@ -46,7 +46,7 @@ int fino_solve_linear_petsc(void) {
   // creamos un solver lineal
   if (fino.ksp == NULL) {
     petsc_call(KSPCreate(PETSC_COMM_WORLD, &fino.ksp));
-    petsc_call(KSPSetOperators(fino.ksp, fino.A, fino.A));
+    petsc_call(KSPSetOperators(fino.ksp, A, A));
   }
 
   petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.reltol),
@@ -104,7 +104,7 @@ int fino_solve_linear_petsc(void) {
 
         petsc_call(VecRestoreArray(vec_coords, &coords));
         petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
-        petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+        petsc_call(MatSetNearNullSpace(A, nullsp));
         petsc_call(MatNullSpaceDestroy(&nullsp));
         petsc_call(VecDestroy(&vec_coords));      
       break;
@@ -113,7 +113,7 @@ int fino_solve_linear_petsc(void) {
         nearnulldim = 6; 
         petsc_call(PetscMalloc1(nearnulldim, &nullvec));
         for (i = 0; i < nearnulldim; i++) {
-          petsc_call(MatCreateVecs(fino.A, &nullvec[i], NULL));
+          petsc_call(MatCreateVecs(A, &nullvec[i], NULL));
         }
         for (j = 0; j < fino.mesh->n_nodes; j++) {
           // traslaciones
@@ -148,7 +148,7 @@ int fino_solve_linear_petsc(void) {
         }
 
         petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
-        petsc_call(MatSetNearNullSpace(fino.A, nullsp));
+        petsc_call(MatSetNearNullSpace(A, nullsp));
       break;  
 
       case set_near_nullspace_none:
@@ -166,7 +166,7 @@ int fino_solve_linear_petsc(void) {
   petsc_call(KSPSetFromOptions(fino.ksp));
   
   // do the work!
-  petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
+  petsc_call(KSPSolve(fino.ksp, b, fino.phi));
   
   // chequeamos que haya convergido
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));

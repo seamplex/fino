@@ -55,7 +55,7 @@ int fino_solve_eigen_slepc(void) {
 //  petsc_call(EPSSetOperators(fino.eps, fino.B, fino.A));
 //  petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_SMALLEST_MAGNITUDE));
 
-  petsc_call(EPSSetOperators(fino.eps, fino.B, fino.A));
+  petsc_call(EPSSetOperators(fino.eps, fino.M, fino.K));
   petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_LARGEST_MAGNITUDE));
   
   // problema generalizado no hermitico (por las condiciones de contorno)

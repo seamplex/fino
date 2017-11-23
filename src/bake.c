@@ -28,6 +28,8 @@
 
 fino_distribution_t distribution_k;    // conductividad
 fino_distribution_t distribution_Q;    // heat source
+fino_distribution_t distribution_rho;  // density
+fino_distribution_t distribution_cp;   // heat capacity
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_build_bake"
@@ -39,6 +41,7 @@ int fino_build_bake(element_t *element, int v) {
   material_t *material;
   int j;
 
+  // TODO: ver que se evaluen bien las distribuciones
   if (distribution_k.defined == 0) {
     wasora_call(fino_distribution_init(&distribution_k, "k"));
     wasora_call(fino_distribution_init(&distribution_Q, "Q"));
@@ -47,6 +50,22 @@ int fino_build_bake(element_t *element, int v) {
     wasora_push_error_message("cannot find thermal conductivity 'k'");
     PetscFunctionReturn(WASORA_RUNTIME_ERROR);
   }
+
+  if (fino.has_mass) {
+    if (distribution_rho.defined == 0) {
+      wasora_call(fino_distribution_init(&distribution_rho, "rho"));
+      wasora_call(fino_distribution_init(&distribution_cp, "cp"));
+    }
+    if (distribution_rho.defined == 0) {
+      wasora_push_error_message("cannot find density 'rho'");
+      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    }
+    if (distribution_cp.defined == 0) {
+      wasora_push_error_message("cannot find heat capacity 'cp'");
+      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    }
+  }
+  
   
   if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
     material =  element->physical_entity->material;
@@ -65,8 +84,15 @@ int fino_build_bake(element_t *element, int v) {
   }
 
   // calculamos la matriz de stiffness
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ai);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ki);
 
+  if (fino.has_mass) {
+    // calculamos la matriz de masa Ht*rho*cp*H
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans,
+        w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)) * fino_distribution_evaluate(&distribution_cp, material, gsl_vector_ptr(fino.mesh->fem.x, 0)),
+        fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+  } 
+  
   return WASORA_RUNTIME_OK;
   
 }
@@ -129,7 +155,7 @@ int fino_bake_set_convection(element_t *element) {
   NaH = gsl_matrix_calloc(fino.degrees, fino.n_local_nodes);
   Nb = gsl_vector_calloc(fino.degrees);
   
-  gsl_matrix_set_zero(fino.Ai);
+  gsl_matrix_set_zero(fino.Ki);
   gsl_vector_set_zero(fino.bi);
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
@@ -147,11 +173,11 @@ int fino_bake_set_convection(element_t *element) {
     gsl_vector_set(Nb, 0, h*Tinf);
 
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, fino.mesh->fem.H, 0, NaH);
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, NaH, 1, fino.Ai);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, NaH, 1, fino.Ki);
     gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
-  MatSetValues(fino.A, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ai, 0, 0), ADD_VALUES);
+  MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
   VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
 
   gsl_vector_free(Nb);

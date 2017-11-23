@@ -75,20 +75,49 @@ int fino_instruction_step(void *arg) {
    if (fino_step->do_not_solve == 0) {
     time_checkpoint(solve_begin);
     
-    if (fino.math_type == math_linear) {
-      // resolvemos
-      wasora_call(fino_solve_linear_petsc());
-      
-    } else if (fino.math_type == math_eigen) {
+    if (wasora_var_value(wasora_special_var(in_static)) || fino.problem_family != problem_family_bake) {
+      // resolvemos un steady state
+      if (fino.math_type == math_linear) {
+        wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
+      } else if (fino.math_type == math_eigen) {
 #ifdef HAVE_SLEPC
-      // resolvemos
-      wasora_call(fino_solve_eigen_slepc());
-      // leemos el autovalor
-      wasora_var(fino.vars.lambda) = fino.lambda;
+        wasora_call(fino_solve_eigen_slepc());
+        wasora_var(fino.vars.lambda) = fino.lambda;        // leemos el autovalor
 #else
-      wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
-      return WASORA_RUNTIME_ERROR;
+        wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
+        return WASORA_RUNTIME_ERROR;
 #endif      
+      }
+    } else {
+   
+      // resolvemos 
+      //   A*T(n+1) = b
+      // con
+      //   A = K*theta + C/dt 
+      //   b = (-K*(1-theta)+C/dt)*T(n) + b
+      double theta = 0.5;
+
+      if (fino.has_transient == 0) {
+        fino.has_transient = 1;
+        MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
+        MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
+      } else {
+        MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
+        MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
+      }
+      
+      MatScale(fino.A, theta);
+      MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+
+      MatScale(fino.B, -(1-theta));
+      MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, DIFFERENT_NONZERO_PATTERN);
+
+//      MatMult(fino.B, fino.phi, fino.b);
+//      VecAXPY(problem.b, 1, problem.R);
+
+//      wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
+
+      wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
     }
 
     
@@ -147,14 +176,21 @@ int fino_instruction_step(void *arg) {
 
 
 int fino_assembly(void) {
-  MatAssemblyBegin(fino.A, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(fino.A, MAT_FINAL_ASSEMBLY);
-  if (fino.math_type == math_linear) {
-    VecAssemblyBegin(fino.b);
-    VecAssemblyEnd(fino.b);
-  } else if (fino.math_type == math_eigen) {
+  MatAssemblyBegin(fino.K, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(fino.K, MAT_FINAL_ASSEMBLY);
+  if (fino.has_mass) {
+    MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY);
+  }
+  if (fino.has_transient) {
+    MatAssemblyBegin(fino.A, MAT_FINAL_ASSEMBLY);
+    MatAssemblyEnd(fino.A, MAT_FINAL_ASSEMBLY);
     MatAssemblyBegin(fino.B, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(fino.B, MAT_FINAL_ASSEMBLY);
+  }
+  if (fino.has_rhs) {
+    VecAssemblyBegin(fino.b);
+    VecAssemblyEnd(fino.b);
   }
   
   return WASORA_RUNTIME_OK;

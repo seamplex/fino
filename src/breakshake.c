@@ -222,7 +222,7 @@ int fino_break_build_element(element_t *element, int v) {
 
   // calculamos Bt*C*B
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, r_for_axisymmetric, C, B, 0, CB);
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, B, CB, 1.0, fino.Ai);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, B, CB, 1.0, fino.Ki);
 
   // expansion termica
   if (distribution_alpha.defined != 0) {
@@ -238,9 +238,9 @@ int fino_break_build_element(element_t *element, int v) {
     }
   }
   
-  if (fino.problem_family == problem_family_shake) {
+  if (fino.has_mass) {
     // calculamos la matriz de masa Ht*rho*H
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Bi);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
   } 
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);

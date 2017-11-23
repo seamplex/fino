@@ -463,40 +463,44 @@ int fino_problem_init(void) {
 // alocamos objetos globales
 //---------------------------------
 
-  // TODO: ponerle K a la matriz de stiffnes, etc
   width = fino.mesh->max_first_neighbor_nodes * fino.degrees;
   
-  // la matriz global
-  petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.A));
-  petsc_call(MatSetSizes(fino.A, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
-  petsc_call(MatSetFromOptions(fino.A));
-  petsc_call(MatMPIAIJSetPreallocation(fino.A, width, PETSC_NULL, width, PETSC_NULL));
-  petsc_call(MatSeqAIJSetPreallocation(fino.A, width, PETSC_NULL));
-  petsc_call(MatSetOption(fino.A, MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE));
+  // la matriz de stiffnes global
+  petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.K));
+  petsc_call(MatSetSizes(fino.K, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
+  petsc_call(MatSetFromOptions(fino.K));
+  petsc_call(MatMPIAIJSetPreallocation(fino.K, width, PETSC_NULL, width, PETSC_NULL));
+  petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
+  petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE));
   if (fino.do_not_set_block_size == 0) {
-    petsc_call(MatSetBlockSize(fino.A, fino.degrees));
+    petsc_call(MatSetBlockSize(fino.K, fino.degrees));
   }
-  petsc_call(PetscObjectSetName((PetscObject)fino.A, "A"));
+  petsc_call(PetscObjectSetName((PetscObject)fino.K, "K"));
   
   // el vector incognita
-  petsc_call(MatCreateVecs(fino.A, NULL, &fino.phi));
+  petsc_call(MatCreateVecs(fino.K, NULL, &fino.phi));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));
 
   if (fino.math_type == math_linear) {
     // el vector del miembro derecho
-    petsc_call(MatCreateVecs(fino.A, NULL, &fino.b));
+    fino.has_rhs = 1;
+    petsc_call(MatCreateVecs(fino.K, NULL, &fino.b));
     petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
     
-  } else if (fino.math_type == math_eigen) {
-    // la matriz del miembro derecho para autovalores
-    petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.B));
-    petsc_call(MatSetSizes(fino.B, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
-    petsc_call(MatSetFromOptions(fino.B));
-    petsc_call(MatMPIAIJSetPreallocation(fino.B, width, PETSC_NULL, width, PETSC_NULL));
-    petsc_call(MatSeqAIJSetPreallocation(fino.B, width, PETSC_NULL));
-    petsc_call(PetscObjectSetName((PetscObject)fino.B, "B"));
   }
-
+  
+  if (fino.problem_family == problem_family_shake ||
+      (fino.problem_family == problem_family_bake && wasora_var_value(wasora_special_var(end_time)) != 0)) {
+    // la matriz de masa para autovalores del problema elastico o para 
+    fino.has_mass = 1;
+    petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
+    petsc_call(MatSetSizes(fino.M, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
+    petsc_call(MatSetFromOptions(fino.M));
+    petsc_call(MatMPIAIJSetPreallocation(fino.M, width, PETSC_NULL, width, PETSC_NULL));
+    petsc_call(MatSeqAIJSetPreallocation(fino.M, width, PETSC_NULL));
+    petsc_call(PetscObjectSetName((PetscObject)fino.M, "B"));
+  }
+  
   if (fino.mesh->structured) {
     wasora_mesh_struct_init_rectangular_for_nodes(fino.mesh);
   }
@@ -552,11 +556,11 @@ int fino_problem_free(void) {
   if (fino.phi != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.phi));
   }
-  if (fino.A != PETSC_NULL) {
-    petsc_call(MatDestroy(&fino.A));
+  if (fino.K != PETSC_NULL) {
+    petsc_call(MatDestroy(&fino.K));
   }
-  if (fino.B != PETSC_NULL) {
-    petsc_call(MatDestroy(&fino.B));
+  if (fino.M != PETSC_NULL) {
+    petsc_call(MatDestroy(&fino.M));
   }
   if (fino.b != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.b));

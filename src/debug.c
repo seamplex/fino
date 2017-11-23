@@ -212,15 +212,15 @@ int fino_instruction_debug(void *arg) {
     if (debug->matrices & DEBUG_MATRICES_ASCII) {
       PetscViewer ascii_file;
 
-      sprintf(filename, "%s-A.txt", debug->file->path);
+      sprintf(filename, "%s-K.txt", debug->file->path);
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-      fino_print_petsc_matrix(fino.A, ascii_file);
+      fino_print_petsc_matrix(fino.M, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
       
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.txt", debug->file->path);
+        sprintf(filename, "%s-M.txt", debug->file->path);
         petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-        fino_print_petsc_matrix(fino.B, ascii_file);
+        fino_print_petsc_matrix(fino.M, ascii_file);
         petsc_call(PetscViewerDestroy(&ascii_file));
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.txt", debug->file->path);
@@ -233,15 +233,15 @@ int fino_instruction_debug(void *arg) {
     if (debug->matrices & DEBUG_MATRICES_ASCII_STRUCT) {
       PetscViewer ascii_file;
 
-      sprintf(filename, "%s-A.str", debug->file->path);
+      sprintf(filename, "%s-K.str", debug->file->path);
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-      fino_print_petsc_matrix_struct(fino.A, ascii_file);
+      fino_print_petsc_matrix_struct(fino.M, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
 
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.str", debug->file->path);
+        sprintf(filename, "%s-M.str", debug->file->path);
         petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-        fino_print_petsc_matrix_struct(fino.B, ascii_file);
+        fino_print_petsc_matrix_struct(fino.M, ascii_file);
         petsc_call(PetscViewerDestroy(&ascii_file));
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.txt", debug->file->path);
@@ -252,15 +252,15 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_PETSC_BINARY) {
-      sprintf(filename, "%s-A.bin", debug->file->path);
+      sprintf(filename, "%s-K.bin", debug->file->path);
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-      MatView(fino.A, viewer);
+      MatView(fino.M, viewer);
       PetscViewerDestroy(&viewer);
       
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.bin", debug->file->path);
+        sprintf(filename, "%s-M.bin", debug->file->path);
         PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-        MatView(fino.B, viewer);
+        MatView(fino.M, viewer);
         PetscViewerDestroy(&viewer);
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.bin", debug->file->path);
@@ -271,15 +271,15 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_PETSC_COMPRESSED_BINARY) {
-      sprintf(filename, "%s-A.gz", debug->file->path);
+      sprintf(filename, "%s-K.gz", debug->file->path);
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-      MatView(fino.A, viewer);
+      MatView(fino.M, viewer);
       PetscViewerDestroy(&viewer);
       
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.gz", debug->file->path);
+        sprintf(filename, "%s-M.gz", debug->file->path);
         PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-        MatView(fino.B, viewer);
+        MatView(fino.M, viewer);
         PetscViewerDestroy(&viewer);
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.gz", debug->file->path);
@@ -290,17 +290,17 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_PETSC_ASCII) {
-      sprintf(filename, "%s-A.asc", debug->file->path);
+      sprintf(filename, "%s-K.asc", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerSetFormat(viewer, PETSC_VIEWER_DEFAULT);
-      MatView(fino.A, viewer);
+      MatView(fino.M, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.asc", debug->file->path);
+        sprintf(filename, "%s-M.asc", debug->file->path);
         PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
         PetscViewerSetFormat(viewer, PETSC_VIEWER_DEFAULT);
-        MatView(fino.B, viewer);
+        MatView(fino.M, viewer);
         PetscViewerDestroy(&viewer);
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.asc", debug->file->path);
@@ -312,17 +312,17 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_PETSC_OCTAVE) {
-      sprintf(filename, "%s-A.m", debug->file->path);
+      sprintf(filename, "%s-K.m", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerSetFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
-      MatView(fino.A, viewer);
+      MatView(fino.M, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.m", debug->file->path);
+        sprintf(filename, "%s-M.m", debug->file->path);
         PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
         PetscViewerSetFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
-        MatView(fino.B, viewer);
+        MatView(fino.M, viewer);
         PetscViewerDestroy(&viewer);
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.m", debug->file->path);
@@ -334,17 +334,17 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_PETSC_DENSE) {
-      sprintf(filename, "%s-A.den", debug->file->path);
+      sprintf(filename, "%s-K.den", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerSetFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
-      MatView(fino.A, viewer);
+      MatView(fino.M, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_eigen) {
-        sprintf(filename, "%s-B.den", debug->file->path);
+        sprintf(filename, "%s-M.den", debug->file->path);
         PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
         PetscViewerSetFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
-        MatView(fino.B, viewer);
+        MatView(fino.M, viewer);
         PetscViewerDestroy(&viewer);
       } else if (fino.math_type == math_linear) {
         sprintf(filename, "%s-b.den", debug->file->path);
@@ -356,18 +356,18 @@ int fino_instruction_debug(void *arg) {
     }
 
     if (debug->matrices & DEBUG_MATRICES_SNG) {
-      sprintf(filename, "%s-A.sng", debug->file->path);
+      sprintf(filename, "%s-K.sng", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerSetFormat(viewer, PETSC_VIEWER_DEFAULT);
-      mat2sng(fino.A, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 0, viewer);
+      mat2sng(fino.M, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 0, viewer);
       petsc_call(PetscViewerDestroy(&viewer));
     }    
 
     if (debug->matrices & DEBUG_MATRICES_SNG_STRUCT) {
-      sprintf(filename, "%s-str-A.sng", debug->file->path);
+      sprintf(filename, "%s-str-K.sng", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerSetFormat(viewer, PETSC_VIEWER_DEFAULT);
-      mat2sng(fino.A, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 1, viewer);
+      mat2sng(fino.M, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 1, viewer);
       petsc_call(PetscViewerDestroy(&viewer));
     }   
     
@@ -381,13 +381,13 @@ int fino_instruction_debug(void *arg) {
     PetscDraw draw2;
 
     petsc_call(PetscViewerDrawOpen(PETSC_COMM_WORLD, PETSC_NULL, "A", 100, 100, size, size, &viewer));
-    MatView(fino.A, viewer);
+    MatView(fino.M, viewer);
     PetscViewerDrawGetDraw(viewer, 0, &draw);
     PetscDrawSetPause(draw, -1);
 
     if (fino.math_type == math_eigen) {
       PetscViewerDrawOpen(PETSC_COMM_WORLD,PETSC_NULL, "B", size+100, size+100, size, size, &viewer2);
-      MatView(fino.B, viewer2);
+      MatView(fino.M, viewer2);
       PetscViewerDrawGetDraw(viewer2, 0, &draw2);
       PetscDrawSetPause(draw2, -1);
     } else {
