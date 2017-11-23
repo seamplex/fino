@@ -1,12 +1,12 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.68-g933d602
+This reference sheet is for [Fino](index.html) v0.5.102-g640bd66
 . 
 
 ~~~
 $ fino
-fino v0.5.66-g82ac6db+Δ 
+fino v0.5.98-g882bf1e 
 a partial differential equation solver based on the finite element method
 $
 ~~~
@@ -29,7 +29,7 @@ FINO_DEBUG [ FILE <file_id> | [ FILE_PATH <file_path> ] [ MATRICES_ASCII ] [ MAT
 
 
 ~~~wasora
-FINO_PROBLEM [ BAKE | SHAKE | BREAK ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
+FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC | [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
 ~~~
 
 
