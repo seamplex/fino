@@ -138,7 +138,8 @@ int fino_build_element_volumetric(element_t *element) {
     MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
     if (fino.math_type == math_linear) {
       VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-    } else if (fino.math_type == math_eigen)  {
+    }
+    if (fino.has_mass)  {
       MatSetValues(fino.M, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES);
     }
 

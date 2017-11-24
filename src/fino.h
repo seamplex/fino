@@ -217,13 +217,14 @@ struct {
 
   // objetos globales
   Vec phi;       // el vector incognita
-  Vec b;         // el vector del miembro derecho
+  Vec b;         // el vector del miembro derecho para el steady-state
   Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
   PetscScalar lambda; // el autovalor
 
   Mat A;         // las matrices para el transient de calor
   Mat B;
+  Vec c;         // el vector del miembro derecho para el transient
   
   // contexto del solver de krylov
   KSP ksp;
@@ -403,7 +404,7 @@ extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, voi
 extern int fino_read_bcs(void);
 extern int fino_count_bc_expressions(expr_t *bc_args);
 extern int fino_evaluate_bc_expressions(physical_entity_t *, node_t *, int, double, double *);
-extern int fino_set_essential_bc(void);
+extern int fino_set_essential_bc(Mat, Vec);
 extern int fino_build_surface_objects(element_t *, expr_t *, expr_t *);
 extern int fino_add_single_surface_term_to_rhs(element_t *, bc_string_based_t *);
 
@@ -432,6 +433,7 @@ extern int plugin_init_before_parser(void);
 extern int plugin_init_after_parser(void);
 extern int plugin_init_before_run(void);
 extern int plugin_finalize(void);
+extern int fino_problem_init(void);
 extern int fino_problem_free(void);
 extern int fino_function_clean_nodal_data(function_t *);
 extern int fino_function_clean_nodal_arguments(function_t *);
@@ -456,10 +458,6 @@ extern int fino_solve_eigen_slepc(void);
 extern int fino_build_bulk(void);
 extern int fino_build_element_volumetric(element_t *);
 extern int fino_build_element_bc(element_t *);
-
-// bc.c
-extern int fino_set_essential_bc(void);
-extern int fino_problem_init(void);
 
 // gradient.c
 extern int fino_compute_gradients(void);

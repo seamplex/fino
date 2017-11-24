@@ -62,10 +62,10 @@ int fino_instruction_step(void *arg) {
   // ------------------------------------
   // build
   // ------------------------------------
-  if (fino_step->do_not_build == 0) {
+  if (fino_step->do_not_build == 0 && wasora_var_value(wasora_special_var(end_time)) == 0) {
     time_checkpoint(build_begin);
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
+    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
     time_checkpoint(build_end);
   }
 
@@ -75,7 +75,7 @@ int fino_instruction_step(void *arg) {
    if (fino_step->do_not_solve == 0) {
     time_checkpoint(solve_begin);
     
-    if (wasora_var_value(wasora_special_var(in_static)) || fino.problem_family != problem_family_bake) {
+    if (wasora_var_value(wasora_special_var(in_static)) && fino.problem_family != problem_family_bake) {
       // resolvemos un steady state
       if (fino.math_type == math_linear) {
         wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
@@ -89,35 +89,96 @@ int fino_instruction_step(void *arg) {
 #endif      
       }
     } else {
-   
-      // resolvemos 
-      //   A*T(n+1) = b
-      // con
-      //   A = K*theta + C/dt 
-      //   b = (-K*(1-theta)+C/dt)*T(n) + b
-      double theta = 0.5;
-
-      if (fino.has_transient == 0) {
-        fino.has_transient = 1;
-        MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
-        MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
-      } else {
-        MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
-        MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
-      }
       
-      MatScale(fino.A, theta);
-      MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+      if (wasora_var_value(wasora_special_var(in_static))) {
 
-      MatScale(fino.B, -(1-theta));
-      MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, DIFFERENT_NONZERO_PATTERN);
+        int j;
+        double xi;
+        function_t *ic;
+        
+        if ((ic = wasora_get_function_ptr("T_0")) == NULL) {
+          wasora_push_error_message("no initial condition T_0 given");
+          return WASORA_RUNTIME_ERROR;
+        }
+        
+        if (ic->n_arguments != fino.dimensions) {
+          wasora_push_error_message("initial condition function has to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+          return WASORA_RUNTIME_ERROR;
+        }
 
-//      MatMult(fino.B, fino.phi, fino.b);
-//      VecAXPY(problem.b, 1, problem.R);
+        for (j = 0; j < fino.mesh->n_nodes; j++) {
+          xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+          VecSetValue(fino.phi, fino.mesh->node[j].index[0], xi, INSERT_VALUES);
+        }
+        
+      } else {
+        
+        // resolvemos 
+        //   A*T(n+1) = b
+        // con
+        //   A = K*theta + C/dt 
+        //   b = (-K*(1-theta)+C/dt)*T(n) + b
+        double theta = 0.5;
 
-//      wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
+        wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
 
-      wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
+//        printf("K\n");
+//        fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_WORLD);
+        
+//        printf("M\n");
+//        fino_print_petsc_matrix(fino.M, PETSC_VIEWER_STDOUT_WORLD);
+
+//        printf("b\n");
+//        fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_WORLD);
+
+        
+        if (fino.has_transient == 0) {
+          fino.has_transient = 1;
+          MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
+          MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
+          VecDuplicate(fino.b, &fino.c);
+        } else {
+          MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
+          MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
+        }
+
+
+        MatScale(fino.A, theta);
+        MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+
+        MatScale(fino.B, -(1-theta));
+        MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+        
+        fino_assembly();
+
+//        printf("A\n");
+//        fino_print_petsc_matrix(fino.A, PETSC_VIEWER_STDOUT_WORLD);
+        
+        MatMult(fino.B, fino.phi, fino.c);
+        VecAXPY(fino.c, 1, fino.b);
+
+        fino_assembly();
+
+//        printf("B\n");
+//        fino_print_petsc_matrix(fino.B, PETSC_VIEWER_STDOUT_WORLD);
+        
+//        printf("c\n");
+//        fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_WORLD);
+        
+        
+        // hay que volver a poner esta
+        wasora_call(fino_set_essential_bc(fino.A, fino.c));
+
+//        printf("A con BC\n");
+//        fino_print_petsc_matrix(fino.A, PETSC_VIEWER_STDOUT_WORLD);
+
+//        printf("c con BC\n");
+//        fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_WORLD);
+
+        // y resolvemos
+        wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
+        
+      }
     }
 
     

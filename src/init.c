@@ -498,7 +498,7 @@ int fino_problem_init(void) {
     petsc_call(MatSetFromOptions(fino.M));
     petsc_call(MatMPIAIJSetPreallocation(fino.M, width, PETSC_NULL, width, PETSC_NULL));
     petsc_call(MatSeqAIJSetPreallocation(fino.M, width, PETSC_NULL));
-    petsc_call(PetscObjectSetName((PetscObject)fino.M, "B"));
+    petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
   }
   
   if (fino.mesh->structured) {

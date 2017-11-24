@@ -1,0 +1,25 @@
+MESH FILE_PATH square.msh DIMENSIONS 2
+FINO_PROBLEM HEAT DIMENSIONS 2
+
+end_time = 1
+dt = 1e-2
+
+k = 1
+rho = 1
+cp = 1
+T_0(x,y) := cos(x*pi/2)*cos(y*pi/2)
+
+PHYSICAL_ENTITY NAME left      BC T=0
+PHYSICAL_ENTITY NAME right     BC T=0
+PHYSICAL_ENTITY NAME bottom    BC T=0
+PHYSICAL_ENTITY NAME top       BC T=0
+
+FINO_STEP
+
+PRINT t T(0,0)
+
+# OUTPUT_FILE vtk tran-%03g.vtk t
+# MESH_POST FILE vtk T
+
+OUTPUT_FILE msh tran.msh 
+MESH_POST FILE msh T NO_MESH

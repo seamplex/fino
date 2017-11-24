@@ -266,11 +266,11 @@ int fino_evaluate_bc_expressions(physical_entity_t *physical_entity, node_t *nod
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_set_essential_bc"
-int fino_set_essential_bc(void) {
+int fino_set_essential_bc(Mat A, Vec b) {
 
   // TODO: hacer esto mas limpio!!
   
-  PetscScalar *b;
+  PetscScalar *local_b;
   PetscScalar *rhs_dirichlet;
   PetscScalar *rhs_algebraic;
   PetscInt *indexes_dirichlet;
@@ -483,9 +483,9 @@ int fino_set_essential_bc(void) {
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
-  petsc_call(VecGetArray(fino.b, &b));
+  petsc_call(VecGetArray(b, &local_b));
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    petsc_call(MatGetRow(fino.K, indexes_dirichlet[i], &ncols, &cols, &vals));
+    petsc_call(MatGetRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
     fino.dirichlet_row[i].ncols = ncols;
     if (ncols != 0) {
       fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
@@ -495,21 +495,21 @@ int fino_set_essential_bc(void) {
         fino.dirichlet_row[i].cols[j] = cols[j];
         fino.dirichlet_row[i].vals[j] = vals[j];
       }
-      petsc_call(MatRestoreRow(fino.K, indexes_dirichlet[i], &ncols, &cols, &vals));
+      petsc_call(MatRestoreRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
     } else {
       wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
-    // el cuento es asi: hay que poner un cero en fino.b para romper las fuerzas volumetricas
+    // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
     // despues con rhs le ponemos lo que va
-    b[indexes_dirichlet[i]] = 0;
+    local_b[indexes_dirichlet[i]] = 0;
   }
-  petsc_call(VecRestoreArray(fino.b, &b));
+  petsc_call(VecRestoreArray(b, &local_b));
   
-  petsc_call(MatCreateVecs(fino.K, &vec_rhs_dirichlet, NULL));
+  petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
   petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(fino.K, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, fino.b));
+  petsc_call(MatZeroRowsColumns(A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, b));
   petsc_call(VecDestroy(&vec_rhs_dirichlet));
   
   if (fino.math_type == math_eigen) {
@@ -520,16 +520,16 @@ int fino_set_essential_bc(void) {
   // TODO: esto rompe simetria como loco!
   
   // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
   
-  petsc_call(MatZeroRows(fino.K, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
-  petsc_call(VecGetArray(fino.b, &b));
+  petsc_call(MatZeroRows(A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
+  petsc_call(VecGetArray(b, &local_b));
   for (i = 0; i < fino.n_algebraic_rows; i++) {
-    petsc_call(MatSetValues(fino.K, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
-    b[indexes_algebraic[i]] = rhs_algebraic[i];
+    petsc_call(MatSetValues(A, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
+    local_b[indexes_algebraic[i]] = rhs_algebraic[i];
   }
-  petsc_call(VecRestoreArray(fino.b, &b));
-  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+  petsc_call(VecRestoreArray(b, &local_b));
+  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
   
   free(indexes_dirichlet);
   free(indexes_algebraic);
