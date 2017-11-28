@@ -98,6 +98,7 @@ examples/two-cubes.msh
 examples/two-cubes.vtk
 
 examples/engine-piston.msh
+examples/engine-piston-out.msh
 examples/engine-piston.vtk
 
 examples/traction.vtk

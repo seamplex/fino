@@ -1,0 +1,24 @@
+MESH FILE_PATH beam.msh DIMENSIONS 3
+
+PHYSICAL_ENTITY NAME fixed  BC fixed
+PHYSICAL_ENTITY NAME uno    BC Tx=+1
+PHYSICAL_ENTITY NAME dos    BC Tx=-1
+# PHYSICAL_ENTITY NAME load BC Ty=1
+
+E = 200e3
+nu = 0.3
+
+FINO_STEP
+
+# MESH_POST FILE_PATH beam-out.msh VECTOR u v w sigma sigma1 sigma2 sigma3
+MESH_POST FILE_PATH beam-out.vtk VECTOR u v w sigma sigma1 sigma2 sigma3
+
+PRINT HEADER %g fixed_cog
+# PRINT HEADER %g uno_cog
+# PRINT HEADER %g dos_cog
+
+PRINT HEADER %g fixed_F
+PRINT HEADER %g fixed_M
+
+# OUTPUT_FILE vtk cantilever-$1-$2-%.2f.vtk c
+# MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w

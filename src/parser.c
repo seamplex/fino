@@ -495,6 +495,7 @@ int plugin_parse_line(char *line) {
 // ---------------------------------------------------------------------
 ///kw+FINO_REACTION+usage FINO_REACTION
 ///kw+FINO_REACTION+desc Asks Fino to compute the reactions at physical entities with Dirichlet boundary conditions.
+/*
     } else if ((strcasecmp(token, "FINO_REACTION") == 0)) {
 
       char *buff;
@@ -558,7 +559,7 @@ int plugin_parse_line(char *line) {
       LL_APPEND(fino.reactions, reaction);
 
       return WASORA_PARSER_OK;      
-      
+*/
     }
   }
   

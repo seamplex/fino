@@ -75,7 +75,7 @@ int fino_instruction_step(void *arg) {
    if (fino_step->do_not_solve == 0) {
     time_checkpoint(solve_begin);
     
-    if (wasora_var_value(wasora_special_var(in_static)) && fino.problem_family != problem_family_bake) {
+    if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_bake) {
       // resolvemos un steady state
       if (fino.math_type == math_linear) {
         wasora_call(fino_solve_linear_petsc(fino.K, fino.b));

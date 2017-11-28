@@ -27,24 +27,72 @@ int fino_break_compute_reactions(void) {
 
   // TODO: hacer lo que dijo barry de traer matgetsubmatrix
 
-  int i, k;
+  int g, i, j, k;
   PetscScalar xi;
-  fino_reaction_t *reaction;
+  physical_entity_t *physical_entity;
   
-  LL_FOREACH(fino.reactions, reaction) {
-    if (reaction->R[0] != NULL) {
-      wasora_var_value(reaction->R[0]) = 0;
-      wasora_var_value(reaction->R[1]) = 0;
-      wasora_var_value(reaction->R[2]) = 0;
+  LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
+    if (physical_entity->bc_type_math == bc_math_dirichlet) {
+      physical_entity->F[0] = 0;
+      physical_entity->F[1] = 0;
+      physical_entity->F[2] = 0;
 
+      physical_entity->M[0] = 0;
+      physical_entity->M[1] = 0;
+      physical_entity->M[2] = 0;
+      
       for (i = 0; i < fino.n_dirichlet_rows; i++) {
-        if (fino.dirichlet_row[i].physical_entity == reaction->physical_entity) {
+        if (fino.dirichlet_row[i].physical_entity == physical_entity) {
+          g = fino.dirichlet_row[i].dof;
           for (k = 0; k < fino.dirichlet_row[i].ncols; k++) {
             petsc_call(VecGetValues(fino.phi, 1, &fino.dirichlet_row[i].cols[k], &xi));
-            wasora_var_value(reaction->R[fino.dirichlet_row[i].dof]) += fino.dirichlet_row[i].vals[k] * xi;
+            xi *= fino.dirichlet_row[i].vals[k];
+            physical_entity->F[g] +=  xi;
+            
+            if (fino.mesh->ordering == ordering_node_based) {
+              j = floor(fino.dirichlet_row[i].cols[k]/fino.degrees);
+            } else {
+              j = fino.dirichlet_row[i].cols[k] % fino.mesh->n_nodes;
+            }
+
+            switch (g) {
+              case 0:
+                physical_entity->M[1] += xi * (fino.mesh->node[j].x[2] - physical_entity->cog[2]);
+                physical_entity->M[2] += xi * (fino.mesh->node[j].x[1] - physical_entity->cog[1]);            
+                break;
+              case 1:
+                physical_entity->M[0] += xi * (fino.mesh->node[j].x[2] - physical_entity->cog[2]);
+                physical_entity->M[2] += xi * (fino.mesh->node[j].x[0] - physical_entity->cog[0]);
+                break;
+              case 2:
+                physical_entity->M[0] += xi * (fino.mesh->node[j].x[1] - physical_entity->cog[1]);
+                physical_entity->M[1] += xi * (fino.mesh->node[j].x[0] - physical_entity->cog[0]);
+                break;
+            }
           }
         }
       }
+      
+      if (physical_entity->vector_R0 != NULL) {
+        if (!physical_entity->vector_R0->initialized) {
+          wasora_call(wasora_vector_init(physical_entity->vector_R0));
+        }
+        
+        gsl_vector_set(physical_entity->vector_R0->value, 0, physical_entity->F[0]);
+        gsl_vector_set(physical_entity->vector_R0->value, 1, physical_entity->F[1]);
+        gsl_vector_set(physical_entity->vector_R0->value, 2, physical_entity->F[2]);
+      }
+
+      if (physical_entity->vector_R1 != NULL) {
+        if (!physical_entity->vector_R1->initialized) {
+          wasora_call(wasora_vector_init(physical_entity->vector_R1));
+        }
+        
+        gsl_vector_set(physical_entity->vector_R1->value, 0, physical_entity->M[0]);
+        gsl_vector_set(physical_entity->vector_R1->value, 1, physical_entity->M[1]);
+        gsl_vector_set(physical_entity->vector_R1->value, 2, physical_entity->M[2]);
+      }
+      
     }
   }
   

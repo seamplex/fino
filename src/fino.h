@@ -348,6 +348,7 @@ struct {
   
 } fino;
 
+/*
 struct fino_reaction_t {
   physical_entity_t *physical_entity;
   char *name_root;
@@ -355,6 +356,7 @@ struct fino_reaction_t {
   
   fino_reaction_t *next;
 };
+*/
 
 // se rellena value a partir o bien de una variable o bien de una funcion
 struct fino_distribution_t {
