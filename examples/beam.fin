@@ -1,9 +1,17 @@
-MESH FILE_PATH beam.msh DIMENSIONS 3
+MESH FILE_PATH beam-quads.msh DIMENSIONS 3
 
 PHYSICAL_ENTITY NAME fixed  BC fixed
-PHYSICAL_ENTITY NAME uno    BC Tx=+1
-PHYSICAL_ENTITY NAME dos    BC Tx=-1
+# PHYSICAL_ENTITY NAME uno    BC Tx=+1
+# PHYSICAL_ENTITY NAME dos    BC Tx=-1
 # PHYSICAL_ENTITY NAME load BC Ty=1
+
+# PHYSICAL_ENTITY NAME load BC tx=(z-load_cog(3))
+
+# torsion
+# PHYSICAL_ENTITY NAME load BC tz=y ty=-z
+PHYSICAL_ENTITY NAME load BC ty=cos(atan2(y,z)) tz=-sin(atan2(y,z))
+
+
 
 E = 200e3
 nu = 0.3

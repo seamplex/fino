@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's computation of reactions
  *
- *  Copyright (C) 2016 jeremy theler
+ *  Copyright (C) 2016--2017 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -58,15 +58,15 @@ int fino_break_compute_reactions(void) {
             switch (g) {
               case 0:
                 physical_entity->M[1] += xi * (fino.mesh->node[j].x[2] - physical_entity->cog[2]);
-                physical_entity->M[2] += xi * (fino.mesh->node[j].x[1] - physical_entity->cog[1]);            
+                physical_entity->M[2] -= xi * (fino.mesh->node[j].x[1] - physical_entity->cog[1]);            
                 break;
               case 1:
-                physical_entity->M[0] += xi * (fino.mesh->node[j].x[2] - physical_entity->cog[2]);
+                physical_entity->M[0] -= xi * (fino.mesh->node[j].x[2] - physical_entity->cog[2]);
                 physical_entity->M[2] += xi * (fino.mesh->node[j].x[0] - physical_entity->cog[0]);
                 break;
               case 2:
                 physical_entity->M[0] += xi * (fino.mesh->node[j].x[1] - physical_entity->cog[1]);
-                physical_entity->M[1] += xi * (fino.mesh->node[j].x[0] - physical_entity->cog[0]);
+                physical_entity->M[1] -= xi * (fino.mesh->node[j].x[0] - physical_entity->cog[0]);
                 break;
             }
           }
