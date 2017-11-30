@@ -181,6 +181,58 @@ int fino_read_bcs(void) {
             }
             wasora_call(wasora_parse_expression(expr, physical_entity->bc_args));
             
+          } else if (strcasecmp(name, "Mx") == 0 ||
+                     strcasecmp(name, "My") == 0 ||
+                     strcasecmp(name, "Mz") == 0) {
+
+            if (strcmp(name+1, "x") == 0) {
+              bc->dof = bc_dof_moment_offset+0;
+            } else if (strcmp(name+1, "y") == 0) {
+              bc->dof = bc_dof_moment_offset+1;
+            } else if (strcmp(name+1, "z") == 0) {
+              bc->dof = bc_dof_moment_offset+2;
+            }
+            
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_moment;
+
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            
+            if (physical_entity->bc_args == NULL) {
+              // 3 para los momentos y 3 para el centro (opcional)
+              physical_entity->bc_args = calloc(6, sizeof(expr_t));
+            }
+            wasora_call(wasora_parse_expression(expr, &physical_entity->bc_args[bc->dof - bc_dof_moment_offset]));
+
+          } else if (strcasecmp(name, "x") == 0 ||
+                     strcasecmp(name, "y") == 0 ||
+                     strcasecmp(name, "z") == 0) {
+
+            if (physical_entity->bc_type_phys != bc_phys_moment) {
+              wasora_push_error_message("spatial data before moment in BC for '%s'", physical_entity->name);
+              return WASORA_RUNTIME_ERROR;
+            }
+            
+            if (strcmp(name, "x") == 0) {
+              bc->dof = bc_dof_coordinates_offset+0;
+            } else if (strcmp(name, "y") == 0) {
+              bc->dof = bc_dof_coordinates_offset+1;
+            } else if (strcmp(name, "z") == 0) {
+              bc->dof = bc_dof_coordinates_offset+2;
+            }
+            
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
+            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_moment;
+
+            wasora_call(wasora_parse_expression(expr, &bc->expr));
+            
+            if (physical_entity->bc_args == NULL) {
+              wasora_push_error_message("spatial data before moment in BC for '%s'", physical_entity->name);
+              return WASORA_RUNTIME_ERROR;
+            }
+            
+            wasora_call(wasora_parse_expression(expr, &physical_entity->bc_args[3 + bc->dof - bc_dof_coordinates_offset]));
+            
           } else {
             wasora_push_error_message("unknown boundary condition type '%s'", name);
             PetscFunctionReturn(WASORA_PARSER_ERROR);

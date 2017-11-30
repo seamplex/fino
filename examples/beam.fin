@@ -9,7 +9,10 @@ PHYSICAL_ENTITY NAME fixed  BC fixed
 
 # torsion
 # PHYSICAL_ENTITY NAME load BC tz=y ty=-z
-PHYSICAL_ENTITY NAME load BC ty=cos(atan2(y,z)) tz=-sin(atan2(y,z))
+#PHYSICAL_ENTITY NAME load BC ty=cos(atan2(y,z)) tz=-sin(atan2(y,z))
+
+PHYSICAL_ENTITY NAME load BC My=1
+
 
 
 

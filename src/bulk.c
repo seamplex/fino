@@ -183,6 +183,8 @@ int fino_build_element_bc(element_t *element) {
       wasora_call(fino_break_set_force(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_pressure) {
       wasora_call(fino_break_set_pressure(element));
+    } else if (element->physical_entity->bc_type_phys == bc_phys_moment) {
+      wasora_call(fino_break_set_moment(element));
     }
   } else if (fino.problem_family == problem_family_bake) {
     if (element->physical_entity->bc_type_phys == bc_phys_heat_flux) {

@@ -644,6 +644,75 @@ int fino_break_set_stress(element_t *element) {
 
 
 #undef  __FUNCT__
+#define __FUNCT__ "fino_break_set_moment"
+int fino_break_set_moment(element_t *element) {
+  int v;
+  double w_gauss;
+  double theta, dx, dy, dz, M;
+  double r_for_axisymmetric;  
+  gsl_vector *Nb;
+    
+  if ((fino.dimensions == 3 && element->type->dim != 2) ||
+      (fino.dimensions == 2 && element->type->dim != 1)) {
+    wasora_push_error_message("moment BCs can only be applied to surfaces");
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  if (fino.n_local_nodes != element->type->nodes) {
+    wasora_call(fino_allocate_elemental_objects(element));
+  }
+
+  Nb = gsl_vector_calloc(fino.degrees);
+  gsl_vector_set_zero(fino.bi);
+
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
+    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+
+    dx = gsl_vector_get(fino.mesh->fem.x, 0) - element->physical_entity->cog[0];
+    dy = gsl_vector_get(fino.mesh->fem.x, 1) - element->physical_entity->cog[1];
+    dz = gsl_vector_get(fino.mesh->fem.x, 2) - element->physical_entity->cog[2];
+    
+    gsl_vector_set_zero(Nb);
+
+    // los tres primeros tienen las componentes Mx My y Mz
+    if (element->physical_entity->bc_args[0].n_tokens != 0) {
+      M = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
+      theta = atan2(dy, dz);
+      // ty = cos(theta)*dz
+      gsl_vector_add_to_element(Nb, 1, -M*cos(theta));
+      // tz = -sin(theta)*dy
+      gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
+    }
+    
+    if (element->physical_entity->bc_args[1].n_tokens != 0) {
+      M = wasora_evaluate_expression(&element->physical_entity->bc_args[1]);
+      theta = atan2(dx, dz);
+      gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
+      gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
+    }
+    
+    if (element->physical_entity->bc_args[2].n_tokens != 0) {
+      M = wasora_evaluate_expression(&element->physical_entity->bc_args[2]);
+      theta = atan2(dx, dy);
+      gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
+      gsl_vector_add_to_element(Nb, 1, +M*sin(theta));
+    }
+    
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+  }
+
+  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+
+  gsl_vector_free(Nb);
+  
+  return WASORA_RUNTIME_OK;
+}
+
+
+#undef  __FUNCT__
 #define __FUNCT__ "fino_break_set_force"
 int fino_break_set_force(element_t *element) {
   int v, g;

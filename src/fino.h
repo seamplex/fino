@@ -73,9 +73,13 @@ PetscErrorCode petsc_err;
 #define bc_phys_pressure                              16
 #define bc_phys_stress                                17
 #define bc_phys_force                                 18
+#define bc_phys_moment                                19
 #define bc_phys_temperature                           32
 #define bc_phys_heat_flux                             33
 #define bc_phys_convection                            34
+
+#define bc_dof_moment_offset              64
+#define bc_dof_coordinates_offset        128
 
 
 #define BC_FACTOR 0.1
@@ -478,6 +482,7 @@ extern int fino_break_compute_reactions(void);
 extern int fino_break_set_stress(element_t *);
 extern int fino_break_set_force(element_t *);
 extern int fino_break_set_pressure(element_t *);
+extern int fino_break_set_moment(element_t *);
 
 
 // bake.c
