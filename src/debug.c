@@ -49,7 +49,7 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_debug_open"
-int fino_debug_open(debug_t *debug) {
+int fino_debug_open(fino_debug_t *debug) {
   int i;
   time_t tm;
   struct utsname computer;
@@ -124,7 +124,7 @@ int fino_debug_open(debug_t *debug) {
 #define __FUNCT__ "fino_instruction_debug"
 int fino_instruction_debug(void *arg) {
   
-  debug_t *debug = (debug_t *)arg;
+  fino_debug_t *debug = (fino_debug_t *)arg;
 
   struct rusage resource_usage;
 
@@ -414,7 +414,7 @@ int fino_instruction_debug(void *arg) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_debug_close"
-int fino_debug_close(debug_t *debug) {
+int fino_debug_close(fino_debug_t *debug) {
 
   int c;
   FILE *finput;

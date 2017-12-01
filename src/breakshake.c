@@ -20,6 +20,7 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+#include <math.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
@@ -337,8 +338,7 @@ int fino_break_compute_stresses(void) {
   double gammaxy, gammayz, gammazx;
   double sigmax, sigmay, sigmaz;
   double tauxy, tauyz, tauzx;
-  double I1, I2, I3, phi;
-  double c1, c1c2, c3, c4, c5;
+  double c1, c1c2;
   double sigma, sigma1, sigma2, sigma3, tresca;
   double displ2;
 
@@ -511,24 +511,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       tauzx =  c1c2 * gammazx;
     }
 
-    // stress invariants
-    // https://en.wikiversity.org/wiki/Principal_stresses
-    I1 = sigmax + sigmay + sigmaz;
-    I2 = sigmax*sigmay + sigmay*sigmaz + sigmaz*sigmax - gsl_pow_2(tauxy) - gsl_pow_2(tauyz) - gsl_pow_2(tauzx);
-    I3 = sigmax*sigmay*sigmaz - sigmax*gsl_pow_2(tauyz) - sigmay*gsl_pow_2(tauzx) - sigmaz*gsl_pow_2(tauxy) + 2*tauxy*tauyz*tauzx;
-
-    // principal stresses
-    c5 = sqrt(fabs(gsl_pow_2(I1) - 3*I2));
-    phi = 1.0/3.0 * acos((2.0*gsl_pow_3(I1) - 9.0*I1*I2 + 27.0*I3)/(2.0*gsl_pow_3(c5)));
-    if (isnan(phi)) {
-      phi = 0;
-    }
-
-    c3 = I1/3.0;
-    c4 = 2.0/3.0 * c5;
-    sigma1 = c3 + c4 * cos(phi);
-    sigma2 = c3 + c4 * cos(phi - 2.0*M_PI/3.0);
-    sigma3 = c3 + c4 * cos(phi - 4.0*M_PI/3.0);
+    wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx, &sigma1, &sigma2, &sigma3));
 
     fino.sigmax->data_value[j] = sigmax;
     fino.sigmay->data_value[j] = sigmay;
@@ -792,4 +775,35 @@ int fino_break_set_pressure(element_t *element) {
   gsl_vector_free(Nb);
   
   return WASORA_RUNTIME_OK;
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_principal_stress"
+int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx, double *sigma1, double *sigma2, double *sigma3) {
+  
+  double I1, I2, I3;
+  double c1, c2, c3;
+  double phi;
+  
+  // stress invariants
+  // https://en.wikiversity.org/wiki/Principal_stresses
+  I1 = sigmax + sigmay + sigmaz;
+  I2 = sigmax*sigmay + sigmay*sigmaz + sigmaz*sigmax - gsl_pow_2(tauxy) - gsl_pow_2(tauyz) - gsl_pow_2(tauzx);
+  I3 = sigmax*sigmay*sigmaz - sigmax*gsl_pow_2(tauyz) - sigmay*gsl_pow_2(tauzx) - sigmaz*gsl_pow_2(tauxy) + 2*tauxy*tauyz*tauzx;
+
+  // principal stresses
+  c1 = sqrt(fabs(gsl_pow_2(I1) - 3*I2));
+  phi = 1.0/3.0 * acos((2.0*gsl_pow_3(I1) - 9.0*I1*I2 + 27.0*I3)/(2.0*gsl_pow_3(c1)));
+  if (isnan(phi)) {
+    phi = 0;
+  }
+
+  c2 = I1/3.0;
+  c3 = 2.0/3.0 * c1;
+  *sigma1 = c2 + c3 * cos(phi);
+  *sigma2 = c2 + c3 * cos(phi - 2.0*M_PI/3.0);
+  *sigma3 = c2 + c3 * cos(phi - 4.0*M_PI/3.0);
+    
+  return WASORA_RUNTIME_OK;
+  
 }

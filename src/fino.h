@@ -85,11 +85,12 @@ PetscErrorCode petsc_err;
 #define BC_FACTOR 0.1
 
 // forward definitions
-typedef struct fino_reaction_t fino_reaction_t;
 typedef struct fino_distribution_t fino_distribution_t;
 typedef struct fino_step_t fino_step_t;
 typedef struct fino_times_t fino_times_t;
-typedef struct debug_t debug_t;
+typedef struct fino_linearize_t fino_linearize_t;
+typedef struct fino_debug_t fino_debug_t;
+
 
 
 typedef struct {
@@ -143,8 +144,9 @@ struct {
   int problem_size;
   
   mesh_t *mesh;
-  debug_t *debugs;
-    
+  fino_linearize_t *linearizes;
+  fino_debug_t *debugs;
+  
   // variables internas
   struct {
     var_t *abstol;
@@ -291,9 +293,6 @@ struct {
   int n_algebraic_rows;
   dirichlet_row_t *algebraic_row;
   
-  fino_reaction_t *reactions;
-
-  
   // user-provided functions para los objetos elementales, las linkeamos
   // a las que dio el usuario en el input en init
   function_t ***Ai_function;
@@ -376,7 +375,17 @@ struct fino_step_t {
   int do_not_compute_gradients;
 };
 
-struct debug_t {
+struct fino_linearize_t {
+  physical_entity_t *scl;
+
+  var_t *membrane;
+  var_t *bending;
+//  var_t *membrane_plus_bending;  
+  
+  fino_linearize_t *next;
+};
+
+struct fino_debug_t {
   file_t *file;
   PetscViewer viewer;
   
@@ -388,7 +397,7 @@ struct debug_t {
 
   int file_opened;
   
-  debug_t *next;
+  fino_debug_t *next;
 };
 
 // para medir tiempos (wall y cpu)
@@ -426,10 +435,10 @@ extern int fino_print_gsl_vector(gsl_vector *, FILE *);
 extern int fino_print_gsl_matrix(gsl_matrix *, FILE *);
 
 // debug.c
-extern int fino_debug_open(debug_t *);
-extern int fino_debug_initial(debug_t *);
+extern int fino_debug_open(fino_debug_t *);
+extern int fino_debug_initial(fino_debug_t *);
 extern int fino_instruction_debug(void *);
-extern int fino_debug_close(debug_t *);
+extern int fino_debug_close(fino_debug_t *);
 extern int fino_print_petsc_vector(Vec, PetscViewer);
 extern int fino_print_petsc_matrix(Mat, PetscViewer);
 extern int fino_print_petsc_matrix_struct(Mat, PetscViewer);
@@ -444,6 +453,9 @@ extern int fino_problem_free(void);
 extern int fino_function_clean_nodal_data(function_t *);
 extern int fino_function_clean_nodal_arguments(function_t *);
 extern int fino_define_result_function(char *, function_t **);
+
+// linearize.c
+extern int fino_instruction_linearize(void *);
 
 // parser.c
 extern int fino_parse_line(char *);
@@ -483,6 +495,8 @@ extern int fino_break_set_stress(element_t *);
 extern int fino_break_set_force(element_t *);
 extern int fino_break_set_pressure(element_t *);
 extern int fino_break_set_moment(element_t *);
+extern int fino_compute_principal_stress(double, double, double, double, double, double, double *, double *, double *);
+
 
 
 // bake.c

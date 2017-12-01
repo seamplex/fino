@@ -1,0 +1,18 @@
+DEFAULT_ARGUMENT_VALUE 1 stress
+MESH FILE_PATH square.msh
+
+FINO_PROBLEM PLANE_$1
+
+E = 205e3
+nu = 0.28
+
+a = 1
+b = 2
+p = 10
+
+PHYSICAL_ENTITY NAME bottom  BC fixed
+PHYSICAL_ENTITY NAME top     BC Mz=1
+
+FINO_STEP
+
+MESH_POST FILE_PATH square-$1.vtk VECTOR u v 0 sigma sigma1 sigma2 sigma3

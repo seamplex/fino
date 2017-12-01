@@ -414,12 +414,83 @@ int plugin_parse_line(char *line) {
       return WASORA_PARSER_OK;
 
 // ---------------------------------------------------------------------
+///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
+///kw+FINO_LINEARIZE+desc Perform stress linearization according to ASME VII-Sec 5 over a Stress Classification Line.
+    } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
+      
+      fino_linearize_t *linearize;
+      linearize = calloc(1, sizeof(fino_linearize_t));
+      LL_APPEND(fino.linearizes, linearize);
+
+      while ((token = wasora_get_next_token(NULL)) != NULL) {
+      
+///kw+FINO_LINEARIZE+usage SCL <physical_entity_name>
+        if (strcasecmp(token, "SCL") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+          if ((linearize->scl = wasora_get_physical_entity_ptr(name)) == NULL) {
+            wasora_push_error_message("unknown physical entity '%s'", name);
+            free(name);
+            return WASORA_PARSER_ERROR;
+          }
+          
+///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
+        } else if (strcasecmp(token, "MEMBRANE") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+
+          // puede ser que sea una variable que ya este definida o una nueva
+          if ((linearize->membrane = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->membrane = wasora_define_variable(name)) == NULL) {
+              return WASORA_PARSER_ERROR;
+            }
+          }
+          
+///kw+FINO_LINEARIZE+usage [ BENDING <variable_name> ]
+        } else if (strcasecmp(token, "BENDING") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+
+          // puede ser que sea una variable que ya este definida o una nueva
+          if ((linearize->bending = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->bending = wasora_define_variable(name)) == NULL) {
+              return WASORA_PARSER_ERROR;
+            }
+          }
+
+///kw+FINO_LINEARIZE+usage [ EQUIVALENT { vonmises | tresca } ]
+        } else if (strcasecmp(token, "EQUIVALENT") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+
+          // puede ser que sea una variable que ya este definida o una nueva
+          if ((linearize->bending = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->bending = wasora_define_variable(name)) == NULL) {
+              return WASORA_PARSER_ERROR;
+            }
+          }          
+        } else {
+          wasora_push_error_message("unknown keyword '%s'", token);
+          return WASORA_PARSER_ERROR;
+        }
+      }
+
+      if (linearize->scl == NULL) {
+        wasora_push_error_message("need a physical entity for the SCL");
+        return WASORA_PARSER_ERROR;
+      }
+      
+      wasora_define_instruction(fino_instruction_linearize, linearize);
+
+      return WASORA_PARSER_OK;
+      
+// ---------------------------------------------------------------------
 ///kw+FINO_DEBUG+usage FINO_DEBUG
 ///kw+FINO_DEBUG+desc Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
     } else if ((strcasecmp(token, "FINO_DEBUG") == 0)) {
       
-      debug_t *debug;
-      debug = calloc(1, sizeof(debug_t));
+      fino_debug_t *debug;
+      debug = calloc(1, sizeof(fino_debug_t));
       LL_APPEND(fino.debugs, debug);
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
@@ -491,75 +562,7 @@ int plugin_parse_line(char *line) {
       wasora_define_instruction(fino_instruction_debug, debug);
 
       return WASORA_PARSER_OK;
-      
-// ---------------------------------------------------------------------
-///kw+FINO_REACTION+usage FINO_REACTION
-///kw+FINO_REACTION+desc Asks Fino to compute the reactions at physical entities with Dirichlet boundary conditions.
-/*
-    } else if ((strcasecmp(token, "FINO_REACTION") == 0)) {
 
-      char *buff;
-      fino_reaction_t *reaction = calloc(1, sizeof(fino_reaction_t));      
-
-      while ((token = wasora_get_next_token(NULL)) != NULL) {
-///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity>
-        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
-          char *name;
-          wasora_call(wasora_parser_string(&name));
-          if ((reaction->physical_entity = wasora_get_physical_entity_ptr(name)) == NULL) {
-            wasora_push_error_message("unknown physical entity '%s'", name);
-            free(name);
-            return WASORA_PARSER_ERROR;
-          }
-
-///kw+FINO_REACTION+usage [ NAME_ROOT <name> ]
-        } else if (strcasecmp(token, "NAME_ROOT") == 0) {
-          wasora_call(wasora_parser_string(&reaction->name_root));
-          
-        } else {
-          wasora_push_error_message("unknown keyword '%s'", token);
-          return WASORA_PARSER_ERROR;
-        }
-      }
-      
-      if (reaction->physical_entity == NULL) {
-        wasora_push_error_message("FINO_REACTION needs a PHYSICAL_ENTITY");
-        return WASORA_PARSER_ERROR;
-      }
-      
-      if (reaction->name_root == NULL) {
-        reaction->name_root = malloc(strlen(reaction->physical_entity->name)+8);
-        snprintf(reaction->name_root, strlen(reaction->physical_entity->name)+7, "R_%s", reaction->physical_entity->name);
-      }
-      
-      if (strpbrk(reaction->name_root, factorseparators) != NULL) {
-        wasora_push_error_message("FINO_REACTION cannot use '%s' as the name root", reaction->name_root);
-        return WASORA_PARSER_ERROR;
-      }
-      
-      buff = malloc(strlen(reaction->name_root)+8);
-
-      snprintf(buff, strlen(reaction->name_root)+7, "%s_x", reaction->name_root);
-      if ((reaction->R[0] = wasora_define_variable(buff)) == NULL) {
-        wasora_push_error_message("cannot define variable '%s'", buff);
-        return WASORA_PARSER_ERROR;
-      }
-      snprintf(buff, strlen(reaction->name_root)+7, "%s_y", reaction->name_root);
-      if ((reaction->R[1] = wasora_define_variable(buff)) == NULL) {
-        wasora_push_error_message("cannot define variable '%s'", buff);
-        return WASORA_PARSER_ERROR;
-      }
-      snprintf(buff, strlen(reaction->name_root)+7, "%s_z", reaction->name_root);
-      if ((reaction->R[2] = wasora_define_variable(buff)) == NULL) {
-        wasora_push_error_message("cannot define variable '%s'", buff);
-        return WASORA_PARSER_ERROR;
-      }
-      free(buff);
-      
-      LL_APPEND(fino.reactions, reaction);
-
-      return WASORA_PARSER_OK;      
-*/
     }
   }
   

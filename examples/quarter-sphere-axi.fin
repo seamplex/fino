@@ -1,12 +1,10 @@
 MESH FILE_PATH quarter-sphere-axi.msh
-FINO_PROBLEM AXISYMMETRIC
-
-w(x,y) := 0
+FINO_PROBLEM ELASTIC_AXISYMMETRIC
 
 E = 210
-nu = 0
+nu = 0.3
 
-PHYSICAL_ENTITY NAME inner  BC p=10
+PHYSICAL_ENTITY NAME inner  BC p=-10
 # PHYSICAL_ENTITY NAME outer  BC u=0
 
 PHYSICAL_ENTITY NAME vertical   BC u=0
@@ -16,5 +14,5 @@ FINO_STEP
 
 # http://solidmechanics.org/text/Chapter4_1/Chapter4_1.htm
 
-MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v w sigma
+MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v 0 sigma
 # PRINT_FUNCTION u
