@@ -433,6 +433,7 @@ int plugin_parse_line(char *line) {
             free(name);
             return WASORA_PARSER_ERROR;
           }
+          free(name);
           
 ///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
         } else if (strcasecmp(token, "MEMBRANE") == 0) {
@@ -445,6 +446,7 @@ int plugin_parse_line(char *line) {
               return WASORA_PARSER_ERROR;
             }
           }
+          free(name);
           
 ///kw+FINO_LINEARIZE+usage [ BENDING <variable_name> ]
         } else if (strcasecmp(token, "BENDING") == 0) {
@@ -458,8 +460,20 @@ int plugin_parse_line(char *line) {
             }
           }
 
-///kw+FINO_LINEARIZE+usage [ EQUIVALENT { vonmises | tresca } ]
-        } else if (strcasecmp(token, "EQUIVALENT") == 0) {
+///kw+FINO_LINEARIZE+usage [ PEAK <variable_name> ]
+        } else if (strcasecmp(token, "PEAK") == 0) {
+          char *name;
+          wasora_call(wasora_parser_string(&name));
+
+          // puede ser que sea una variable que ya este definida o una nueva
+          if ((linearize->peak = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->peak = wasora_define_variable(name)) == NULL) {
+              return WASORA_PARSER_ERROR;
+            }
+          }
+          
+///kw+FINO_LINEARIZE+usage [ STRESS { vonmises | tresca } ]
+        } else if (strcasecmp(token, "STRESS") == 0) {
           char *name;
           wasora_call(wasora_parser_string(&name));
 
@@ -480,6 +494,7 @@ int plugin_parse_line(char *line) {
         return WASORA_PARSER_ERROR;
       }
       
+      // TODO: defaultear a entity_m, entity_b, etc
       wasora_define_instruction(fino_instruction_linearize, linearize);
 
       return WASORA_PARSER_OK;

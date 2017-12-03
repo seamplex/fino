@@ -47,7 +47,7 @@ double T0;  // este es el escalar
 int fino_break_build_element(element_t *element, int v) {
 
   static size_t J;            // cantidad de nodos locales
-  // TODO: hacer un campo descripcion en finto_distribution_t para documentar
+  // TODO: hacer un campo descripcion en fino_distribution_t para documentar
  
   static size_t stress_strain_size = 0;
   // matrices de la formulacion del problema
@@ -350,7 +350,7 @@ int fino_break_compute_stresses(void) {
   
   PetscFunctionBegin;
 
-  // von misses  
+  // von mises  
   if (fino.sigma->data_value == NULL) {
     // tensor de tensiones
     fino.sigmax->data_argument = fino.gradient[0][0]->data_argument;
@@ -527,20 +527,14 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     fino.sigma2->data_value[j] = sigma2;
     fino.sigma3->data_value[j] = sigma3;
 
-      // von mises
-  //    sigma = sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
-  //                                                    6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
-    sigma = sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));
-      
     // tresca
-    if (fabs(sigma1-sigma2) > fabs(sigma2-sigma3) && fabs(sigma1-sigma2) > fabs(sigma1-sigma3)) {
-      tresca = fabs(sigma1-sigma2);
-    } else if (fabs(sigma2-sigma3) > fabs(sigma1-sigma2) && fabs(sigma2-sigma3) > fabs(sigma1-sigma3)) {
-      tresca = fabs(sigma2-sigma3);
-    } else if (fabs(sigma1-sigma3) > fabs(sigma1-sigma2) && fabs(sigma1-sigma3) > fabs(sigma2-sigma3)) {
-      tresca = fabs(sigma1-sigma3);
-    }
+    tresca = fino_compute_tresca_from_principal(sigma1, sigma2, sigma3);
     fino.tresca->data_value[j] = tresca;
+
+    // von mises
+    sigma = fino_compute_vonmises_from_principal(sigma1, sigma2, sigma3);
+    //sigma = fino_compute_vonmises_from_tensor(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx);
+      
     
     if ((fino.sigma->data_value[j] = sigma) > wasora_var(fino.vars.sigma_max)) {
       wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j];
@@ -807,3 +801,53 @@ int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, d
   return WASORA_RUNTIME_OK;
   
 }
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_vonmises_from_principal"
+double fino_compute_vonmises_from_principal(double sigma1, double sigma2, double sigma3) {
+  
+  return sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));
+  
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_vonmises_from_tensor"
+double fino_compute_vonmises_from_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
+  
+  return sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
+                       6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
+  
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_tresca_from_principal"
+double fino_compute_tresca_from_principal(double sigma1, double sigma2, double sigma3) {
+
+  double S12 = fabs(sigma1-sigma2);
+  double S23 = fabs(sigma2-sigma3);
+  double S31 = fabs(sigma3-sigma1);
+  
+  if (S12 >= S23 && S12 >= S31) {
+    return S12;
+  } else if (S23 >= S12 && S23 >= S31) {
+    return S23;
+  } else if (S31 >= S12 && S31 >= S23) {
+    return S31;
+  }
+  
+  return 0;
+  
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_tresca_from_tensor"
+double fino_compute_tresca_from_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
+
+  double sigma1, sigma2, sigma3;
+  
+  wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx, &sigma1, &sigma2, &sigma3));
+  return fino_compute_tresca_from_principal(sigma1, sigma2, sigma3);
+  
+}
+
+

@@ -380,6 +380,7 @@ struct fino_linearize_t {
 
   var_t *membrane;
   var_t *bending;
+  var_t *peak;
 //  var_t *membrane_plus_bending;  
   
   fino_linearize_t *next;
@@ -496,7 +497,10 @@ extern int fino_break_set_force(element_t *);
 extern int fino_break_set_pressure(element_t *);
 extern int fino_break_set_moment(element_t *);
 extern int fino_compute_principal_stress(double, double, double, double, double, double, double *, double *, double *);
-
+extern double fino_compute_vonmises_from_principal(double, double, double);
+extern double fino_compute_vonmises_from_tensor(double, double, double, double, double, double);
+extern double fino_compute_tresca_from_principal(double, double, double);
+extern double fino_compute_tresca_from_tensor(double, double, double, double, double, double);
 
 
 // bake.c
