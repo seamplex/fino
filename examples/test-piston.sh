@@ -11,7 +11,7 @@ if [ $? -ne 0 ]; then
   outcome=99
 fi
 
-if [ "`cat engine-piston.dat | cut -c-3`" != "593" ]; then
+if [ "`cat engine-piston.dat | cut -c-3`" != "594" ]; then
   outcome=99
 fi
 

@@ -8,7 +8,6 @@ dist_doc_DATA = AUTHORS ChangeLog README TODO
 EXTRA_DIST = examples doc
 
 TESTS = examples/test-tensile.sh \
-        examples/test-cantilever.sh \
         examples/test-piston.sh
 
 all-local:

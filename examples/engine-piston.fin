@@ -2,10 +2,11 @@
 # https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html
 
 SHELL "if [ ! -e engine-piston.msh ]; then gmsh -v 0 -3 engine-piston.geo > /dev/null; fi"
-MESH FILE_PATH engine-piston.msh  # the mesh is in mm
+MESH FILE_PATH engine-piston.msh  # the mesh is in m (since Gmsh 3.1)
 FINO_PROBLEM BAKE DIMENSIONS 3
 
-f = 1e-3   # factor to convert from m to mm
+# f = 1e-3   # factor to convert from m to mm
+f = 1
 # thermal conductivity numerically in W/(m*K) set in W/(mm*K)
 k = 160*f
 
