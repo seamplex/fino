@@ -5,8 +5,7 @@ SHELL "if [ ! -e engine-piston.msh ]; then gmsh -v 0 -3 engine-piston.geo > /dev
 MESH FILE_PATH engine-piston.msh  # the mesh is in m (since Gmsh 3.1)
 FINO_PROBLEM BAKE DIMENSIONS 3
 
-# f = 1e-3   # factor to convert from m to mm
-f = 1
+f = 1e-3   # factor to convert from m to mm
 # thermal conductivity numerically in W/(m*K) set in W/(mm*K)
 k = 160*f
 
