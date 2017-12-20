@@ -62,7 +62,7 @@ int fino_read_bcs(void) {
           expr = NULL;
         }
 
-        if (fino.problem_family == problem_family_break) {
+        if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
           if (strcmp(name, "fixed") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement_fixed;
@@ -535,29 +535,31 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
-  petsc_call(VecGetArray(b, &local_b));
-  for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    petsc_call(MatGetRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
-    fino.dirichlet_row[i].ncols = ncols;
-    if (ncols != 0) {
-      fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
-      fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
-      // por si acaso igualamos en lugar de hacer memcpy
-      for (j = 0; j < ncols; j++) {
-        fino.dirichlet_row[i].cols[j] = cols[j];
-        fino.dirichlet_row[i].vals[j] = vals[j];
+  if (fino.math_type != math_eigen) {
+    petsc_call(VecGetArray(b, &local_b));
+    for (i = 0; i < fino.n_dirichlet_rows; i++) {
+      petsc_call(MatGetRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
+      fino.dirichlet_row[i].ncols = ncols;
+      if (ncols != 0) {
+        fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
+        fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
+        // por si acaso igualamos en lugar de hacer memcpy
+        for (j = 0; j < ncols; j++) {
+          fino.dirichlet_row[i].cols[j] = cols[j];
+          fino.dirichlet_row[i].vals[j] = vals[j];
+        }
+        petsc_call(MatRestoreRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
+      } else {
+        wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
+        PetscFunctionReturn(WASORA_RUNTIME_ERROR);
       }
-      petsc_call(MatRestoreRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
-    } else {
-      wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    }
     
-    // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
-    // despues con rhs le ponemos lo que va
-    local_b[indexes_dirichlet[i]] = 0;
+      // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
+      // despues con rhs le ponemos lo que va
+      local_b[indexes_dirichlet[i]] = 0;
+    }
+    petsc_call(VecRestoreArray(b, &local_b));
   }
-  petsc_call(VecRestoreArray(b, &local_b));
   
   petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
   petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
@@ -571,17 +573,20 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
   // TODO: esto rompe simetria como loco!
   
-  // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  if (fino.math_type != math_eigen) {
+    // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
+    petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
   
-  petsc_call(MatZeroRows(A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
-  petsc_call(VecGetArray(b, &local_b));
-  for (i = 0; i < fino.n_algebraic_rows; i++) {
-    petsc_call(MatSetValues(A, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
-    local_b[indexes_algebraic[i]] = rhs_algebraic[i];
+    petsc_call(MatZeroRows(A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(VecGetArray(b, &local_b));
+
+    for (i = 0; i < fino.n_algebraic_rows; i++) {
+      petsc_call(MatSetValues(A, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
+      local_b[indexes_algebraic[i]] = rhs_algebraic[i];
+    }
+    petsc_call(VecRestoreArray(b, &local_b));
+    petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
   }
-  petsc_call(VecRestoreArray(b, &local_b));
-  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
   
   free(indexes_dirichlet);
   free(indexes_algebraic);

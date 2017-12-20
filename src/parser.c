@@ -51,6 +51,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage SHAKE |
         } else if (strcasecmp(token, "SHAKE") == 0) {
           fino.problem_family = problem_family_shake;
+          fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_eigen;
           fino.dimensions = 3;
           fino.degrees = 3;

@@ -570,7 +570,7 @@ int fino_problem_free(void) {
   }
 #ifdef HAVE_SLEPC  
   if (fino.eps != PETSC_NULL) {
-    petsc_call(EPSDestroy(&fino.eps));
+//    petsc_call(EPSDestroy(&fino.eps));
   }
 #endif
   

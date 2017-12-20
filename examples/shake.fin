@@ -1,0 +1,22 @@
+MESH FILE_PATH tensile-test-specimen2.msh  # mesh file in Gmsh format
+# the file tensile-test-specimen1.msh has the same grid but with first-order elements
+
+FINO_PROBLEM SHAKE N_EIGEN 7
+
+# uniform properties
+rho = 7000e-9
+E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
+nu = 0.3    # Poisson ratio
+
+# boundary conditions (the names come from the physical entities in the mesh)
+PHYSICAL_ENTITY NAME left   BC fixed
+PHYSICAL_ENTITY NAME right  BC fixed
+
+# print some data
+PRINT TEXT "elements                    =" %g elements
+PRINT TEXT "nodes                       =" %g nodes
+
+FINO_STEP
+
+# results
+MESH_POST FILE_PATH shake.vtk VECTOR u v w

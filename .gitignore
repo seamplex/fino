@@ -107,6 +107,8 @@ examples/traction.msh
 examples/square*.vtk
 examples/square.msh
 
+examples/shake*.vtk
+
 examples/compsolid.msh
 
 examples/holow_sphere.msh
