@@ -26,16 +26,18 @@
 
 #include "fino.h"
 
-fino_distribution_t distribution_k;    // conductividad
-fino_distribution_t distribution_Q;    // heat source
-fino_distribution_t distribution_rho;  // density
-fino_distribution_t distribution_cp;   // heat capacity
+fino_distribution_t distribution_k;     // conductividad
+fino_distribution_t distribution_Q;     // heat source
+fino_distribution_t distribution_kappa; // thermal diffusivity
+fino_distribution_t distribution_rho;   // density
+fino_distribution_t distribution_cp;    // heat capacity
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_build_bake"
 int fino_build_bake(element_t *element, int v) {
   
   double w_gauss;
+  double k, rhocp;
   double r_for_axisymmetric;
   
   material_t *material;
@@ -52,17 +54,20 @@ int fino_build_bake(element_t *element, int v) {
   }
 
   if (fino.has_mass) {
-    if (distribution_rho.defined == 0) {
-      wasora_call(fino_distribution_init(&distribution_rho, "rho"));
-      wasora_call(fino_distribution_init(&distribution_cp, "cp"));
-    }
-    if (distribution_rho.defined == 0) {
-      wasora_push_error_message("cannot find density 'rho'");
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    }
-    if (distribution_cp.defined == 0) {
-      wasora_push_error_message("cannot find heat capacity 'cp'");
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    if (distribution_kappa.defined == 0) {
+      wasora_call(fino_distribution_init(&distribution_kappa, "kappa"));
+      if (distribution_kappa.defined == 0) {
+        wasora_call(fino_distribution_init(&distribution_rho, "rho"));
+        wasora_call(fino_distribution_init(&distribution_cp, "cp"));
+        if (distribution_cp.defined == 0) {
+          wasora_push_error_message("cannot find neither thermal diffusivity 'kappa' nor heat capacity 'cp'");
+          PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+        }
+        if (distribution_rho.defined == 0) {
+          wasora_push_error_message("cannot find neither thermal diffusivity 'kappa' nor density 'rho'");
+          PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+        }
+      }
     }
   }
   
@@ -84,13 +89,17 @@ int fino_build_bake(element_t *element, int v) {
   }
 
   // calculamos la matriz de stiffness
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ki);
+  k = fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * k, fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ki);
 
   if (fino.has_mass) {
     // calculamos la matriz de masa Ht*rho*cp*H
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans,
-        w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)) * fino_distribution_evaluate(&distribution_cp, material, gsl_vector_ptr(fino.mesh->fem.x, 0)),
-        fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+    if (distribution_kappa.defined)  {
+      rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    } else {
+      rhocp = fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)) * fino_distribution_evaluate(&distribution_cp, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    }
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss*rhocp, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
   } 
   
   return WASORA_RUNTIME_OK;
