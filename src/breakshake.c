@@ -334,13 +334,30 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 #define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
   
-  double ex, ey, ez;
-  double gammaxy, gammayz, gammazx;
-  double sigmax, sigmay, sigmaz;
-  double tauxy, tauyz, tauzx;
-  double c1, c1c2;
-  double sigma, sigma1, sigma2, sigma3, tresca;
-  double displ2;
+  double ex = 0;
+  double ey = 0;
+  double ez = 0;
+  double gammaxy = 0;
+  double gammayz = 0;
+  double gammazx = 0;
+  
+  double sigmax = 0;
+  double sigmay = 0;
+  double sigmaz = 0;
+  double tauxy = 0;
+  double tauyz = 0;
+  double tauzx = 0;
+  
+  double c1 = 1.0;
+  double c1c2 = 1.0;
+  double sigma = 0;
+  
+  double sigma1 = 0;
+  double sigma2 = 0;
+  double sigma3 = 0;
+  double tresca = 0;
+  
+  double displ2 = 0;
 
   double max_displ2 = 0;
   double nu = 0;
@@ -797,7 +814,9 @@ int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, d
   *sigma1 = c2 + c3 * cos(phi);
   *sigma2 = c2 + c3 * cos(phi - 2.0*M_PI/3.0);
   *sigma3 = c2 + c3 * cos(phi - 4.0*M_PI/3.0);
-    
+
+//  printf("%g %g %g %g %g %g %g\n", I1, I2, I3, phi, *sigma1, *sigma2, *sigma3);
+  
   return WASORA_RUNTIME_OK;
   
 }
@@ -827,12 +846,12 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
   double S23 = fabs(sigma2-sigma3);
   double S31 = fabs(sigma3-sigma1);
   
-  if (S12 >= S23 && S12 >= S31) {
+  if (S31 >= S12 && S31 >= S23) {
+    return S31;
+  } else if (S12 >= S23 && S12 >= S31) {
     return S12;
   } else if (S23 >= S12 && S23 >= S31) {
     return S23;
-  } else if (S31 >= S12 && S31 >= S23) {
-    return S31;
   }
   
   return 0;

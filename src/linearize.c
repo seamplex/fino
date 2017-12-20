@@ -37,6 +37,7 @@ int fino_instruction_linearize(void *arg) {
   double integrand_bx, integrand_by, integrand_bz, integrand_bxy, integrand_byz, integrand_bzx;
   double sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m;
   double sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b;
+  double sigma1, sigma2, sigma3;
   double peak;
   double x,  y,  z;
   double xi, yi, zi;      // coordenadas del punto inicial de la SCL
@@ -109,7 +110,6 @@ int fino_instruction_linearize(void *arg) {
         if (fino.sigma->data_value[k] > peak) {
           peak = fino.sigma->data_value[k];
         }
-        
       }
 
       w_gauss *= r_for_axisymmetric;
@@ -151,9 +151,16 @@ int fino_instruction_linearize(void *arg) {
   
 //  wasora_call(fino_compute_principal_stress(mx, my, mz, mxy, myz, mzx, &m1, &m2, &m3));
 //  wasora_call(fino_compute_principal_stress(bx, by, bz, bxy, byz, bzx, &b1, &b2, &b3));
-  
-  
-  
+
+/*
+  printf("LINEARIZATION\n");
+  fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, &sigma1, &sigma2, &sigma3);
+  fino_compute_principal_stress(sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b, &sigma1, &sigma2, &sigma3);
+  fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_m, tauzx_m+tauzx_m, &sigma1, &sigma2, &sigma3);
+  fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m+tauyz_m, tauzx_m-tauzx_m, &sigma1, &sigma2, &sigma3);
+  printf("-------------\n\n");
+*/
+
   if (linearize->membrane != NULL) {
     wasora_var_value(linearize->membrane) = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
   }

@@ -75,9 +75,9 @@ int fino_read_bcs(void) {
             if (name[6] == 'u') {
               bc->dof = 0;
             } else if (name[6] == 'v') {
-              bc->dof = 0;
+              bc->dof = 1;
             } else if (name[6] == 'w') {
-              bc->dof = 0;
+              bc->dof = 2;
             } else {
               wasora_push_error_message("expected either 'u_', 'v_' or 'w_' instead of '%s' in mimic()", name+5);
               return WASORA_PARSER_ERROR;
