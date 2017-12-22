@@ -111,9 +111,9 @@ typedef struct {
 struct {
 
   enum {
-    math_linear,
-    math_nonlinear,
-    math_eigen,
+    math_type_linear,
+    math_type_nonlinear,
+    math_type_eigen,
   } math_type;
   
   enum {
@@ -213,7 +213,12 @@ struct {
     var_t *memory_usage_petsc;
     
   } vars;
-  
+
+  // vectores
+  struct {
+    vector_t *omega;
+  } vectors;
+
   // flag
   PetscInt petscinit_called;
   
@@ -227,6 +232,9 @@ struct {
   Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
   PetscScalar lambda; // el autovalor
+  
+  PetscScalar *eigenvalue;    // los autovalores
+  Vec *eigenvector;           // los autovectores
 
   Mat A;         // las matrices para el transient de calor
   Mat B;
@@ -307,6 +315,8 @@ struct {
   function_t **solution;
   // las derivadas de la solucion con respecto al espacio;
   function_t ***gradient;
+  // los modos de vibracion
+  function_t ***vibration;
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
@@ -342,8 +352,8 @@ struct {
 
   // cosas del eigensolver
   // las pongo al final por si acaso (mezcla de plugins compilados con difentes libs, no se)
-#ifdef HAVE_SLEPC
   int nev;      // el numero del autovalor pedido
+#ifdef HAVE_SLEPC
   EPS eps;      // contexto eigensolver (SLEPc)
   ST st;        // contexto de la transformacion espectral asociada
   EPSWhich eigen_spectrum;
@@ -471,7 +481,7 @@ extern void fino_license(FILE *);
 extern int fino_solve_linear_petsc(Mat, Vec);
 
 // eigen_slepc.c
-extern int fino_solve_eigen_slepc(void);
+extern int fino_solve_eigen_slepc(Mat, Mat);
 
 // bulk.c
 extern int fino_build_bulk(void);

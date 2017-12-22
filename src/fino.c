@@ -46,7 +46,7 @@ int fino_instruction_step(void *arg) {
   fino_times_t wall;
   fino_times_t cpu;
   fino_times_t petsc;
-  int k, g;
+  int i, k, g;
 
   PetscFunctionBegin;
   
@@ -77,12 +77,26 @@ int fino_instruction_step(void *arg) {
     
     if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_bake) {
       // resolvemos un steady state
-      if (fino.math_type == math_linear) {
+      if (fino.math_type == math_type_linear) {
         wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
-      } else if (fino.math_type == math_eigen) {
+      } else if (fino.math_type == math_type_eigen) {
 #ifdef HAVE_SLEPC
-        wasora_call(fino_solve_eigen_slepc());
+        int i;
+
+        // si no nos pidieron que autovalor quieren, pedimos el primero
+        if (fino.nev == 0) {
+          fino.nev = 1;
+        }        
+        
+        wasora_call(fino_solve_eigen_slepc(fino.K, fino.M));
         wasora_var(fino.vars.lambda) = fino.lambda;        // leemos el autovalor
+        
+        // vemos si nos pidieron varias frecuencias
+        if (fino.nev > 1) {
+          for (i = 0; i < fino.nev; i++) {
+            wasora_vector_set(fino.vectors.omega, i, fino.eigenvalue[i]);
+          }
+        }
 #else
         wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
         return WASORA_RUNTIME_ERROR;
@@ -180,7 +194,6 @@ int fino_instruction_step(void *arg) {
         
       }
     }
-
     
     // fabricamos G funciones con la solucion
     for (k = 0; k < fino.spatial_unknowns; k++) {
@@ -193,6 +206,12 @@ int fino_instruction_step(void *arg) {
             fino.solution[g]->data_value[k] += fino.base_solution[g]->data_value[k];
           } else {
             fino.solution[g]->data_value[k] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[k].x);
+          }
+        }
+        
+        if (fino.nev > 1) {
+          for (i = 0; i < fino.nev; i++) {
+            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[k].index[g], &fino.vibration[g][i]->data_value[k]));
           }
         }
       }

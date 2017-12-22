@@ -43,16 +43,16 @@ int plugin_parse_line(char *line) {
         if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0) {
           fino.problem_family = problem_family_bake;
           fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_linear;
+          fino.math_type = math_type_linear;
           fino.degrees = 1;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
           fino.unknown_name[0] = strdup("T");
 
 ///kw+FINO_PROBLEM+usage SHAKE |
-        } else if (strcasecmp(token, "SHAKE") == 0) {
+        } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "FREQUENCY") == 0) {
           fino.problem_family = problem_family_shake;
           fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_eigen;
+          fino.math_type = math_type_eigen;
           fino.dimensions = 3;
           fino.degrees = 3;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -64,7 +64,7 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_linear;
+          fino.math_type = math_type_linear;
           fino.dimensions = 3;
           fino.degrees = 3;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -79,7 +79,7 @@ int plugin_parse_line(char *line) {
           if (fino.symmetry_axis == symmetry_axis_none) {
             fino.symmetry_axis = symmetry_axis_y;
           }
-          fino.math_type = math_linear;
+          fino.math_type = math_type_linear;
           fino.dimensions = 2;
           fino.degrees = 1;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -92,7 +92,7 @@ int plugin_parse_line(char *line) {
           if (fino.symmetry_axis == symmetry_axis_none) {
             fino.symmetry_axis = symmetry_axis_y;
           }
-          fino.math_type = math_linear;
+          fino.math_type = math_type_linear;
           fino.dimensions = 2;
           fino.degrees = 2;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -338,7 +338,7 @@ int plugin_parse_line(char *line) {
       if (fino.problem_family == problem_family_undefined) {
         fino.problem_family = problem_family_break;
         fino.problem_kind = problem_kind_full3d;
-        fino.math_type = math_linear;
+        fino.math_type = math_type_linear;
         fino.degrees = 3;
         fino.unknown_name = calloc(fino.degrees, sizeof(char *));
         fino.unknown_name[0] = strdup("u");
@@ -599,7 +599,8 @@ int fino_define_functions(void) {
   
   char *name;
   char *gradname;
-  int g, d;
+  char *vibname;
+  int i, g, d;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
   if (fino.dimensions == 0) {
@@ -611,6 +612,9 @@ int fino_define_functions(void) {
 
   fino.solution = calloc(fino.degrees, sizeof(function_t *));
   fino.gradient = calloc(fino.degrees, sizeof(function_t *));
+  if (fino.nev > 1) {
+    fino.vibration = calloc(fino.degrees, sizeof(function_t *));
+  }
 
   for (g = 0; g < fino.degrees; g++) {
     if (fino.unknown_name == NULL) {
@@ -650,7 +654,19 @@ int fino_define_functions(void) {
       fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
       fino.gradient[g][d]->type = type_pointwise_mesh_node;
       free(gradname);
+    }
+    
+    if (fino.nev > 1) {
       
+      fino.vibration[g] = calloc(fino.nev, sizeof(function_t *));
+      for (i = 0; i < fino.nev; i++) {
+        if (asprintf(&vibname, "%s%d", name, i+1) == -1) {
+          wasora_push_error_message("cannot asprintf");
+          return WASORA_RUNTIME_ERROR;
+        }
+        wasora_call(fino_define_result_function(vibname, &fino.vibration[g][i]));
+        free(vibname);
+      }
     }
     
     free(name);
@@ -658,23 +674,28 @@ int fino_define_functions(void) {
 
   if (fino.problem_family == problem_family_break) {
 
-    fino_define_result_function("sigmax", &fino.sigmax);
-    fino_define_result_function("sigmay", &fino.sigmay);
-    fino_define_result_function("sigmaz", &fino.sigmaz);
-    fino_define_result_function("tauxy", &fino.tauxy);
+    wasora_call(fino_define_result_function("sigmax", &fino.sigmax));
+    wasora_call(fino_define_result_function("sigmay", &fino.sigmay));
+    wasora_call(fino_define_result_function("sigmaz", &fino.sigmaz));
+    wasora_call(fino_define_result_function("tauxy", &fino.tauxy));
 
     if (fino.dimensions == 3) {
-      fino_define_result_function("tauyz", &fino.tauyz);
-      fino_define_result_function("tauzx", &fino.tauzx);
+      wasora_call(fino_define_result_function("tauyz", &fino.tauyz));
+      wasora_call(fino_define_result_function("tauzx", &fino.tauzx));
     }
     
-    fino_define_result_function("sigma1", &fino.sigma1);
-    fino_define_result_function("sigma2", &fino.sigma2);
-    fino_define_result_function("sigma3", &fino.sigma3);
-    fino_define_result_function("sigma", &fino.sigma);
-    fino_define_result_function("tresca", &fino.tresca);
+    wasora_call(fino_define_result_function("sigma1", &fino.sigma1));
+    wasora_call(fino_define_result_function("sigma2", &fino.sigma2));
+    wasora_call(fino_define_result_function("sigma3", &fino.sigma3));
+    wasora_call(fino_define_result_function("sigma", &fino.sigma));
+    wasora_call(fino_define_result_function("tresca", &fino.tresca));
         
   }
+  
+  if (fino.nev > 1) {
+    fino.vectors.omega = wasora_define_vector("omega", fino.nev, NULL, NULL);    
+  }
+  
   // TODO: heat flux
   
   return WASORA_PARSER_OK;

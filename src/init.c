@@ -441,7 +441,7 @@ int plugin_finalize(void) {
 // esto viene despues de haber leido la malla
 int fino_problem_init(void) {
 
-  int g;
+  int i, g;
   int width;
 
 //---------------------------------
@@ -481,12 +481,11 @@ int fino_problem_init(void) {
   petsc_call(MatCreateVecs(fino.K, NULL, &fino.phi));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));
 
-  if (fino.math_type == math_linear) {
+  if (fino.math_type == math_type_linear) {
     // el vector del miembro derecho
     fino.has_rhs = 1;
     petsc_call(MatCreateVecs(fino.K, NULL, &fino.b));
     petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
-    
   }
   
   if (fino.problem_family == problem_family_shake ||
@@ -498,6 +497,10 @@ int fino_problem_init(void) {
     petsc_call(MatSetFromOptions(fino.M));
     petsc_call(MatMPIAIJSetPreallocation(fino.M, width, PETSC_NULL, width, PETSC_NULL));
     petsc_call(MatSeqAIJSetPreallocation(fino.M, width, PETSC_NULL));
+    if (fino.do_not_set_block_size == 0) {
+      petsc_call(MatSetBlockSize(fino.M, fino.degrees));
+    }
+    
     petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
   }
   
@@ -510,6 +513,14 @@ int fino_problem_init(void) {
     fino.solution[g]->data_size = fino.spatial_unknowns;
     fino.solution[g]->data_argument = fino.mesh->nodes_argument;
     fino.solution[g]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
+    
+    if (fino.nev > 1) {
+      for (i = 0; i < fino.nev; i++) {
+        fino.vibration[g][i]->data_argument = fino.gradient[0][0]->data_argument;
+        fino.vibration[g][i]->data_size = fino.mesh->n_nodes;
+        fino.vibration[g][i]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+      }
+    }
   }
 
   wasora_call(mesh_node_indexes(fino.mesh, fino.degrees));

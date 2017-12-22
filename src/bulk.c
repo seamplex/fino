@@ -79,7 +79,7 @@ int fino_build_bulk(void) {
       // son los que usamos para las matrices elementales
       wasora_call(fino_build_element_volumetric(&fino.mesh->element[i]));
       
-    } else if (fino.math_type != math_eigen &&
+    } else if (fino.math_type != math_type_eigen &&
                fino.mesh->element[i].type->dim < fino.dimensions &&
                fino.mesh->element[i].physical_entity != NULL &&
                (fino.mesh->element[i].physical_entity->bc_type_math == bc_math_neumann ||
@@ -136,7 +136,7 @@ int fino_build_element_volumetric(element_t *element) {
     }
 
     MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
-    if (fino.math_type == math_linear) {
+    if (fino.math_type == math_type_linear) {
       VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
     }
     if (fino.has_mass)  {

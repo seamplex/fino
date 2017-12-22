@@ -108,7 +108,7 @@ int fino_break_build_element(element_t *element, int v) {
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }
     
-    if (fino.math_type == math_eigen && distribution_rho.defined == 0) {
+    if (fino.math_type == math_type_eigen && distribution_rho.defined == 0) {
       wasora_push_error_message("cannot find density 'rho'");
       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
     }

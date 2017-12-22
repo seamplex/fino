@@ -28,8 +28,9 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_eigen_slepc"
-int fino_solve_eigen_slepc(void) {
+int fino_solve_eigen_slepc(Mat A, Mat B) {
 
+  int i;
   PetscReal xi = 1.0;
   PetscInt nconv;
 
@@ -55,12 +56,13 @@ int fino_solve_eigen_slepc(void) {
 //  petsc_call(EPSSetOperators(fino.eps, fino.B, fino.A));
 //  petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_SMALLEST_MAGNITUDE));
 
-  petsc_call(EPSSetOperators(fino.eps, fino.M, fino.K));
+  petsc_call(EPSSetOperators(fino.eps, B, A));
   petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_LARGEST_MAGNITUDE));
   
   // problema generalizado no hermitico (por las condiciones de contorno)
   // TODO: no romper simetria!
   petsc_call(EPSSetProblemType(fino.eps, EPS_GNHEP));  
+//  petsc_call(EPSSetProblemType(fino.eps, EPS_GHEP));    
   
   // TODO: ver bien esto del guess inicial
   //petsc_call(EPSSetInitialSpace(fino.eps, 1, &fino.guess));
@@ -90,24 +92,21 @@ int fino_solve_eigen_slepc(void) {
   // el precondicionador
   if (fino.pc_type != NULL) {
     petsc_call(PCSetType(fino.pc, fino.pc_type));
-  } else {
-    // default gamg
-  }  petsc_call(PCSetType(fino.pc, "lu"));
-
+  }
+  
   // convergencia con respecto a la norma de las matrices
   petsc_call(EPSSetConvergenceTest(fino.eps, EPS_CONV_NORM));
   
   // tolerancia
   // TODO
-//  if (wasora_var(fino.vars.reltol) != 0) {
-//    petsc_call(EPSSetTolerances(fino.eps, wasora_var(fino.vars.reltol), PETSC_DECIDE));
-//  }
+  if (wasora_var(fino.vars.reltol) != 0) {
+    petsc_call(EPSSetTolerances(fino.eps, wasora_var(fino.vars.reltol), PETSC_DECIDE));
+  }
 
   // si no nos pidieron que autovalor quieren, pedimos el primero
   if (fino.nev == 0) {
     fino.nev = 1;
   }
-  
   // dimension del sub espacio
   if (fino.eps_ncv.n_tokens != 0) {
     petsc_call(EPSSetDimensions(fino.eps, fino.nev, (PetscInt)(wasora_evaluate_expression(&fino.eps_ncv)), PETSC_DEFAULT));
@@ -128,7 +127,7 @@ int fino_solve_eigen_slepc(void) {
     return WASORA_RUNTIME_ERROR;
   }
   
-  // leemos la solucion
+  // leemos la solucion posta
   petsc_call(EPSGetEigenpair(fino.eps, fino.nev-1, &fino.lambda, &xi, fino.phi, PETSC_NULL));
   
   // chequeamos que el autovalor sea real
@@ -136,10 +135,27 @@ int fino_solve_eigen_slepc(void) {
     wasora_push_error_message("eigen-solver found a complex eigenvalue (%g + i %g)", fino.lambda, xi);
     return WASORA_RUNTIME_ERROR;
   }
-    
+  
   // lo normalizamos
-  VecNormalize(fino.phi, PETSC_NULL);
+  // ya viene normalizado con alguna de las matrices
+//  VecNormalize(fino.phi, PETSC_NULL);
 
+  if (fino.nev != 1) {
+    free(fino.eigenvalue);
+    free(fino.eigenvector);
+    fino.eigenvalue = calloc(fino.nev, sizeof(PetscScalar));
+    fino.eigenvector = calloc(fino.nev, sizeof(Vec));
+    
+    for (i = 0; i < fino.nev; i++) {
+      petsc_call(MatCreateVecs(fino.K, NULL, &fino.eigenvector[i]));
+      petsc_call(EPSGetEigenpair(fino.eps, i, &fino.eigenvalue[i], &xi, fino.eigenvector[i], PETSC_NULL));
+      if (xi != 0) {
+        wasora_push_error_message("the eigenvalue %d is complex (%g + i %g)", i+1, fino.eigenvalue[i], xi);
+        return WASORA_RUNTIME_ERROR;
+      }
+    }
+  }
+  
   // obtenemos informacion auxiliar
 /*  
   petsc_call(EPSGetErrorEstimate(fino.eps, 0, &xi));

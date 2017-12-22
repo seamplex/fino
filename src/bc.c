@@ -469,7 +469,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
               indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
 
-              if (fino.math_type == math_linear && (strcmp(bc->expr.string, "0") != 0)) {
+              if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
                 wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
                 wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
                 wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
@@ -535,7 +535,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
-  if (fino.math_type != math_eigen) {
+  if (fino.math_type != math_type_eigen) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
       petsc_call(MatGetRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
@@ -566,14 +566,14 @@ int fino_set_essential_bc(Mat A, Vec b) {
   petsc_call(MatZeroRowsColumns(A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, b));
   petsc_call(VecDestroy(&vec_rhs_dirichlet));
   
-  if (fino.math_type == math_eigen) {
+  if (fino.math_type == math_type_eigen) {
     petsc_call(MatZeroRowsColumns(fino.M, k_dirichlet, indexes_dirichlet, 0.0, PETSC_NULL, PETSC_NULL));
   }
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
   // TODO: esto rompe simetria como loco!
   
-  if (fino.math_type != math_eigen) {
+  if (fino.math_type != math_type_eigen) {
     // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
     petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
   
