@@ -604,7 +604,7 @@ int fino_define_functions(void) {
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
   if (fino.dimensions == 0) {
-    wasora_push_error_message("do not know how many dimensions the problem has");
+    wasora_push_error_message("do not know how many dimensions the problem has, tell me with DIMENSIONS in either FINO_PROBLEM or MESH");
     return WASORA_PARSER_ERROR;
   } else if (fino.degrees == 0) {
     return WASORA_PARSER_ERROR;
