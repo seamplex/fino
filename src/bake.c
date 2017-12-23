@@ -33,6 +33,83 @@ fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
 #undef  __FUNCT__
+#define __FUNCT__ "fino_bake_step_initial"
+int fino_bake_step_initial(void) {
+  
+  int j;
+  double xi;
+  function_t *ic;
+
+  if ((ic = wasora_get_function_ptr("T_0")) == NULL) {
+    wasora_push_error_message("no initial condition T_0 given");
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  if (ic->n_arguments != fino.dimensions) {
+    wasora_push_error_message("initial condition function has to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  for (j = 0; j < fino.mesh->n_nodes; j++) {
+    xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+    VecSetValue(fino.phi, fino.mesh->node[j].index[0], xi, INSERT_VALUES);
+  }
+  
+  return WASORA_RUNTIME_OK;
+  
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_bake_step_transient"
+int fino_bake_step_transient(void) {
+
+  // resolvemos 
+  //   A*T(n+1) = b
+  // con
+  //   A = K*theta + C/dt 
+  //   b = (-K*(1-theta)+C/dt)*T(n) + b
+  double theta = 0.5;
+
+  // TODO: ver como hacer esto mas eficiente
+  petsc_call(MatZeroEntries(fino.K));
+  petsc_call(MatZeroEntries(fino.M));
+  petsc_call(VecZeroEntries(fino.b));
+  
+  wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
+
+  if (fino.has_transient == 0) {
+    fino.has_transient = 1;
+    MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
+    MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
+    VecDuplicate(fino.b, &fino.c);
+  } else {
+    MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
+    MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
+  }
+
+  MatScale(fino.A, theta);
+  MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+
+  MatScale(fino.B, -(1-theta));
+  MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
+
+  fino_assembly();
+
+  MatMult(fino.B, fino.phi, fino.c);
+  VecAXPY(fino.c, 1, fino.b);
+
+  fino_assembly();
+
+  // hay que volver a poner esta
+  wasora_call(fino_set_essential_bc(fino.A, fino.c));
+
+  // y resolver
+  wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
+        
+  return WASORA_RUNTIME_OK;
+}
+
+#undef  __FUNCT__
 #define __FUNCT__ "fino_build_bake"
 int fino_build_bake(element_t *element, int v) {
   

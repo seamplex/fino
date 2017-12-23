@@ -514,6 +514,8 @@ extern double fino_compute_tresca_from_tensor(double, double, double, double, do
 
 
 // bake.c
+extern int fino_bake_step_initial();
+extern int fino_bake_step_transient();
 extern int fino_build_bake(element_t *, int);
 extern int fino_bake_set_heat_flux(element_t *);
 extern int fino_bake_set_convection(element_t *element);

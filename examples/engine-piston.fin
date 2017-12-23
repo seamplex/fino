@@ -12,7 +12,7 @@ k = 160*f
 # heat transfer coefficient in W/(m^2*K) set in W/(mm^2*K)
 PHYSICAL_ENTITY NAME "top"                BC   h=450*f^2   Tref=1400
 PHYSICAL_ENTITY NAME "ring 1"             BC   h=150*f^2   Tref=450
-PHYSICAL_ENTITY NAME "ring 1 groove"      BC  h=1000*f^2   Tref=450
+PHYSICAL_ENTITY NAME "ring 1 groove"      BC   h=1e3*f^2   Tref=450
 PHYSICAL_ENTITY NAME "ring 2"             BC   h=150*f^2   Tref=450
 PHYSICAL_ENTITY NAME "ring 2 groove"      BC   h=400*f^2   Tref=380
 PHYSICAL_ENTITY NAME "ring 3"             BC   h=150*f^2   Tref=380
