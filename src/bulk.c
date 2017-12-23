@@ -188,7 +188,9 @@ int fino_build_element_bc(element_t *element) {
     }
   } else if (fino.problem_family == problem_family_bake) {
     if (element->physical_entity->bc_type_phys == bc_phys_heat_flux) {
-      wasora_call(fino_bake_set_heat_flux(element));
+      if (strcmp(element->physical_entity->bc_args->string, "0") != 0) {
+        wasora_call(fino_bake_set_heat_flux(element));
+      }
     } else if (element->physical_entity->bc_type_phys == bc_phys_convection) {
       wasora_call(fino_bake_set_convection(element));
     }
