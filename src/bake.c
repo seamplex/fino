@@ -46,7 +46,7 @@ int fino_bake_step_initial(void) {
   }
 
   if (ic->n_arguments != fino.dimensions) {
-    wasora_push_error_message("initial condition function has to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+    wasora_push_error_message("initial condition function ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
     return WASORA_RUNTIME_ERROR;
   }
 
@@ -176,7 +176,7 @@ int fino_build_bake(element_t *element, int v) {
     } else {
       rhocp = fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)) * fino_distribution_evaluate(&distribution_cp, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
     }
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss*rhocp, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric *rhocp, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
   } 
   
   return WASORA_RUNTIME_OK;

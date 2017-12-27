@@ -104,9 +104,9 @@ int fino_instruction_step(void *arg) {
       }
     } else {
       if (wasora_var_value(wasora_special_var(in_static))) {
-        fino_bake_step_initial();
+        wasora_call(fino_bake_step_initial());
       } else {
-        fino_bake_step_transient();
+        wasora_call(fino_bake_step_transient());
       }
     }
     

@@ -550,7 +550,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
         }
         petsc_call(MatRestoreRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
       } else {
-        wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s'", fino.dirichlet_row->physical_entity->name);
+        wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s' (do you have volumetric elements?)", fino.dirichlet_row->physical_entity->name);
         PetscFunctionReturn(WASORA_RUNTIME_ERROR);
       }
     

@@ -454,13 +454,18 @@ int fino_problem_init(void) {
     wasora_push_error_message("no mesh defined");
     return WASORA_RUNTIME_ERROR;
   }
-  
+
   LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
-    if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->dimension == 0) {
+    if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' (id %d) has a BC but no associated elements", physical_entity->name, physical_entity->id);
       return WASORA_RUNTIME_ERROR;
     }
+    if (physical_entity->material != NULL && physical_entity->n_elements == 0) {
+      wasora_push_error_message("physical entity '%s' (id %d) has a material but no associated elements", physical_entity->name, physical_entity->id);
+      return WASORA_RUNTIME_ERROR;
+    }
   }
+
   
   
   // ponemos esto para hacer explicito que somos FEM y no FVM
