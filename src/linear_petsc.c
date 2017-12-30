@@ -26,7 +26,6 @@
 
 #include "fino.h"
 
-
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_linear_petsc"
 int fino_solve_linear_petsc(Mat A, Vec b) {
