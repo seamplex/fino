@@ -69,6 +69,7 @@ int fino_bake_step_transient(void) {
   //   A = K*theta + C/dt 
   //   b = (-K*(1-theta)+C/dt)*T(n) + b
   double theta = 0.5;
+  int nonlinear = 1;
 
   // TODO: ver como hacer esto mas eficiente
   petsc_call(MatZeroEntries(fino.K));
@@ -82,11 +83,29 @@ int fino_bake_step_transient(void) {
     MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
     MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
     VecDuplicate(fino.b, &fino.c);
+    if (nonlinear) {
+      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.lastM);
+      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.dotM);
+      VecDuplicate(fino.b, &fino.m);
+    }
   } else {
     MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
     MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
+    if (nonlinear) {
+      MatCopy(fino.M, fino.dotM, SAME_NONZERO_PATTERN);
+    }
   }
 
+  if (nonlinear) {
+    // correccion de Mpunto
+    MatAXPY(fino.dotM, -1, fino.lastM, SAME_NONZERO_PATTERN);
+    MatScale(fino.dotM, 1/wasora_var_value(wasora_special_var(dt)));
+  
+    // hacemos un K nuevo como K = K-Mdot
+    //  MatAXPY(fino.A, -1, fino.dotM, SUBSET_NONZERO_PATTERN);
+    //  MatAXPY(fino.B, -1, fino.dotM, SUBSET_NONZERO_PATTERN);
+  }
+ 
   MatScale(fino.A, theta);
   MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
 
@@ -97,6 +116,12 @@ int fino_bake_step_transient(void) {
 
   MatMult(fino.B, fino.phi, fino.c);
   VecAXPY(fino.c, 1, fino.b);
+  
+  if (nonlinear) {
+    // o hacemos un c nuevo como c = c + Mdot*T
+    MatMult(fino.dotM, fino.phi, fino.m);
+    VecAXPY(fino.c, 1, fino.m);
+  }
 
   fino_assembly();
 
@@ -105,6 +130,10 @@ int fino_bake_step_transient(void) {
 
   // y resolver
   wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
+  
+  if (nonlinear) {
+    MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);
+  }
         
   return WASORA_RUNTIME_OK;
 }
