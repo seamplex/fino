@@ -214,7 +214,7 @@ int fino_instruction_debug(void *arg) {
 
       sprintf(filename, "%s-K.txt", debug->file->path);
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-      fino_print_petsc_matrix(fino.M, ascii_file);
+      fino_print_petsc_matrix(fino.K, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
       
       if (fino.math_type == math_type_eigen) {
@@ -235,7 +235,7 @@ int fino_instruction_debug(void *arg) {
 
       sprintf(filename, "%s-K.str", debug->file->path);
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
-      fino_print_petsc_matrix_struct(fino.M, ascii_file);
+      fino_print_petsc_matrix_struct(fino.K, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
 
       if (fino.math_type == math_type_eigen) {
@@ -254,7 +254,7 @@ int fino_instruction_debug(void *arg) {
     if (debug->matrices & DEBUG_MATRICES_PETSC_BINARY) {
       sprintf(filename, "%s-K.bin", debug->file->path);
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-      MatView(fino.M, viewer);
+      MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
       
       if (fino.math_type == math_type_eigen) {
@@ -273,7 +273,7 @@ int fino_instruction_debug(void *arg) {
     if (debug->matrices & DEBUG_MATRICES_PETSC_COMPRESSED_BINARY) {
       sprintf(filename, "%s-K.gz", debug->file->path);
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
-      MatView(fino.M, viewer);
+      MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
       
       if (fino.math_type == math_type_eigen) {
@@ -293,7 +293,7 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-K.asc", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
-      MatView(fino.M, viewer);
+      MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_type_eigen) {
@@ -315,7 +315,7 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-K.m", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
-      MatView(fino.M, viewer);
+      MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_type_eigen) {
@@ -337,7 +337,7 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-K.den", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
-      MatView(fino.M, viewer);
+      MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
 
       if (fino.math_type == math_type_eigen) {
@@ -359,7 +359,7 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-K.sng", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
-      mat2sng(fino.M, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 0, viewer);
+      mat2sng(fino.K, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 0, viewer);
       petsc_call(PetscViewerDestroy(&viewer));
     }    
 
@@ -367,7 +367,7 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-str-K.sng", debug->file->path);
       PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
       PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
-      mat2sng(fino.M, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 1, viewer);
+      mat2sng(fino.K, size, (PetscInt)(wasora_evaluate_expression(&debug->matrices_stride)), 1, viewer);
       petsc_call(PetscViewerDestroy(&viewer));
     }   
     
@@ -381,7 +381,7 @@ int fino_instruction_debug(void *arg) {
     PetscDraw draw2;
 
     petsc_call(PetscViewerDrawOpen(PETSC_COMM_WORLD, PETSC_NULL, "A", 100, 100, size, size, &viewer));
-    MatView(fino.M, viewer);
+    MatView(fino.K, viewer);
     PetscViewerDrawGetDraw(viewer, 0, &draw);
     PetscDrawSetPause(draw, -1);
 
