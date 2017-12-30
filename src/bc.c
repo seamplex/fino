@@ -346,7 +346,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
   int k_dirichlet = 0;
   int k_algebraic = 0;
 
-  int found = 0;
   int i, j, d;
   
   bc_string_based_t *bc;
@@ -374,11 +373,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   fino.algebraic_row = calloc(n_bcs, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
-    found = 0;
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
-      if (found) {
-        break;
-      }
       if (associated_element->element->type->dim != fino.dimensions &&
           (physical_entity = associated_element->element->physical_entity) != NULL) {
           
@@ -407,7 +402,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
             rhs_dirichlet[k_dirichlet] = 0;
             k_dirichlet++;
           }
-          found = 1;
 
         } else if (physical_entity->bc_type_phys == bc_phys_displacement_mimic) {
           
@@ -456,7 +450,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
           fino.algebraic_row[k_algebraic].dof = dof;
                 
           k_algebraic++;
-          found = 1;          
           
         } else if (physical_entity->bc_type_math == bc_math_dirichlet && physical_entity->bc_strings != NULL) {
 
@@ -479,7 +472,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
               }
 
               k_dirichlet++;
-              found = 1;
               
             } else if (bc->bc_type_math == bc_phys_displacement_constrained) {
 
@@ -521,7 +513,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
               }
                 
               k_algebraic++;
-              found = 1;
             }
           }
         }
