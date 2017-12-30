@@ -239,6 +239,10 @@ struct {
   Mat A;         // las matrices para el transient de calor
   Mat B;
   Vec c;         // el vector del miembro derecho para el transient
+
+  Mat lastM;
+  Mat dotM;
+  Vec m;
   
   // contexto del solver de krylov
   KSP ksp;
