@@ -20,19 +20,17 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
-PetscErrorCode MyComputeFunction(SNES snes,Vec x,Vec r,void *ctx) {
 /*  
+PetscErrorCode MyComputeFunction(SNES snes,Vec x,Vec r,void *ctx) {
   Vec minusb;
   VecDuplicate(fino.b, &minusb);
   VecScale(minusb, -1);
   MatMultAdd(fino.K, x, minusb, r);
- */
   MatMult(fino.K, x, r);
   
   return(0);
 }
 
-/*
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_linear_petsc"
 int fino_solve_linear_petsc(Mat A, Vec b) {
