@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's method for stress linearization over SCLs according to ASME
  *
- *  Copyright (C) 2017 jeremy theler
+ *  Copyright (C) 2017--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -41,7 +41,7 @@ int fino_instruction_linearize(void *arg) {
   double peak;
   double x,  y,  z;
   double xi, yi, zi;      // coordenadas del punto inicial de la SCL
-  double x0, y0, z0;      // coordenadas del COG de la SCL
+//  double x0, y0, z0;      // coordenadas del COG de la SCL
   double w_gauss;
   double r_for_axisymmetric;
   double t, t_prime;
@@ -49,6 +49,7 @@ int fino_instruction_linearize(void *arg) {
   int i, j, k, v;
   
 // http://www.eng-tips.com/faqs.cfm?fid=982
+  // TODO: sacar un markdown con los detalles
 
   if (linearize->scl->dimension != 1) {
     wasora_push_error_message("physical entity for the SCL has to be one-dimensional, not %d-dimensional", linearize->scl->dimension);
@@ -65,10 +66,11 @@ int fino_instruction_linearize(void *arg) {
   zi = fino.mesh->element[linearize->scl->element[0]].node[0]->x[2];
   
   // el centro de gravedad de la SCL
+/*  
   x0 = linearize->scl->cog[0];
   y0 = linearize->scl->cog[1];
   z0 = linearize->scl->cog[2];
-  
+*/  
   // la longitud de la SCL
   t = linearize->scl->volume;
   
@@ -85,8 +87,7 @@ int fino_instruction_linearize(void *arg) {
       x = gsl_vector_get(fino.mesh->fem.x, 0);
       y = gsl_vector_get(fino.mesh->fem.x, 1);
       z = gsl_vector_get(fino.mesh->fem.x, 2);
-      t_prime = 0.5*sqrt((gsl_pow_2(x-xi) + gsl_pow_2(y-yi) + gsl_pow_2(z-zi))/(gsl_pow_2(x0-xi) + gsl_pow_2(y0-yi) + gsl_pow_2(z0-zi)));
-//      t_prime = y;
+      t_prime = sqrt(gsl_pow_2(x-xi) + gsl_pow_2(y-yi) + gsl_pow_2(z-zi));
 
       integrand_mx = integrand_my = integrand_mz = integrand_mxy = integrand_myz = integrand_mzx = 0;
       integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
@@ -129,14 +130,14 @@ int fino_instruction_linearize(void *arg) {
     }
   }
 
-//  printf("membrane\n");
-//  printf("%e\t%e\t%e\t%e\t%e\t%e\n", mx, my, mz, mxy, myz, mzx);
   sigmax_m /= t;
   sigmay_m /= t;
   sigmaz_m /= t;
   tauxy_m  /= t;
   tauyz_m  /= t;
   tauzx_m  /= t;
+  printf("membrane\n");
+  printf("%e\t%e\t%e\t%e\t%e\t%e\n", sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
   
   den = gsl_pow_2(t)/6.0;
   sigmax_b /= den;
@@ -146,20 +147,15 @@ int fino_instruction_linearize(void *arg) {
   tauyz_b  /= den;
   tauzx_b  /= den;
 
-//  printf("bending\n");
-//  printf("%e\t%e\t%e\t%e\t%e\t%e\n", sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b);
+  printf("bending\n");
+  printf("%e\t%e\t%e\t%e\t%e\t%e\n", sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b);
   
-//  wasora_call(fino_compute_principal_stress(mx, my, mz, mxy, myz, mzx, &m1, &m2, &m3));
-//  wasora_call(fino_compute_principal_stress(bx, by, bz, bxy, byz, bzx, &b1, &b2, &b3));
-
-/*
   printf("LINEARIZATION\n");
   fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, &sigma1, &sigma2, &sigma3);
   fino_compute_principal_stress(sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b, &sigma1, &sigma2, &sigma3);
   fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_m, tauzx_m+tauzx_m, &sigma1, &sigma2, &sigma3);
   fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m+tauyz_m, tauzx_m-tauzx_m, &sigma1, &sigma2, &sigma3);
   printf("-------------\n\n");
-*/
 
   if (linearize->membrane != NULL) {
     wasora_var_value(linearize->membrane) = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
@@ -171,11 +167,10 @@ int fino_instruction_linearize(void *arg) {
     wasora_var_value(linearize->peak) = peak;
   }
 
-/*  
   printf("membrane %g\n", wasora_var_value(linearize->membrane));
   printf("bending  %g\n", wasora_var_value(linearize->bending));
   printf("m+b      %g\n", fino_compute_vonmises_from_tensor(integrand_mx+integrand_bx, integrand_my+integrand_by, integrand_mz+integrand_bz, integrand_mxy+integrand_bxy, integrand_myz+integrand_byz, integrand_mzx+integrand_bzx));
   printf("m-b      %g\n", fino_compute_vonmises_from_tensor(integrand_mx-integrand_bx, integrand_my-integrand_by, integrand_mz-integrand_bz, integrand_mxy-integrand_bxy, integrand_myz-integrand_byz, integrand_mzx-integrand_bzx));
-*/
+
   return WASORA_RUNTIME_OK;
 }

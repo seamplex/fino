@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's parsing routines
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -34,12 +34,15 @@ int plugin_parse_line(char *line) {
 // ---------------------------------------------------------------------
 ///kw+FINO_PROBLEM+usage FINO_PROBLEM
     if (strcasecmp(token, "FINO_PROBLEM") == 0) {
-      
+///kw+FINO_PROBLEM+desc Sets the problem type that Fino has to solve.      
       double xi;
       
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 
-///kw+FINO_PROBLEM+usage [ BAKE |
+///kw+FINO_PROBLEM+usage [
+///kw+FINO_PROBLEM+usage BAKE
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc * `BAKE` (or `HEAT`) solves the heat conduction problem.
         if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0) {
           fino.problem_family = problem_family_bake;
           fino.problem_kind = problem_kind_full3d;
@@ -48,7 +51,9 @@ int plugin_parse_line(char *line) {
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
           fino.unknown_name[0] = strdup("T");
 
-///kw+FINO_PROBLEM+usage SHAKE |
+///kw+FINO_PROBLEM+usage SHAKE
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc * `SHAKE` (or `FREQUENCY`) computes the natural frequencies and modes.        
         } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "FREQUENCY") == 0) {
           fino.problem_family = problem_family_shake;
           fino.problem_kind = problem_kind_full3d;
@@ -60,7 +65,9 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
           
-///kw+FINO_PROBLEM+usage BREAK |
+///kw+FINO_PROBLEM+usage BREAK
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc `BREAK` (or `ELASTIC`) solves the elastic problem.        
         } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_full3d;
@@ -72,7 +79,9 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
 
-///kw+FINO_PROBLEM+usage HEAT_AXISYMMETRIC |
+///kw+FINO_PROBLEM+usage HEAT_AXISYMMETRIC
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
         } else if (strcasecmp(token, "HEAT_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_bake;
           fino.problem_kind = problem_kind_axisymmetric;
@@ -84,8 +93,10 @@ int plugin_parse_line(char *line) {
           fino.degrees = 1;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
           fino.unknown_name[0] = strdup("T");
-          
-///kw+FINO_PROBLEM+usage PLANE_STRESS |
+
+///kw+FINO_PROBLEM+usage PLANE_STRESS
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc `PLANE_STRESS` solves the plane stress elastic problem. 
         } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_stress;
@@ -99,7 +110,9 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
 
-///kw+FINO_PROBLEM+usage PLANE_STRAIN | 
+///kw+FINO_PROBLEM+usage PLANE_STRAIN
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+desc `PLANE_STRAIN` solves the plane strain elastic problem.
         } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
@@ -109,7 +122,9 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
           
-///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC | 
+///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC
+///kw+FINO_PROBLEM+usage ]
+///kw+FINO_PROBLEM+desc `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
         } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_axisymmetric;
@@ -120,6 +135,7 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
 
 ///kw+FINO_PROBLEM+usage [ DIMENSIONS <expr> ]
+///kw+FINO_PROBLEM+desc The number of dimensions need to be given for the heat conduction problem.
         } else if (strcasecmp(token, "DIMENSIONS") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
           fino.dimensions = (int)(xi);
@@ -269,21 +285,21 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ GRADIENT_EVALUATION {
         } else if (strcasecmp(token, "GRADIENT_EVALUATION") == 0) {
           char *keywords[] = {
-///kw+FINO_SOLVER+usage   mass_matrix_consistent
+///kw+FINO_SOLVER+usage   mass_matrix_consistent |
                          "mass_matrix_consistent",
-///kw+FINO_SOLVER+usage   mass_matrix_row_sum
+///kw+FINO_SOLVER+usage   mass_matrix_row_sum |
                          "mass_matrix_row_sum",
-///kw+FINO_SOLVER+usage   mass_matrix_lobatto
+///kw+FINO_SOLVER+usage   mass_matrix_lobatto |
                          "mass_matrix_lobatto",
-///kw+FINO_SOLVER+usage   mass_matrix_diagonal
+///kw+FINO_SOLVER+usage   mass_matrix_diagonal |
                          "mass_matrix_diagonal",
-///kw+FINO_SOLVER+usage   node_average_all
+///kw+FINO_SOLVER+usage   node_average_all |
                          "node_average_all",
-///kw+FINO_SOLVER+usage   node_average_corner
+///kw+FINO_SOLVER+usage   node_average_corner |
                          "node_average_corner",
-///kw+FINO_SOLVER+usage   gauss_average
+///kw+FINO_SOLVER+usage   gauss_average |
                          "gauss_average",
-///kw+FINO_SOLVER+usage   none          
+///kw+FINO_SOLVER+usage   none
                          "none",
                          ""};
           int values[] = {gradient_mass_matrix_consistent, gradient_mass_matrix_row_sum, gradient_mass_matrix_lobatto, gradient_mass_matrix_diagonal, gradient_node_average_all, gradient_node_average_corner, gradient_gauss_average, gradient_none, 0};
@@ -416,9 +432,16 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
-///kw+FINO_LINEARIZE+desc Perform stress linearization according to ASME VII-Sec 5 over a Stress Classification Line.
+///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
+///kw+FINO_LINEARIZE+desc Stress Classification Line given as a one-dimensional physical entity.
+///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
+///kw+FINO_LINEARIZE+desc Von\  Mises criterioan and stored as variables.
+///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in
+///kw+FINO_LINEARIZE+desc `entity_M`, `entity_B` and `entity_P` respectively.
+      
     } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
       
+      char *name;
       fino_linearize_t *linearize;
       linearize = calloc(1, sizeof(fino_linearize_t));
       LL_APPEND(fino.linearizes, linearize);
@@ -427,18 +450,14 @@ int plugin_parse_line(char *line) {
       
 ///kw+FINO_LINEARIZE+usage SCL <physical_entity_name>
         if (strcasecmp(token, "SCL") == 0) {
-          char *name;
           wasora_call(wasora_parser_string(&name));
           if ((linearize->scl = wasora_get_physical_entity_ptr(name)) == NULL) {
-            wasora_push_error_message("unknown physical entity '%s'", name);
-            free(name);
-            return WASORA_PARSER_ERROR;
+            linearize->scl = wasora_define_physical_entity(name, 0, fino.mesh, 1, NULL, NULL, structured_direction_undefined);
           }
           free(name);
           
 ///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
         } else if (strcasecmp(token, "MEMBRANE") == 0) {
-          char *name;
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
@@ -451,7 +470,6 @@ int plugin_parse_line(char *line) {
           
 ///kw+FINO_LINEARIZE+usage [ BENDING <variable_name> ]
         } else if (strcasecmp(token, "BENDING") == 0) {
-          char *name;
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
@@ -463,7 +481,6 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_LINEARIZE+usage [ PEAK <variable_name> ]
         } else if (strcasecmp(token, "PEAK") == 0) {
-          char *name;
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
@@ -472,18 +489,6 @@ int plugin_parse_line(char *line) {
               return WASORA_PARSER_ERROR;
             }
           }
-          
-///kw+FINO_LINEARIZE+usage [ STRESS { vonmises | tresca } ]
-        } else if (strcasecmp(token, "STRESS") == 0) {
-          char *name;
-          wasora_call(wasora_parser_string(&name));
-
-          // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->bending = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->bending = wasora_define_variable(name)) == NULL) {
-              return WASORA_PARSER_ERROR;
-            }
-          }          
         } else {
           wasora_push_error_message("unknown keyword '%s'", token);
           return WASORA_PARSER_ERROR;
@@ -495,7 +500,31 @@ int plugin_parse_line(char *line) {
         return WASORA_PARSER_ERROR;
       }
       
-      // TODO: defaultear a entity_m, entity_b, etc
+      if (linearize->membrane == NULL) {
+        asprintf(&name, "%s_M", linearize->scl->name);
+        if ((linearize->membrane = wasora_define_variable(name)) == NULL) {
+          free(name);
+          return WASORA_PARSER_ERROR;
+        }
+        free(name);
+      }
+      if (linearize->bending == NULL) {
+        asprintf(&name, "%s_B", linearize->scl->name);
+        if ((linearize->bending = wasora_define_variable(name)) == NULL) {
+          free(name);
+          return WASORA_PARSER_ERROR;
+        }
+        free(name);
+      }
+      if (linearize->peak == NULL) {
+        asprintf(&name, "%s_P", linearize->scl->name);
+        if ((linearize->peak = wasora_define_variable(name)) == NULL) {
+          free(name);
+          return WASORA_PARSER_ERROR;
+        }
+        free(name);
+      }      
+      
       wasora_define_instruction(fino_instruction_linearize, linearize);
 
       return WASORA_PARSER_OK;
