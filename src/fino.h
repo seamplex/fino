@@ -70,10 +70,11 @@ PetscErrorCode petsc_err;
 #define bc_phys_displacement                           7
 #define bc_phys_displacement_constrained               8
 #define bc_phys_displacement_mimic                     9
-#define bc_phys_pressure                              16
+#define bc_phys_pressure_normal                       16
 #define bc_phys_stress                                17
 #define bc_phys_force                                 18
 #define bc_phys_moment                                19
+#define bc_phys_pressure_real                         20
 #define bc_phys_temperature                           32
 #define bc_phys_heat_flux                             33
 #define bc_phys_convection                            34
