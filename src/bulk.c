@@ -181,7 +181,8 @@ int fino_build_element_bc(element_t *element) {
       wasora_call(fino_break_set_stress(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_force) {
       wasora_call(fino_break_set_force(element));
-    } else if (element->physical_entity->bc_type_phys == bc_phys_pressure) {
+    } else if (element->physical_entity->bc_type_phys == bc_phys_pressure_normal ||
+               element->physical_entity->bc_type_phys == bc_phys_pressure_real) {
       wasora_call(fino_break_set_pressure(element));
     } else if (element->physical_entity->bc_type_phys == bc_phys_moment) {
       wasora_call(fino_break_set_moment(element));
