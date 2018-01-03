@@ -172,15 +172,19 @@ int fino_read_bcs(void) {
             
 
             
-          } else if (strcmp(name, "p") == 0) {
+          } else if (strcmp(name, "p") == 0 || strcmp(name, "P") == 0) {
             physical_entity->bc_type_math = bc->bc_type_math = bc_math_neumann;
-            physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_pressure;
+            if (strcmp(name, "p") == 0) {
+              physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_pressure_normal;
+            } else if (strcmp(name, "P") == 0) {
+              physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_pressure_real;
+            }
             wasora_call(wasora_parse_expression(expr, &bc->expr));
             if (physical_entity->bc_args == NULL) {
               physical_entity->bc_args = calloc(1, sizeof(expr_t));
             }
             wasora_call(wasora_parse_expression(expr, physical_entity->bc_args));
-            
+
           } else if (strcasecmp(name, "Mx") == 0 ||
                      strcasecmp(name, "My") == 0 ||
                      strcasecmp(name, "Mz") == 0) {

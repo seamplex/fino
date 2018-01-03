@@ -771,7 +771,12 @@ int fino_break_set_pressure(element_t *element) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
-    p = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
+    // la p chica es la proyeccion del vector tension sobre la normal, lo que uno espera en matematica
+    p = wasora_evaluate_expression(&  element->physical_entity->bc_args[0]);
+    // la P grande es presion positiva cuando comprime, como lo que uno espera en ingenieria
+    if (element->physical_entity->bc_type_phys == bc_phys_pressure_real) {
+      p = -p;
+    }
     gsl_vector_set(Nb, 0, wasora_var_value(fino.vars.nx) * p);
     gsl_vector_set(Nb, 1, wasora_var_value(fino.vars.ny) * p);
     if (fino.dimensions == 3) {
