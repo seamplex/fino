@@ -2,7 +2,7 @@
  *  fino's construction of linear elastic problem (break) with optional vibration (shake)
  *  and evaluation of the stress tensor out of the gradients of the displacements
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *

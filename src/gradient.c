@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's routines for computing gradients of results
  *
- *  Copyright (C) 2015-2017 jeremy theler
+ *  Copyright (C) 2015-2018 jeremy theler
  * 
  *  This file is part of fino.
  *
@@ -286,7 +286,7 @@ int fino_compute_gradients(void) {
                element->physical_entity->material == element->node[j_local]->master_material // hay una interfaz pero el material es el master
              ) {
             
-            // esto da exactamente ceros o unos
+            // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
             wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
           
             // TODO: esto da lo mismo para todos los nodos en primer orden

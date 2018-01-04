@@ -456,6 +456,17 @@ int plugin_parse_line(char *line) {
           }
           free(name);
           
+///kw+FINO_LINEARIZE+desc If either a `FILE` or a `FILE_PATH` is given, a markdown-formatted
+///kw+FINO_LINEARIZE+desc report with further information about the linearization is written.          
+///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
+        } else if (strcasecmp(token, "FILE") == 0) {
+          wasora_call(wasora_parser_file(&linearize->file));
+          
+///kw+FINO_LINEARIZE+usage FILE_PATH <file_path> ]
+        } else if (strcasecmp(token, "FILE_PATH") == 0) {
+            wasora_call(wasora_parser_file_path(&linearize->file, "w"));
+
+
 ///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
         } else if (strcasecmp(token, "MEMBRANE") == 0) {
           wasora_call(wasora_parser_string(&name));
@@ -544,7 +555,7 @@ int plugin_parse_line(char *line) {
         if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&debug->file));
           
-///kw+FINO_DEBUG+usage [ FILE_PATH <file_path> ]
+///kw+FINO_DEBUG+usage FILE_PATH <file_path> ]
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&debug->file, "w"));
           

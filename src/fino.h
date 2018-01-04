@@ -393,6 +393,8 @@ struct fino_step_t {
 struct fino_linearize_t {
   physical_entity_t *scl;
 
+  file_t *file;
+  
   var_t *membrane;
   var_t *bending;
   var_t *peak;
