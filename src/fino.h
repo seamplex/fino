@@ -391,7 +391,13 @@ struct fino_step_t {
 };
 
 struct fino_linearize_t {
-  physical_entity_t *scl;
+  physical_entity_t *physical_entity;
+  expr_t x1;
+  expr_t y1;
+  expr_t z1;
+  expr_t x2;
+  expr_t y2;
+  expr_t z2;
 
   file_t *file;
   
@@ -474,7 +480,9 @@ extern int fino_define_result_function(char *, function_t **);
 
 // linearize.c
 extern int fino_instruction_linearize(void *);
-
+extern double fino_linearization_integrand_membrane(double, void *);
+extern double fino_linearization_integrand_bending(double, void *);
+  
 // parser.c
 extern int fino_parse_line(char *);
 extern int fino_define_functions(void);

@@ -433,28 +433,71 @@ int plugin_parse_line(char *line) {
 // ---------------------------------------------------------------------
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
 ///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
-///kw+FINO_LINEARIZE+desc Stress Classification Line given as a one-dimensional physical entity.
-///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
-///kw+FINO_LINEARIZE+desc Von\  Mises criterioan and stored as variables.
-///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in
-///kw+FINO_LINEARIZE+desc `entity_M`, `entity_B` and `entity_P` respectively.
+///kw+FINO_LINEARIZE+desc Stress Classification Line given either as a one-dimensional physical entity in the
+///kw+FINO_LINEARIZE+desc mesh or as the continuous spatial coordinates of two end-points.
       
     } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
       
       char *name;
-      fino_linearize_t *linearize;
+      fino_linearize_t *linearize, *tmp;
+      int n_linearizes;
+      
+      if (fino.problem_family != problem_family_break) {
+        wasora_push_error_message("FINO_LINEARIZE makes sense only in elastic problems");
+        return WASORA_PARSER_ERROR;
+      }
+      
       linearize = calloc(1, sizeof(fino_linearize_t));
       LL_APPEND(fino.linearizes, linearize);
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
-      
-///kw+FINO_LINEARIZE+usage SCL <physical_entity_name>
-        if (strcasecmp(token, "SCL") == 0) {
+
+///kw+FINO_LINEARIZE+usage {
+///kw+FINO_LINEARIZE+usage PHYSICAL_ENTITY <physical_entity_name>
+///kw+FINO_LINEARIZE+desc If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+///kw+FINO_LINEARIZE+desc independently of the dimension of the problem.
+        
+        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
-          if ((linearize->scl = wasora_get_physical_entity_ptr(name)) == NULL) {
-            linearize->scl = wasora_define_physical_entity(name, 0, fino.mesh, 1, NULL, NULL, structured_direction_undefined);
+          if ((linearize->physical_entity = wasora_get_physical_entity_ptr(name)) == NULL) {
+            linearize->physical_entity = wasora_define_physical_entity(name, 0, fino.mesh, 1, NULL, NULL, structured_direction_undefined);
           }
           free(name);
+
+///kw+FINO_LINEARIZE+usage |
+///kw+FINO_LINEARIZE+usage START_POINT <x1> <y1> <z1>
+///kw+FINO_LINEARIZE+desc If the SCL is given with `START_POINT` and `END_POINT`, the number of coordinates given should
+///kw+FINO_LINEARIZE+desc match the problem dimension (i.e three coordinates for full\ 3D problems and two coordinates for
+///kw+FINO_LINEARIZE+desc axisymmetric or plane problems).
+///kw+FINO_LINEARIZE+desc Coordinates can be given algebraic expressions that will be evaluated at the time of the linearization.
+        } else if (strcasecmp(token, "START_POINT") == 0) {
+          if (fino.dimensions == 0) {
+            wasora_push_error_message("need to know the problem dimension before LINEARIZE START_POINT");
+            return WASORA_PARSER_ERROR;
+          }
+          wasora_call(wasora_parser_expression(&linearize->x1));
+          if (fino.dimensions > 1) {
+            wasora_call(wasora_parser_expression(&linearize->y1));
+          }
+          if (fino.dimensions > 2) {
+            wasora_call(wasora_parser_expression(&linearize->z1));
+          }
+          
+///kw+FINO_LINEARIZE+usage END_POINT <x2> <y2> <z2>
+///kw+FINO_LINEARIZE+usage }
+        } else if (strcasecmp(token, "END_POINT") == 0) {
+          if (fino.dimensions == 0) {
+            wasora_push_error_message("need to know the problem dimension before LINEARIZE END_POINT");
+            return WASORA_PARSER_ERROR;
+          }
+          wasora_call(wasora_parser_expression(&linearize->x2));
+          if (fino.dimensions > 1) {
+            wasora_call(wasora_parser_expression(&linearize->y2));
+          }
+          if (fino.dimensions > 2) {
+            wasora_call(wasora_parser_expression(&linearize->z2));
+          }
+          
           
 ///kw+FINO_LINEARIZE+desc If either a `FILE` or a `FILE_PATH` is given, a markdown-formatted
 ///kw+FINO_LINEARIZE+desc report with further information about the linearization is written.          
@@ -467,6 +510,12 @@ int plugin_parse_line(char *line) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
 
+///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
+///kw+FINO_LINEARIZE+desc Von\  Mises criterion and stored as variables.
+///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in
+///kw+FINO_LINEARIZE+desc `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
+///kw+FINO_LINEARIZE+desc Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
+            
 ///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
         } else if (strcasecmp(token, "MEMBRANE") == 0) {
           wasora_call(wasora_parser_string(&name));
@@ -506,21 +555,30 @@ int plugin_parse_line(char *line) {
         }
       }
 
-      if (linearize->scl == NULL) {
-        wasora_push_error_message("need a physical entity for the SCL");
-        return WASORA_PARSER_ERROR;
+      n_linearizes = 0;
+      LL_FOREACH(fino.linearizes, tmp) {
+        n_linearizes++;
       }
       
       if (linearize->membrane == NULL) {
-        asprintf(&name, "%s_M", linearize->scl->name);
+        if (linearize->physical_entity != NULL) {
+          asprintf(&name, "M_%s", linearize->physical_entity->name);
+        } else {
+          asprintf(&name, "M_%d", n_linearizes);
+        }
         if ((linearize->membrane = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
         }
         free(name);
+        
       }
       if (linearize->bending == NULL) {
-        asprintf(&name, "%s_B", linearize->scl->name);
+        if (linearize->physical_entity != NULL) {
+          asprintf(&name, "B_%s", linearize->physical_entity->name);
+        } else {
+          asprintf(&name, "B_%d", n_linearizes);
+        }
         if ((linearize->bending = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
@@ -528,13 +586,23 @@ int plugin_parse_line(char *line) {
         free(name);
       }
       if (linearize->peak == NULL) {
-        asprintf(&name, "%s_P", linearize->scl->name);
+        if (linearize->physical_entity != NULL) {
+          asprintf(&name, "P_%s", linearize->physical_entity->name);
+        } else {
+          asprintf(&name, "P_%d", n_linearizes);
+        }
+
         if ((linearize->peak = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
         }
         free(name);
       }      
+      
+      if (linearize->physical_entity == NULL && linearize->x1.n_tokens == 0 && linearize->x2.n_tokens == 0) {
+        wasora_push_error_message("need to know what the SCL is either as a PHYSICAL_ENTITY or START_POINT and END_POINT");
+        return WASORA_PARSER_ERROR;
+      }
       
       wasora_define_instruction(fino_instruction_linearize, linearize);
 
