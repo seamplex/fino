@@ -47,18 +47,17 @@ int fino_instruction_linearize(void *arg) {
   double integrand_bx, integrand_by, integrand_bz, integrand_bxy, integrand_byz, integrand_bzx;
   double sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m;
   double sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b;
-  double sigma1, sigma2, sigma3;
-  double peak;
-  double x,  y,  z;
-  double x1, y1, z1;      // coordenadas del punto inicial de la SCL
+  double M, B, MB, P, T;
+  double x[3];
   double w_gauss;
-  double r_for_axisymmetric;
-  double t, t_prime;
+//  double r_for_axisymmetric;
+  double t_prime, t_over_two_minus_t_prime;
   double h, den;
   int i, j, k, v;
-  
-// http://www.eng-tips.com/faqs.cfm?fid=982
-  // TODO: sacar un markdown con los detalles
+
+  struct linearize_params_t params;
+
+  // http://www.eng-tips.com/faqs.cfm?fid=982
   // TODO: opcion "ignore through-thickness bending stress"
 
   if (linearize->physical_entity != NULL) {
@@ -72,27 +71,31 @@ int fino_instruction_linearize(void *arg) {
     }
 
     // el primer nodo del primer elemento de la SCL
-    x1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[0];
-    y1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[1];
-    z1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[2];
+    params.x1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[0];
+    params.y1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[1];
+    params.z1 = fino.mesh->element[linearize->physical_entity->element[0]].node[0]->x[2];
+    
+    // el final es el doble con respecto al cog
+    params.x2 = params.x1 + 2*(linearize->physical_entity->cog[0]-params.x1);
+    params.y2 = params.y1 + 2*(linearize->physical_entity->cog[1]-params.y1);
+    params.z2 = params.z1 + 2*(linearize->physical_entity->cog[2]-params.z1);
 
     // la longitud de la SCL
-    t = linearize->physical_entity->volume;
+    params.t = linearize->physical_entity->volume;
 
     sigmax_m = sigmay_m = sigmaz_m = tauxy_m = tauyz_m = tauzx_m = 0;
     sigmax_b = sigmay_b = sigmaz_b = tauxy_b = tauyz_b = tauzx_b = 0;
-    peak = 0;
     for (i = 0; i < linearize->physical_entity->n_elements; i++) {
       element = &fino.mesh->element[linearize->physical_entity->element[i]];
       for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
         w_gauss = mesh_integration_weight(fino.mesh, element, v);
-        r_for_axisymmetric = fino_compute_r_for_axisymmetric();
+//        r_for_axisymmetric = fino_compute_r_for_axisymmetric();
         mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
 
-        x = gsl_vector_get(fino.mesh->fem.x, 0);
-        y = gsl_vector_get(fino.mesh->fem.x, 1);
-        z = gsl_vector_get(fino.mesh->fem.x, 2);
-        t_prime = sqrt(gsl_pow_2(x-x1) + gsl_pow_2(y-y1) + gsl_pow_2(z-z1));
+        t_prime = gsl_hypot3(gsl_vector_get(fino.mesh->fem.x, 0)-params.x1,
+                             gsl_vector_get(fino.mesh->fem.x, 1)-params.y1,
+                             gsl_vector_get(fino.mesh->fem.x, 2)-params.z1);
+        t_over_two_minus_t_prime = params.t/2 - t_prime;
 
         integrand_mx = integrand_my = integrand_mz = integrand_mxy = integrand_myz = integrand_mzx = 0;
         integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
@@ -106,19 +109,15 @@ int fino_instruction_linearize(void *arg) {
           integrand_myz  += h * fino.tauyz->data_value[k];
           integrand_mzx  += h * fino.tauzx->data_value[k];
 
-          integrand_bx   += h * fino.sigmax->data_value[k] * (t/2 - t_prime);
-          integrand_by   += h * fino.sigmay->data_value[k] * (t/2 - t_prime);
-          integrand_bz   += h * fino.sigmaz->data_value[k] * (t/2 - t_prime);
-          integrand_bxy  += h * fino.tauxy->data_value[k] * (t/2 - t_prime);
-          integrand_byz  += h * fino.tauyz->data_value[k] * (t/2 - t_prime);
-          integrand_bzx  += h * fino.tauzx->data_value[k] * (t/2 - t_prime);
-
-          if (fino.sigma->data_value[k] > peak) {
-            peak = fino.sigma->data_value[k];
-          }
+          integrand_bx   += h * fino.sigmax->data_value[k] * t_over_two_minus_t_prime;
+          integrand_by   += h * fino.sigmay->data_value[k] * t_over_two_minus_t_prime;
+          integrand_bz   += h * fino.sigmaz->data_value[k] * t_over_two_minus_t_prime;
+          integrand_bxy  += h * fino.tauxy->data_value[k] * t_over_two_minus_t_prime;
+          integrand_byz  += h * fino.tauyz->data_value[k] * t_over_two_minus_t_prime;
+          integrand_bzx  += h * fino.tauzx->data_value[k] * t_over_two_minus_t_prime;
         }
 
-        w_gauss *= r_for_axisymmetric;
+//        w_gauss *= r_for_axisymmetric;
         sigmax_m  += w_gauss * integrand_mx;
         sigmay_m  += w_gauss * integrand_my;
         sigmaz_m  += w_gauss * integrand_mz;
@@ -141,7 +140,6 @@ int fino_instruction_linearize(void *arg) {
     double error;  
     gsl_integration_workspace *w = gsl_integration_workspace_alloc(DEFAULT_INTEGRATION_INTERVALS);
     gsl_function F;
-    struct linearize_params_t params;
     
     params.x1 = wasora_evaluate_expression(&linearize->x1);
     params.y1 = wasora_evaluate_expression(&linearize->y1);
@@ -200,17 +198,14 @@ int fino_instruction_linearize(void *arg) {
   }
   
 
-  sigmax_m /= t;
-  sigmay_m /= t;
-  sigmaz_m /= t;
-  tauxy_m  /= t;
-  tauyz_m  /= t;
-  tauzx_m  /= t;
+  sigmax_m /= params.t;
+  sigmay_m /= params.t;
+  sigmaz_m /= params.t;
+  tauxy_m  /= params.t;
+  tauyz_m  /= params.t;
+  tauzx_m  /= params.t;
   
-//  printf("membrane\n");
-//  printf("%e\t%e\t%e\t%e\t%e\t%e\n", sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
-
-  den = gsl_pow_2(t)/6.0;
+  den = gsl_pow_2(params.t)/6.0;
   sigmax_b /= den;
   sigmay_b /= den;
   sigmaz_b /= den;
@@ -218,33 +213,82 @@ int fino_instruction_linearize(void *arg) {
   tauyz_b  /= den;
   tauzx_b  /= den;
 
-//  printf("bending\n");
-//  printf("%e\t%e\t%e\t%e\t%e\t%e\n", sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b);
 
+  M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
+  MB = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
+  B = MB - M;
+  x[0] = params.x1;
+  x[1] = params.y1;
+  x[2] = params.z1;
+  
+  /* OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso */
+  T = wasora_evaluate_function(fino.sigma, x);
+  P = T - MB;
+
+  wasora_var_value(linearize->M) = M;
+  wasora_var_value(linearize->MB) = MB;
+  wasora_var_value(linearize->P) = P;
+  
+  if (linearize->file != NULL) {
+    if (linearize->file->pointer == NULL) {
+      wasora_call(wasora_instruction_open_file(linearize->file));
+    }
+
+    fprintf(linearize->file->pointer, "# # Stress linearization\n");
+    fprintf(linearize->file->pointer, "#\n");
+
+    fprintf(linearize->file->pointer, "# Start point: (%g, %g, %g)\n", params.x1, params.y1, params.z1);
+    fprintf(linearize->file->pointer, "#   End point: (%g, %g, %g)\n", params.x2, params.y2, params.z2);
+
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "# ## Membrane stress tensor\n");
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "#  $\\sigma_{x}$ = %g\n", sigmax_m);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{y}$ = %g\n", sigmay_m);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{z}$ = %g\n", sigmaz_m);
+    fprintf(linearize->file->pointer, "#   $\\tau_{xy}$ = %g\n", tauxy_m);
+    fprintf(linearize->file->pointer, "#   $\\tau_{yz}$ = %g\n", tauyz_m);
+    fprintf(linearize->file->pointer, "#   $\\tau_{zx}$ = %g\n", tauzx_m);
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "# ## Bending stress tensor\n");
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "#  $\\sigma_{x}$ = %g\n", sigmax_b);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{y}$ = %g\n", sigmay_b);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{z}$ = %g\n", sigmaz_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{xy}$ = %g\n", tauxy_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{yz}$ = %g\n", tauyz_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{zx}$ = %g\n", tauzx_b);
+    fprintf(linearize->file->pointer, "#\n");
+
+    fprintf(linearize->file->pointer, "# ## Membrane plus bending stress tensor\n");
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "#  $\\sigma_{x}$ = %g\n", sigmax_m+sigmax_b);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{y}$ = %g\n", sigmay_m+sigmay_b);
+    fprintf(linearize->file->pointer, "#  $\\sigma_{z}$ = %g\n", sigmaz_m+sigmaz_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{xy}$ = %g\n", tauxy_m+tauxy_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{yz}$ = %g\n", tauyz_m+tauyz_b);
+    fprintf(linearize->file->pointer, "#   $\\tau_{zx}$ = %g\n", tauzx_m+tauzx_b);
+    fprintf(linearize->file->pointer, "#\n");
+
+    fprintf(linearize->file->pointer, "# ## Linearization results\n");
+    fprintf(linearize->file->pointer, "#\n");
+    fprintf(linearize->file->pointer, "#                Membrane stress $M$ = %g\n", wasora_var_value(linearize->M));
+    fprintf(linearize->file->pointer, "#  Membrane plus bending stress $MB$ = %g\n", wasora_var_value(linearize->MB));
+    fprintf(linearize->file->pointer, "#                    Peak stress $P$ = %g\n", wasora_var_value(linearize->P));
+    fprintf(linearize->file->pointer, "#\n");
+//    fprintf(linearize->file->pointer, "# t_prime\tM\tMB\tT\n");
+
+    for (i = 0; i <= 20; i++) {
+      t_prime = i/20.0;
+      x[0] = params.x1 + t_prime * (params.x2 - params.x1);
+      x[1] = params.y1 + t_prime * (params.y2 - params.y1);
+      x[2] = params.z1 + t_prime * (params.z2 - params.z1);    
+
+      fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x));
+    }
+  }    
     
-//  printf("LINEARIZATION\n");
-  fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, &sigma1, &sigma2, &sigma3);
-  fino_compute_principal_stress(sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b, &sigma1, &sigma2, &sigma3);
-  fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_m, tauzx_m+tauzx_m, &sigma1, &sigma2, &sigma3);
-  fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m+tauyz_m, tauzx_m-tauzx_m, &sigma1, &sigma2, &sigma3);
-//  printf("-------------\n\n");
-
-  if (linearize->membrane != NULL) {
-    wasora_var_value(linearize->membrane) = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
-  }
-  if (linearize->bending != NULL) {
-    wasora_var_value(linearize->bending) = fino_compute_vonmises_from_tensor(sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b);
-  }
-  if (linearize->peak != NULL) {
-    wasora_var_value(linearize->peak) = peak;
-  }
-
-/*  
-  printf("membrane %g\n", wasora_var_value(linearize->membrane));
-  printf("bending  %g\n", wasora_var_value(linearize->bending));
-  printf("m+b      %g\n", fino_compute_vonmises_from_tensor(integrand_mx+integrand_bx, integrand_my+integrand_by, integrand_mz+integrand_bz, integrand_mxy+integrand_bxy, integrand_myz+integrand_byz, integrand_mzx+integrand_bzx));
-  printf("m-b      %g\n", fino_compute_vonmises_from_tensor(integrand_mx-integrand_bx, integrand_my-integrand_by, integrand_mz-integrand_bz, integrand_mxy-integrand_bxy, integrand_myz-integrand_byz, integrand_mzx-integrand_bzx));
-*/
+  
   return WASORA_RUNTIME_OK;
 }
 

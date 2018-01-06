@@ -401,10 +401,9 @@ struct fino_linearize_t {
 
   file_t *file;
   
-  var_t *membrane;
-  var_t *bending;
-  var_t *peak;
-//  var_t *membrane_plus_bending;  
+  var_t *M;
+  var_t *MB;  
+  var_t *P;
   
   fino_linearize_t *next;
 };

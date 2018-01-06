@@ -434,7 +434,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
 ///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
 ///kw+FINO_LINEARIZE+desc Stress Classification Line given either as a one-dimensional physical entity in the
-///kw+FINO_LINEARIZE+desc mesh or as the continuous spatial coordinates of two end-points.
+///kw+FINO_LINEARIZE+desc mesh or as the (continuous) spatial coordinates of two end-points.
       
     } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
       
@@ -499,8 +499,12 @@ int plugin_parse_line(char *line) {
           }
           
           
-///kw+FINO_LINEARIZE+desc If either a `FILE` or a `FILE_PATH` is given, a markdown-formatted
-///kw+FINO_LINEARIZE+desc report with further information about the linearization is written.          
+///kw+FINO_LINEARIZE+desc If either a `FILE` or a `FILE_PATH` is given, the total, membrane and membrane plus bending
+///kw+FINO_LINEARIZE+desc stresses are written as a function of a scalar $t \in [0,1]$.
+///kw+FINO_LINEARIZE+desc Moreover, the individual elements of the membrane and bending stress tensors are written
+///kw+FINO_LINEARIZE+desc within comments (i.e. lines starting with the hash symbol `#`).
+//TODO: decir como se plotea y como se hace un PDF
+          
 ///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
         } else if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&linearize->file));
@@ -509,32 +513,32 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
-
+// TODO: elegir que es "total", von mises, tresca, sigma1, sigma2 o sigma3
 ///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
 ///kw+FINO_LINEARIZE+desc Von\  Mises criterion and stored as variables.
 ///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in
 ///kw+FINO_LINEARIZE+desc `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
 ///kw+FINO_LINEARIZE+desc Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
             
-///kw+FINO_LINEARIZE+usage [ MEMBRANE <variable_name> ]
-        } else if (strcasecmp(token, "MEMBRANE") == 0) {
+///kw+FINO_LINEARIZE+usage [ M <variable_name> ]
+        } else if (strcasecmp(token, "M") == 0) {
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->membrane = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->membrane = wasora_define_variable(name)) == NULL) {
+          if ((linearize->M = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->M = wasora_define_variable(name)) == NULL) {
               return WASORA_PARSER_ERROR;
             }
           }
           free(name);
           
-///kw+FINO_LINEARIZE+usage [ BENDING <variable_name> ]
-        } else if (strcasecmp(token, "BENDING") == 0) {
+///kw+FINO_LINEARIZE+usage [ MB <variable_name> ]
+        } else if (strcasecmp(token, "MB") == 0) {
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->bending = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->bending = wasora_define_variable(name)) == NULL) {
+          if ((linearize->MB = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->MB = wasora_define_variable(name)) == NULL) {
               return WASORA_PARSER_ERROR;
             }
           }
@@ -544,8 +548,8 @@ int plugin_parse_line(char *line) {
           wasora_call(wasora_parser_string(&name));
 
           // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->peak = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->peak = wasora_define_variable(name)) == NULL) {
+          if ((linearize->P = wasora_get_variable_ptr(name)) == NULL) {
+            if ((linearize->P = wasora_define_variable(name)) == NULL) {
               return WASORA_PARSER_ERROR;
             }
           }
@@ -560,39 +564,39 @@ int plugin_parse_line(char *line) {
         n_linearizes++;
       }
       
-      if (linearize->membrane == NULL) {
+      if (linearize->M == NULL) {
         if (linearize->physical_entity != NULL) {
           asprintf(&name, "M_%s", linearize->physical_entity->name);
         } else {
           asprintf(&name, "M_%d", n_linearizes);
         }
-        if ((linearize->membrane = wasora_define_variable(name)) == NULL) {
+        if ((linearize->M = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
         }
         free(name);
         
       }
-      if (linearize->bending == NULL) {
+      if (linearize->MB == NULL) {
         if (linearize->physical_entity != NULL) {
-          asprintf(&name, "B_%s", linearize->physical_entity->name);
+          asprintf(&name, "MB_%s", linearize->physical_entity->name);
         } else {
-          asprintf(&name, "B_%d", n_linearizes);
+          asprintf(&name, "MB_%d", n_linearizes);
         }
-        if ((linearize->bending = wasora_define_variable(name)) == NULL) {
+        if ((linearize->MB = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
         }
         free(name);
       }
-      if (linearize->peak == NULL) {
+      if (linearize->P == NULL) {
         if (linearize->physical_entity != NULL) {
           asprintf(&name, "P_%s", linearize->physical_entity->name);
         } else {
           asprintf(&name, "P_%d", n_linearizes);
         }
 
-        if ((linearize->peak = wasora_define_variable(name)) == NULL) {
+        if ((linearize->P = wasora_define_variable(name)) == NULL) {
           free(name);
           return WASORA_PARSER_ERROR;
         }
