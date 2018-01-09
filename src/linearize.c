@@ -106,15 +106,19 @@ int fino_instruction_linearize(void *arg) {
           integrand_my   += h * fino.sigmay->data_value[k];
           integrand_mz   += h * fino.sigmaz->data_value[k];
           integrand_mxy  += h * fino.tauxy->data_value[k];
-          integrand_myz  += h * fino.tauyz->data_value[k];
-          integrand_mzx  += h * fino.tauzx->data_value[k];
 
           integrand_bx   += h * fino.sigmax->data_value[k] * t_over_two_minus_t_prime;
           integrand_by   += h * fino.sigmay->data_value[k] * t_over_two_minus_t_prime;
           integrand_bz   += h * fino.sigmaz->data_value[k] * t_over_two_minus_t_prime;
           integrand_bxy  += h * fino.tauxy->data_value[k] * t_over_two_minus_t_prime;
-          integrand_byz  += h * fino.tauyz->data_value[k] * t_over_two_minus_t_prime;
-          integrand_bzx  += h * fino.tauzx->data_value[k] * t_over_two_minus_t_prime;
+
+          if (fino.dimensions > 2) {
+            integrand_myz  += h * fino.tauyz->data_value[k];
+            integrand_mzx  += h * fino.tauzx->data_value[k];
+            
+            integrand_byz  += h * fino.tauyz->data_value[k] * t_over_two_minus_t_prime;
+            integrand_bzx  += h * fino.tauzx->data_value[k] * t_over_two_minus_t_prime;
+          }
         }
 
 //        w_gauss *= r_for_axisymmetric;
@@ -122,15 +126,18 @@ int fino_instruction_linearize(void *arg) {
         sigmay_m  += w_gauss * integrand_my;
         sigmaz_m  += w_gauss * integrand_mz;
         tauxy_m   += w_gauss * integrand_mxy;
-        tauyz_m   += w_gauss * integrand_myz;
-        tauzx_m   += w_gauss * integrand_mzx;
 
         sigmax_b  += w_gauss * integrand_bx;
         sigmay_b  += w_gauss * integrand_by;
         sigmaz_b  += w_gauss * integrand_bz;
         tauxy_b   += w_gauss * integrand_bxy;
-        tauyz_b   += w_gauss * integrand_byz;
-        tauzx_b   += w_gauss * integrand_bzx;
+
+        if (fino.dimensions > 2) {
+          tauyz_m   += w_gauss * integrand_myz;
+          tauzx_m   += w_gauss * integrand_mzx;
+          tauyz_b   += w_gauss * integrand_byz;
+          tauzx_b   += w_gauss * integrand_bzx;
+        }
       }
     }
 
@@ -168,11 +175,13 @@ int fino_instruction_linearize(void *arg) {
     params.function = fino.tauxy;
     gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauxy_m, &error);
 
-    params.function = fino.tauyz;
-    gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauyz_m, &error);
+    if (fino.dimensions > 2) {
+      params.function = fino.tauyz;
+      gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauyz_m, &error);
     
-    params.function = fino.tauzx;
-    gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_m, &error);
+      params.function = fino.tauzx;
+      gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_m, &error);
+    }
 
     // membrane
     F.function = &fino_linearization_integrand_bending;
@@ -189,11 +198,13 @@ int fino_instruction_linearize(void *arg) {
     params.function = fino.tauxy;
     gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauxy_b, &error);
 
-    params.function = fino.tauyz;
-    gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauyz_b, &error);
+    if (fino.dimensions > 2) {
+      params.function = fino.tauyz;
+      gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauyz_b, &error);
     
-    params.function = fino.tauzx;
-    gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_b, &error);
+      params.function = fino.tauzx;
+      gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_b, &error);
+    }
         
   }
   
@@ -202,18 +213,21 @@ int fino_instruction_linearize(void *arg) {
   sigmay_m /= params.t;
   sigmaz_m /= params.t;
   tauxy_m  /= params.t;
-  tauyz_m  /= params.t;
-  tauzx_m  /= params.t;
   
   den = gsl_pow_2(params.t)/6.0;
   sigmax_b /= den;
   sigmay_b /= den;
   sigmaz_b /= den;
   tauxy_b  /= den;
-  tauyz_b  /= den;
-  tauzx_b  /= den;
 
+  if (fino.dimensions > 2) {
+    tauyz_m  /= params.t;
+    tauzx_m  /= params.t;
+    tauyz_b  /= den;
+    tauzx_b  /= den;
+  }
 
+  
   M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
   MB = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
   B = MB - M;

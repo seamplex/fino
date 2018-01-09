@@ -1,3 +1,4 @@
+Geometry.OCCTargetUnit = "MM";
 Merge "tensile-test-specimen.step";
 
 Mesh.CharacteristicLengthMin = 1;

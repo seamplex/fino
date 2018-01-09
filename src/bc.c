@@ -21,6 +21,7 @@
  */
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
@@ -118,7 +119,7 @@ int fino_read_bcs(void) {
           } else if (strcmp(name, "0") == 0 || strcmp(name, "implicit") == 0) {
             char *dummy;
             
-            physical_entity->bc_type_math = bc->bc_type_math = bc_phys_displacement_constrained;
+            physical_entity->bc_type_math = bc->bc_type_math = bc_math_dirichlet;
             physical_entity->bc_type_phys = bc->bc_type_phys = bc_phys_displacement_constrained;
             
             // el cuento es asi: aca quisieramos que el usuario escriba algo en funcion
@@ -379,7 +380,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
       if (associated_element->element->type->dim != fino.dimensions &&
-          (physical_entity = associated_element->element->physical_entity) != NULL) {
+          (physical_entity = associated_element->element->physical_entity) != NULL &&
+          physical_entity->bc_type_math == bc_math_dirichlet) {
           
         if (k_dirichlet >= current_threshold_dirichlet) {
           current_size_dirichlet += n_bcs;
@@ -455,13 +457,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 
           k_algebraic++;
           
-        } else if (physical_entity->bc_type_math == bc_math_dirichlet && physical_entity->bc_strings != NULL) {
+        } else if (physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
 
             if (bc->bc_type_phys == bc_phys_displacement ||
                 bc->bc_type_phys == bc_phys_temperature) {
-              fino.dirichlet_row[k_dirichlet].physical_entity = associated_element->element->physical_entity;
+              fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
               fino.dirichlet_row[k_dirichlet].dof = bc->dof;
 
               indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
@@ -477,10 +479,17 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
               k_dirichlet++;
               
-            } else if (bc->bc_type_math == bc_phys_displacement_constrained) {
+            } else if (bc->bc_type_phys == bc_phys_displacement_constrained) {
 
+              double n[3];
+              
               fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
+              wasora_call(mesh_compute_outward_normal(associated_element->element, n));
+              wasora_var_value(fino.vars.nx) = n[0];
+              wasora_var_value(fino.vars.ny) = n[1];
+              wasora_var_value(fino.vars.nz) = n[2];
+              
               wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
               wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
               wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
@@ -694,8 +703,7 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
   double w_gauss;
   gsl_vector *Nb;
   double cc;
-  double a[3], b[3], n[3], surface_center[3], volumetric_neighbor_center[3];
-  element_t *volumetric_neighbor;
+//  double n[3];
     
   if (element->type->dim == 0) {
 
@@ -730,6 +738,7 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
     // sino hacemos la cuenta general
 
     // esto es solo para la presion!
+/*    
     // viene de sn_elements_compute_outward_normal
     // calculamos el vector normal para las variables nx ny y nx
     mesh_subtract(element->node[0]->x, element->node[1]->x, a);
@@ -756,10 +765,12 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
       n[1] = -n[1];
       n[2] = -n[2];
     }    
-        
+    
+    mesh_compute_outward_normal(element, n);
     wasora_var_value(fino.vars.nx) = n[0];
     wasora_var_value(fino.vars.ny) = n[1];
     wasora_var_value(fino.vars.nz) = n[2];
+*/
     
     if (fino.n_local_nodes != element->type->nodes) {
       wasora_call(fino_allocate_elemental_objects(element));
