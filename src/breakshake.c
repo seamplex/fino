@@ -816,9 +816,15 @@ int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, d
 
   c2 = I1/3.0;
   c3 = 2.0/3.0 * c1;
-  *sigma1 = c2 + c3 * cos(phi);
-  *sigma2 = c2 + c3 * cos(phi - 2.0*M_PI/3.0);
-  *sigma3 = c2 + c3 * cos(phi - 4.0*M_PI/3.0);
+  if (sigma1 != NULL) {
+    *sigma1 = c2 + c3 * cos(phi);
+  }
+  if (sigma2 != NULL) {
+    *sigma2 = c2 + c3 * cos(phi - 2.0*M_PI/3.0);
+  }
+  if (sigma3 != NULL) {
+    *sigma3 = c2 + c3 * cos(phi - 4.0*M_PI/3.0);
+  }
 
 //  printf("%g %g %g %g %g %g %g\n", I1, I2, I3, phi, *sigma1, *sigma2, *sigma3);
   

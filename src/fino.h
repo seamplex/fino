@@ -401,6 +401,17 @@ struct fino_linearize_t {
 
   file_t *file;
   
+  enum {
+    linearize_vonmises,
+    linearize_tresca,
+    linearize_principal1,
+    linearize_principal2,
+    linearize_principal3
+  } total;
+  
+  int ignore_through_thickness;
+  
+  
   var_t *M;
   var_t *MB;  
   var_t *P;

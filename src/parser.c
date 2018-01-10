@@ -504,16 +504,40 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+desc Moreover, the individual elements of the membrane and bending stress tensors are written
 ///kw+FINO_LINEARIZE+desc within comments (i.e. lines starting with the hash symbol `#`).
 //TODO: decir como se plotea y como se hace un PDF
-          
+
 ///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
         } else if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&linearize->file));
-          
+     
 ///kw+FINO_LINEARIZE+usage FILE_PATH <file_path> ]
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
-// TODO: elegir que es "total", von mises, tresca, sigma1, sigma2 o sigma3
+
+///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
+        } else if (strcasecmp(token, "FILE") == 0) {
+          wasora_call(wasora_parser_file(&linearize->file));
+
+///kw+FINO_LINEARIZE+desc By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
+///kw+FINO_LINEARIZE+desc The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
+///kw+FINO_SOLVER+usage [ TOTAL {
+        } else if (strcasecmp(token, "TOTAL") == 0) {
+          char *keywords[] = {
+///kw+FINO_SOLVER+usage   vonmises",
+                         "vonmises",
+///kw+FINO_SOLVER+usage   tresca |
+                         "tresca",
+///kw+FINO_SOLVER+usage   tresca |
+                         "principal1",
+///kw+FINO_SOLVER+usage   principal1 |
+                         "principal2",
+///kw+FINO_SOLVER+usage   principal2 |
+                         "principal3",
+///kw+FINO_SOLVER+usage   principal3 |
+                         ""};
+          int values[] = {linearize_vonmises, linearize_tresca, linearize_principal1, linearize_principal2, linearize_principal3, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&linearize->total));
+                 
 ///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
 ///kw+FINO_LINEARIZE+desc Von\  Mises criterion and stored as variables.
 ///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in

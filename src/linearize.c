@@ -47,8 +47,8 @@ int fino_instruction_linearize(void *arg) {
   double integrand_bx, integrand_by, integrand_bz, integrand_bxy, integrand_byz, integrand_bzx;
   double sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m;
   double sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b;
-  double M, B, MB, P, T;
-  double x[3];
+  double M, B, MB, MBplus, MBminus, P, T1, T2, T;
+  double x1[3], x2[3];
   double w_gauss;
 //  double r_for_axisymmetric;
   double t_prime, t_over_two_minus_t_prime;
@@ -58,7 +58,6 @@ int fino_instruction_linearize(void *arg) {
   struct linearize_params_t params;
 
   // http://www.eng-tips.com/faqs.cfm?fid=982
-  // TODO: opcion "ignore through-thickness bending stress"
 
   if (linearize->physical_entity != NULL) {
     if (linearize->physical_entity->dimension != 1) {
@@ -228,17 +227,70 @@ int fino_instruction_linearize(void *arg) {
   }
 
   
-  M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
-  MB = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
-  B = MB - M;
-  x[0] = params.x1;
-  x[1] = params.y1;
-  x[2] = params.z1;
-  
-  /* OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso */
-  T = wasora_evaluate_function(fino.sigma, x);
-  P = T - MB;
+  x1[0] = params.x1;
+  x1[1] = params.y1;
+  x1[2] = params.z1;
+  x2[0] = params.x2;
+  x2[1] = params.y2;
+  x2[2] = params.z2;
+ 
+  switch (linearize->total) {
+    case linearize_vonmises:
+      M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
+      MBplus = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
+      MBminus = fino_compute_vonmises_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
+      
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      T1 = wasora_evaluate_function(fino.sigma, x1);
+      T2 = wasora_evaluate_function(fino.sigma, x2);
+    break;
+      
+    case linearize_tresca:
+      M = fino_compute_tresca_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
+      MBplus = fino_compute_tresca_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
+      MBminus = fino_compute_tresca_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
+      
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      T1 = wasora_evaluate_function(fino.tresca, x1);
+      T2 = wasora_evaluate_function(fino.tresca, x2);
+    break;
 
+    case linearize_principal1:
+      fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, &M, NULL, NULL);
+      fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, &MBplus, NULL, NULL);
+      fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, &MBminus, NULL, NULL);
+      
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      T1 = wasora_evaluate_function(fino.sigma1, x1);
+      T2 = wasora_evaluate_function(fino.sigma1, x2);
+    break;
+
+    case linearize_principal2:
+      fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, NULL, &M, NULL);
+      fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, NULL, &MBplus, NULL);
+      fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, NULL, &MBminus, NULL);
+      
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      T1 = wasora_evaluate_function(fino.sigma1, x1);
+      T2 = wasora_evaluate_function(fino.sigma2, x2);
+    break;
+  
+    case linearize_principal3:
+      fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, NULL, NULL, &M);
+      fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, NULL, NULL, &MBplus);
+      fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, NULL, NULL, &MBminus);
+      
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      T1 = wasora_evaluate_function(fino.sigma3, x1);
+      T2 = wasora_evaluate_function(fino.sigma3, x2);
+    break;
+  }
+
+  MB = (MBplus>MBminus)?MBplus:MBminus;
+  T = (T1>T2)?T1:T2;
+  B = MB - M;
+  P = T - MB;
+  
   wasora_var_value(linearize->M) = M;
   wasora_var_value(linearize->MB) = MB;
   wasora_var_value(linearize->P) = P;
@@ -292,13 +344,17 @@ int fino_instruction_linearize(void *arg) {
     fprintf(linearize->file->pointer, "#\n");
 //    fprintf(linearize->file->pointer, "# t_prime\tM\tMB\tT\n");
 
-    for (i = 0; i <= 20; i++) {
-      t_prime = i/20.0;
-      x[0] = params.x1 + t_prime * (params.x2 - params.x1);
-      x[1] = params.y1 + t_prime * (params.y2 - params.y1);
-      x[2] = params.z1 + t_prime * (params.z2 - params.z1);    
-
-      fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x));
+    for (i = 0; i <= 25; i++) {
+      t_prime = i/25.0;
+      x1[0] = params.x1 + t_prime * (params.x2 - params.x1);
+      x1[1] = params.y1 + t_prime * (params.y2 - params.y1);
+      x2[2] = params.z1 + t_prime * (params.z2 - params.z1);
+      
+      if (t_prime < 0.5) {
+        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T1>M)?(+1):(-1))*B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x1));
+      } else {
+        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T2>M)?(-1):(+1))*B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x1));
+      }
     }
   }    
     
