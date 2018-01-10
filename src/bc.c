@@ -356,6 +356,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   bc_string_based_t *bc;
   
 
+  double n[3];
   double y1, y2;
   double h = 1e-3;
   
@@ -398,6 +399,15 @@ int fino_set_essential_bc(Mat A, Vec b) {
           fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
 
+
+        wasora_call(mesh_compute_outward_normal(associated_element->element, n));
+        wasora_var_value(fino.vars.nx) = n[0];
+        wasora_var_value(fino.vars.ny) = n[1];
+        wasora_var_value(fino.vars.nz) = n[2];
+              
+        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
         
         // empezamos a ver que nos dieron
         if (physical_entity->bc_type_phys == bc_phys_displacement_fixed) {
@@ -469,9 +479,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
               indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
 
               if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-                wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-                wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
                 rhs_dirichlet[k_dirichlet] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
               } else {
                 rhs_dirichlet[k_dirichlet] = 0;
@@ -481,18 +488,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
               
             } else if (bc->bc_type_phys == bc_phys_displacement_constrained) {
 
-              double n[3];
-              
               fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
-              wasora_call(mesh_compute_outward_normal(associated_element->element, n));
-              wasora_var_value(fino.vars.nx) = n[0];
-              wasora_var_value(fino.vars.ny) = n[1];
-              wasora_var_value(fino.vars.nz) = n[2];
-              
-              wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-              wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-              wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
               wasora_var_value(fino.vars.U[0]) = 0;
               wasora_var_value(fino.vars.U[1]) = 0;
               wasora_var_value(fino.vars.U[2]) = 0;
@@ -524,6 +521,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   fino.algebraic_row[k_algebraic].dof = d;
                 }
               }
+              fino.algebraic_row[k_algebraic].dof = 1;
+              
                 
               k_algebraic++;
             }

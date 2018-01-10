@@ -171,7 +171,7 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.U[1]= wasora_define_variable("V");
   fino.vars.U[2]= wasora_define_variable("W");
 
-  // estas se las dejamos para las condiciones de contorno de neumann
+  // estas se las dejamos para las condiciones de contorno
   fino.vars.nx= wasora_define_variable("nx");
   fino.vars.ny= wasora_define_variable("ny");
   fino.vars.nz= wasora_define_variable("nz");
