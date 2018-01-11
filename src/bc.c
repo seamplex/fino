@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's boundary conditions
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -400,10 +400,12 @@ int fino_set_essential_bc(Mat A, Vec b) {
         }
 
 
-        wasora_call(mesh_compute_outward_normal(associated_element->element, n));
-        wasora_var_value(fino.vars.nx) = n[0];
-        wasora_var_value(fino.vars.ny) = n[1];
-        wasora_var_value(fino.vars.nz) = n[2];
+        if (associated_element->element->type->dim > 1) {
+          wasora_call(mesh_compute_outward_normal(associated_element->element, n));
+          wasora_var_value(fino.vars.nx) = n[0];
+          wasora_var_value(fino.vars.ny) = n[1];
+          wasora_var_value(fino.vars.nz) = n[2];
+        }
               
         wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
         wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
@@ -521,7 +523,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   fino.algebraic_row[k_algebraic].dof = d;
                 }
               }
-              fino.algebraic_row[k_algebraic].dof = 1;
+//              fino.algebraic_row[k_algebraic].dof = 2;
               
                 
               k_algebraic++;
@@ -534,7 +536,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
   fino.n_dirichlet_rows = k_dirichlet;
   fino.n_algebraic_rows = k_algebraic;
-  
+
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
@@ -564,19 +566,10 @@ int fino_set_essential_bc(Mat A, Vec b) {
     petsc_call(VecRestoreArray(b, &local_b));
   }
   
-  petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
-  petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, b));
-  petsc_call(VecDestroy(&vec_rhs_dirichlet));
-  
-  if (fino.math_type == math_type_eigen) {
-    petsc_call(MatZeroRowsColumns(fino.M, k_dirichlet, indexes_dirichlet, 0.0, PETSC_NULL, PETSC_NULL));
-  }
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
   // TODO: esto rompe simetria como loco!
-  
-  if (fino.math_type != math_type_eigen) {
+  if (fino.n_algebraic_rows != 0) {
     // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
     petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
   
@@ -589,8 +582,19 @@ int fino_set_essential_bc(Mat A, Vec b) {
     }
     petsc_call(VecRestoreArray(b, &local_b));
     petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
-  }
+    wasora_call(fino_assembly());
+  }  
   
+
+  petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
+  petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
+  petsc_call(MatZeroRowsColumns(A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, b));
+  petsc_call(VecDestroy(&vec_rhs_dirichlet));
+  
+  if (fino.math_type == math_type_eigen) {
+    petsc_call(MatZeroRowsColumns(fino.M, k_dirichlet, indexes_dirichlet, 0.0, PETSC_NULL, PETSC_NULL));
+  }
+    
   free(indexes_dirichlet);
   free(indexes_algebraic);
   free(rhs_dirichlet);
