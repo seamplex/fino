@@ -88,7 +88,7 @@ double fino_distribution_evaluate(fino_distribution_t *distribution, material_t 
       }
     }
     
-  } else if (distribution->function != NULL || material != NULL) {
+  } else if (distribution->function != NULL) {
     PetscFunctionReturn(wasora_evaluate_function(distribution->function, x));
     
   }

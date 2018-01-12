@@ -201,9 +201,13 @@ int fino_break_build_element(element_t *element, int v) {
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
       c = r_for_axisymmetric * w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
-      gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
-      gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
-      if (fino.degrees == 3) {
+      if (distribution_fx.defined) {
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      }
+      if (distribution_fy.defined) {
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      }
+      if (distribution_fz.defined && fino.degrees == 3) {
         gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
       }
     }
