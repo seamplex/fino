@@ -65,19 +65,27 @@ double fino_distribution_evaluate(fino_distribution_t *distribution, material_t 
     PetscFunctionReturn(wasora_var_value(distribution->variable));
     
   } else if (distribution->physical_property != NULL) {
-    property_data_t *property_data = NULL;
-    HASH_FIND_STR(material->property_datums, distribution->physical_property->name, property_data);
-    if (property_data != NULL) {
-      // evaluamos la expresion del material, que es una expresion (no una funcion) de x,y,z
-      wasora_var_value(wasora_mesh.vars.x) = x[0];
-      if (fino.dimensions > 1) {
-        wasora_var_value(wasora_mesh.vars.y) = x[1];
-        if (fino.dimensions > 2) {
-          wasora_var_value(wasora_mesh.vars.z) = x[2];
+    if (material != NULL) {
+      property_data_t *property_data = NULL;
+      HASH_FIND_STR(material->property_datums, distribution->physical_property->name, property_data);
+      if (property_data != NULL) {
+        // evaluamos la expresion del material, que es una expresion (no una funcion) de x,y,z
+        wasora_var_value(wasora_mesh.vars.x) = x[0];
+        if (fino.dimensions > 1) {
+          wasora_var_value(wasora_mesh.vars.y) = x[1];
+          if (fino.dimensions > 2) {
+            wasora_var_value(wasora_mesh.vars.z) = x[2];
+          }
         }
       }
-      
       PetscFunctionReturn(wasora_evaluate_expression(&property_data->expr));
+      
+    } else {
+      function_t *function;
+      if ((function = wasora_get_function_ptr(distribution->physical_property->name)) == NULL) {
+        wasora_push_error_message("cannot find neither property nor function '%s'", distribution->physical_property->name);
+        wasora_runtime_error();
+      }
     }
     
   } else if (distribution->function != NULL || material != NULL) {

@@ -146,7 +146,7 @@ int fino_build_bake(element_t *element, int v) {
   double k, rhocp;
   double r_for_axisymmetric;
   
-  material_t *material;
+  material_t *material = NULL;
   int j;
 
   // TODO: ver que se evaluen bien las distribuciones
@@ -180,8 +180,6 @@ int fino_build_bake(element_t *element, int v) {
   
   if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
     material =  element->physical_entity->material;
-  } else {
-    material = NULL;
   }
   
   w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v); 
@@ -322,7 +320,7 @@ int fino_bake_compute_fluxes(void) {
   if (distribution_k.variable != NULL) {
     k = fino_distribution_evaluate(&distribution_k, NULL, NULL);
     if (k < 0) {
-      wasora_push_error_message("nu is negative");
+      wasora_push_error_message("k is negative");
       return WASORA_RUNTIME_ERROR;
     }
   }
