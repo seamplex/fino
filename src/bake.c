@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's construction of heat conduction problem (bake)
  *
- *  Copyright (C) 2015--2017 jeremy theler & ezequiel manavela chiapero
+ *  Copyright (C) 2015--2018 jeremy theler & ezequiel manavela chiapero
  *
  *  This file is part of fino.
  *
@@ -40,21 +40,30 @@ int fino_bake_step_initial(void) {
   double xi;
   function_t *ic;
 
-  if ((ic = wasora_get_function_ptr("T_0")) == NULL) {
-    wasora_push_error_message("no initial condition T_0 given");
-    return WASORA_RUNTIME_ERROR;
-  }
+  if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
 
-  if (ic->n_arguments != fino.dimensions) {
-    wasora_push_error_message("initial condition function ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
-    return WASORA_RUNTIME_ERROR;
-  }
+    if (ic->n_arguments != fino.dimensions) {
+      wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+      return WASORA_RUNTIME_ERROR;
+    }
 
-  for (j = 0; j < fino.mesh->n_nodes; j++) {
-    xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-    VecSetValue(fino.phi, fino.mesh->node[j].index[0], xi, INSERT_VALUES);
+    for (j = 0; j < fino.mesh->n_nodes; j++) {
+      xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+      VecSetValue(fino.phi, fino.mesh->node[j].index[0], xi, INSERT_VALUES);
+    }
+
+  } else {
+    
+    wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
+    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
+    wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
+    
+    // este ksp ya no sirve mas, porque despues usamos otras matrice y demas
+    petsc_call(KSPDestroy(&fino.ksp));
+    fino.ksp = NULL;
+
   }
-  
+    
   return WASORA_RUNTIME_OK;
   
 }
@@ -68,6 +77,8 @@ int fino_bake_step_transient(void) {
   // con
   //   A = K*theta + C/dt 
   //   b = (-K*(1-theta)+C/dt)*T(n) + b
+
+  // TODO: elegir esto desde input
   double theta = 0.5;
   int nonlinear = 1;
 
@@ -113,10 +124,19 @@ int fino_bake_step_transient(void) {
   MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
 
   fino_assembly();
-
+  
   MatMult(fino.B, fino.phi, fino.c);
   VecAXPY(fino.c, 1, fino.b);
-  
+/*  
+  printf("phi\n");
+  fino_print_petsc_vector(fino.phi, PETSC_VIEWER_STDOUT_SELF);
+  printf("b\n");
+  fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
+  printf("B\n");
+  fino_print_petsc_matrix(fino.B, PETSC_VIEWER_STDOUT_SELF);
+  printf("c\n");
+  fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_SELF);
+*/  
   if (nonlinear) {
     // o hacemos un c nuevo como c = c + Mdot*T
     MatMult(fino.dotM, fino.phi, fino.m);
@@ -128,12 +148,34 @@ int fino_bake_step_transient(void) {
   // hay que volver a poner esta
   wasora_call(fino_set_essential_bc(fino.A, fino.c));
 
+/*  
+  printf("A\n");
+  fino_print_petsc_matrix(fino.A, PETSC_VIEWER_STDOUT_SELF);
+  printf("c\n");
+  fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_SELF);
+ */
+  
   // y resolver
   wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
+
+/*  
+  PetscViewerPushFormat(PETSC_VIEWER_STDOUT_SELF, PETSC_VIEWER_ASCII_MATLAB);
+  MatView(fino.A, PETSC_VIEWER_STDOUT_SELF);
+  VecView(fino.c, PETSC_VIEWER_STDOUT_SELF);
+  VecView(fino.phi, PETSC_VIEWER_STDOUT_SELF);
+*/  
+/*  
+  printf("phi\n");
+  fino_print_petsc_vector(fino.phi, PETSC_VIEWER_STDOUT_SELF);
+*/
   
   if (nonlinear) {
     MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);
   }
+
+  // esto viene aca porque el ksp tiene que ser != null, capaz que se pueda meter en el solver  
+  petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
+ 
         
   return WASORA_RUNTIME_OK;
 }

@@ -17,7 +17,8 @@ FUNCTION Tin(t) DATA {
 3000 600
 }
 
-T_0(x,y) := Tin(0)
+# either give an initial condition or let fino compute the steady-state
+# T_0(x,y) := Tin(0)
 
 PHYSICAL_ENTITY NAME left      BC h=0.003 Tref=Tin(t)
 PHYSICAL_ENTITY NAME right     BC h=0.003 Tref=Tin(t)
