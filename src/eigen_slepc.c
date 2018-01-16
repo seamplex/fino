@@ -49,13 +49,6 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
   petsc_call(PetscObjectSetName((PetscObject)fino.pc, "preconditioner"));
 
-  // TODO
-  //petsc_call(EPSSetOperators(fino.eps, fino.A, fino.B));
-  //petsc_call(EPSSetWhichEigenpairs(fino.eps, fino.eigen_spectrum));
-  
-//  petsc_call(EPSSetOperators(fino.eps, fino.B, fino.A));
-//  petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_SMALLEST_MAGNITUDE));
-
   petsc_call(EPSSetOperators(fino.eps, B, A));
   petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_LARGEST_MAGNITUDE));
   

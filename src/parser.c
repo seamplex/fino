@@ -53,8 +53,8 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage SHAKE
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc * `SHAKE` (or `FREQUENCY`) computes the natural frequencies and modes.        
-        } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "FREQUENCY") == 0) {
+///kw+FINO_PROBLEM+desc * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
+        } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "MODAL") == 0) {
           fino.problem_family = problem_family_shake;
           fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_type_eigen;
@@ -793,7 +793,7 @@ int fino_define_functions(void) {
     }
     
     if (fino.nev > 1) {
-      
+
       fino.vibration[g] = calloc(fino.nev, sizeof(function_t *));
       for (i = 0; i < fino.nev; i++) {
         if (asprintf(&vibname, "%s%d", name, i+1) == -1) {
@@ -827,9 +827,37 @@ int fino_define_functions(void) {
     wasora_call(fino_define_result_function("tresca", &fino.tresca));
         
   }
-  
+    
   if (fino.nev > 1) {
-    fino.vectors.omega = wasora_define_vector("omega", fino.nev, NULL, NULL);    
+    fino.vectors.f = wasora_define_vector("f", fino.nev, NULL, NULL);    
+
+    fino.vectors.phi = malloc(fino.nev * sizeof(vector_t *));
+    fino.vectors.Mphi = malloc(fino.nev * sizeof(vector_t *));
+    for (i = 0; i < fino.nev; i++) {
+      if (asprintf(&vibname, "phi%d", i+1) == -1) {
+        wasora_push_error_message("cannot asprintf");
+        return WASORA_RUNTIME_ERROR;
+      }
+      
+      if ((fino.vectors.phi[i] = wasora_define_vector(vibname, 0, NULL, NULL)) == NULL) {
+        wasora_push_error_message("cannot define vector %s", vibname);
+        return WASORA_RUNTIME_ERROR;
+      }
+      free(vibname);
+      
+      if (asprintf(&vibname, "Mphi%d", i+1) == -1) {
+        wasora_push_error_message("cannot asprintf");
+        return WASORA_RUNTIME_ERROR;
+      }
+      
+      if ((fino.vectors.Mphi[i] = wasora_define_vector(vibname, 0, NULL, NULL)) == NULL) {
+        wasora_push_error_message("cannot define vector %s", vibname);
+        return WASORA_RUNTIME_ERROR;
+      }
+      free(vibname);
+      
+    }
+    
   }
   
   // TODO: heat flux

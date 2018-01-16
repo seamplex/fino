@@ -46,7 +46,8 @@ int fino_instruction_step(void *arg) {
   fino_times_t wall;
   fino_times_t cpu;
   fino_times_t petsc;
-  int i, k, g;
+  double xi;
+  int i, j, k, g;
 
   PetscFunctionBegin;
   
@@ -72,7 +73,8 @@ int fino_instruction_step(void *arg) {
   // ------------------------------------
   // solve
   // ------------------------------------
-   if (fino_step->do_not_solve == 0) {
+  if (fino_step->do_not_solve == 0) {
+    
     time_checkpoint(solve_begin);
     
     if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_bake) {
@@ -93,11 +95,51 @@ int fino_instruction_step(void *arg) {
         
         // vemos si nos pidieron varias frecuencias
         if (fino.nev > 1) {
+          
+          Vec tmp;
+//          PetscScalar normM, normK;
+          PetscScalar norm;
+          
+          VecDuplicate(fino.phi, &tmp);
+          
+          // la fiesta de la ineficiencia
           for (i = 0; i < fino.nev; i++) {
-            wasora_vector_set(fino.vectors.omega, i, fino.eigenvalue[i]);
+            // autovalor
+            wasora_vector_set(fino.vectors.f, i, 2*sqrt(2*M_PI/fino.eigenvalue[i]));
+            
+            // autovector
+            VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
+            VecScale(fino.eigenvector[i], 1.0/norm);
+            
+            fino.vectors.phi[i]->size = fino.problem_size;
+            wasora_vector_init(fino.vectors.phi[i]);
+
+            fino.vectors.Mphi[i]->size = fino.problem_size;
+            wasora_vector_init(fino.vectors.Mphi[i]);
+            MatMult(fino.M, fino.eigenvector[i], tmp);
+            
+            for (j = 0; j < fino.problem_size; j++) {
+              petsc_call(VecGetValues(fino.eigenvector[i], 1, &j, &xi));
+              wasora_vector_set(fino.vectors.phi[i], j, xi);
+              
+              petsc_call(VecGetValues(tmp, 1, &j, &xi));
+              wasora_vector_set(fino.vectors.Mphi[i], j, xi);
+              
+            }
+            
+/*
+            MatMult(fino.M, fino.eigenvector[i], v1);
+            VecDot(fino.eigenvector[i], v1, &normM);
+            
+            MatMult(fino.K, fino.eigenvector[i], v1);
+            VecDot(fino.eigenvector[i], v1, &normK);
+ */
+            
+//            VecNorm(fino.eigenvector[i], NORM_2, &norm);
+//            printf("%d\t%g\t%g\t%g\t%g\t%g\n", i, norm, normM, normK, sqrt(normK/normM), 2*sqrt(2*M_PI/fino.eigenvalue[i]));
           }
         }
-#else
+#else 
         wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
         return WASORA_RUNTIME_ERROR;
 #endif      

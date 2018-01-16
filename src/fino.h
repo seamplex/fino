@@ -217,7 +217,9 @@ struct {
 
   // vectores
   struct {
-    vector_t *omega;
+    vector_t *f;
+    vector_t **phi;
+    vector_t **Mphi;
   } vectors;
 
   // flag
