@@ -329,9 +329,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   PetscScalar *local_b;
   PetscScalar *rhs_dirichlet;
-  PetscScalar *rhs_algebraic;
+//  PetscScalar *rhs_algebraic;
   PetscInt *indexes_dirichlet;
-  PetscInt *indexes_algebraic;
+//  PetscInt *indexes_algebraic;
 
   physical_entity_t *physical_entity;
   element_list_item_t *associated_element;
@@ -340,16 +340,16 @@ int fino_set_essential_bc(Mat A, Vec b) {
   const PetscScalar *vals;
   size_t n_bcs;
   size_t current_size_dirichlet;
-  size_t current_size_algebraic;
+//  size_t current_size_algebraic;
   
   size_t current_threshold_dirichlet;
-  size_t current_threshold_algebraic;
+//  size_t current_threshold_algebraic;
 
   PetscInt ncols;
   Vec vec_rhs_dirichlet;
 
   int k_dirichlet = 0;
-  int k_algebraic = 0;
+//  int k_algebraic = 0;
 
   int i, j, d;
   
@@ -366,17 +366,17 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
   n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
   current_size_dirichlet = n_bcs;
-  current_size_algebraic = n_bcs;
+//  current_size_algebraic = n_bcs;
   current_threshold_dirichlet = n_bcs - 2*fino.degrees;
-  current_threshold_algebraic = n_bcs - 2*fino.degrees;
+//  current_threshold_algebraic = n_bcs - 2*fino.degrees;
 
   
   rhs_dirichlet = malloc(n_bcs * sizeof(PetscScalar));
-  rhs_algebraic = malloc(n_bcs * sizeof(PetscScalar));
+//  rhs_algebraic = malloc(n_bcs * sizeof(PetscScalar));
   indexes_dirichlet = malloc(n_bcs * sizeof(PetscInt));
-  indexes_algebraic = malloc(n_bcs * sizeof(PetscInt));
+//  indexes_algebraic = malloc(n_bcs * sizeof(PetscInt));
   fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
-  fino.algebraic_row = calloc(n_bcs, sizeof(dirichlet_row_t));
+//  fino.algebraic_row = calloc(n_bcs, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
@@ -391,6 +391,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           rhs_dirichlet = realloc(rhs_dirichlet, current_size_dirichlet * sizeof(PetscScalar));
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size_dirichlet * sizeof(dirichlet_row_t));
         }
+/*        
         if (k_algebraic >= current_threshold_algebraic) {
           current_size_algebraic += n_bcs;
           current_threshold_algebraic = current_size_algebraic - 2*fino.degrees;
@@ -398,7 +399,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           rhs_algebraic = realloc(rhs_algebraic, current_size_algebraic * sizeof(PetscScalar));
           fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
         }
-
+*/
 
         if (associated_element->element->type->dim > 1) {
           wasora_call(mesh_compute_outward_normal(associated_element->element, n));
@@ -423,10 +424,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
         } else if (physical_entity->bc_type_phys == bc_phys_displacement_mimic) {
           
+          wasora_push_error_message("wait!");
+          return WASORA_RUNTIME_ERROR;
+
+/*          
           int dof;
           int i, target_index;
-          
-          
+
           // ponemos +1 nosotros -1 lo que hay que mimicar = 0
           fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
 
@@ -468,7 +472,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           fino.algebraic_row[k_algebraic].dof = dof;
                 
           k_algebraic++;
-          
+*/
         } else if (physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
@@ -490,43 +494,41 @@ int fino_set_essential_bc(Mat A, Vec b) {
               
             } else if (bc->bc_type_phys == bc_phys_displacement_constrained) {
 
-              fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
-
+              gsl_matrix *c;
+              gsl_matrix *K;
+              int l[3];
+              double w = 1e7;
+              
+              c = gsl_matrix_calloc(1, fino.degrees);
+              K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+              
               wasora_var_value(fino.vars.U[0]) = 0;
               wasora_var_value(fino.vars.U[1]) = 0;
               wasora_var_value(fino.vars.U[2]) = 0;
-
-              rhs_algebraic[k_algebraic] = wasora_evaluate_expression(&bc->expr);
               
-              fino.algebraic_row[k_algebraic].n_cols = fino.degrees;
-              fino.algebraic_row[k_algebraic].alg_col = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscInt));
-              fino.algebraic_row[k_algebraic].alg_val = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscScalar));
-
               for (d = 0; d < fino.degrees; d++) {
-                fino.algebraic_row[k_algebraic].alg_col[d] = fino.mesh->node[j].index[d];
-                  
+                l[d] = fino.mesh->node[j].index[d];
+                
+                // TODO: evaluar las derivadas con GSL
                 wasora_var_value(fino.vars.U[d]) = +h;
                 y1 = wasora_evaluate_expression(&bc->expr);
                 wasora_var_value(fino.vars.U[d]) = -h;
                 y2 = wasora_evaluate_expression(&bc->expr);
                 wasora_var_value(fino.vars.U[d]) = 0;
                   
-                fino.algebraic_row[k_algebraic].alg_val[d] = -(y1-y2)/(2.0*h);
+                gsl_matrix_set(c, 0, d, -(y1-y2)/(2.0*h));
               }
-
-              // el indice es el que tiene el coeficiente mayor (vaya uno a saber por que)
-              for (d = 0; d < fino.dimensions; d++) {
-                if (fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[0]) &&
-                    fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[1]) && 
-                    fabs(fino.algebraic_row[k_algebraic].alg_val[d]) >= fabs(fino.algebraic_row[k_algebraic].alg_val[2])) {
-                  indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[d];
-                  fino.algebraic_row[k_algebraic].dof = d;
-                }
-              }
-//              fino.algebraic_row[k_algebraic].dof = 2;
               
-                
-              k_algebraic++;
+              wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, w, c, c, 0, K));
+              MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+              
+              // TODO: RHS
+              
+              gsl_matrix_free(c);
+              gsl_matrix_free(K);
+              
+              
+
             }
           }
         }
@@ -535,8 +537,12 @@ int fino_set_essential_bc(Mat A, Vec b) {
   }
 
   fino.n_dirichlet_rows = k_dirichlet;
-  fino.n_algebraic_rows = k_algebraic;
+//  fino.n_algebraic_rows = k_algebraic;
 
+  // esto solo si hubo construains
+  wasora_call(fino_assembly());
+
+    
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
@@ -569,6 +575,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
   // TODO: esto rompe simetria como loco!
+/*  
   if (fino.n_algebraic_rows != 0) {
     // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
     petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
@@ -584,7 +591,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
     petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
     wasora_call(fino_assembly());
   }  
-  
+*/  
 
   petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
   petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
@@ -596,9 +603,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
   }
     
   free(indexes_dirichlet);
-  free(indexes_algebraic);
+//  free(indexes_algebraic);
   free(rhs_dirichlet);
-  free(rhs_algebraic);
+//  free(rhs_algebraic);
 
   wasora_call(fino_assembly());
 

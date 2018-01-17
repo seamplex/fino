@@ -302,11 +302,13 @@ struct {
   gsl_matrix *Mi;               // la matriz de masa elemental
   gsl_vector *bi;               // el vector del miembro derecho elemental
 
-  // holder para calcular las reacciones de vinculo de BCs dirichlet
+  // holder para poner las BCs dirichlet (y calcular las reacciones de vinculo)
   int n_dirichlet_rows;
   dirichlet_row_t *dirichlet_row;
-  int n_algebraic_rows;
-  dirichlet_row_t *algebraic_row;
+  
+  // holder para poner multifreedom constrains
+//  int n_algebraic_rows;
+//  dirichlet_row_t *algebraic_row;
   
   // user-provided functions para los objetos elementales, las linkeamos
   // a las que dio el usuario en el input en init
