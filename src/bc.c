@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's boundary conditions
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -328,10 +328,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // TODO: hacer esto mas limpio!!
   
   PetscScalar *local_b;
-  PetscScalar *rhs_dirichlet;
-//  PetscScalar *rhs_algebraic;
-  PetscInt *indexes_dirichlet;
-//  PetscInt *indexes_algebraic;
+  PetscScalar *rhs;
+  PetscInt *indexes;
 
   physical_entity_t *physical_entity;
   element_list_item_t *associated_element;
@@ -339,17 +337,11 @@ int fino_set_essential_bc(Mat A, Vec b) {
   const PetscInt *cols;
   const PetscScalar *vals;
   size_t n_bcs;
-  size_t current_size_dirichlet;
-//  size_t current_size_algebraic;
-  
-  size_t current_threshold_dirichlet;
-//  size_t current_threshold_algebraic;
-
+  size_t current_size;
+  size_t current_threshold;
   PetscInt ncols;
-  Vec vec_rhs_dirichlet;
-
-  int k_dirichlet = 0;
-//  int k_algebraic = 0;
+  Vec vec_rhs;
+  int k = 0;
 
   int i, j, d;
   
@@ -365,18 +357,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
   }
 
   n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
-  current_size_dirichlet = n_bcs;
-//  current_size_algebraic = n_bcs;
-  current_threshold_dirichlet = n_bcs - 2*fino.degrees;
-//  current_threshold_algebraic = n_bcs - 2*fino.degrees;
+  current_size = n_bcs;
+  current_threshold = n_bcs - 2*fino.degrees;
 
   
-  rhs_dirichlet = malloc(n_bcs * sizeof(PetscScalar));
-//  rhs_algebraic = malloc(n_bcs * sizeof(PetscScalar));
-  indexes_dirichlet = malloc(n_bcs * sizeof(PetscInt));
-//  indexes_algebraic = malloc(n_bcs * sizeof(PetscInt));
+  rhs = malloc(n_bcs * sizeof(PetscScalar));
+  indexes = malloc(n_bcs * sizeof(PetscInt));
   fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
-//  fino.algebraic_row = calloc(n_bcs, sizeof(dirichlet_row_t));
    
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
@@ -384,22 +371,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
           (physical_entity = associated_element->element->physical_entity) != NULL &&
           physical_entity->bc_type_math == bc_math_dirichlet) {
           
-        if (k_dirichlet >= current_threshold_dirichlet) {
-          current_size_dirichlet += n_bcs;
-          current_threshold_dirichlet = current_size_dirichlet - 2*fino.degrees;
-          indexes_dirichlet = realloc(indexes_dirichlet, current_size_dirichlet * sizeof(PetscInt));
-          rhs_dirichlet = realloc(rhs_dirichlet, current_size_dirichlet * sizeof(PetscScalar));
-          fino.dirichlet_row = realloc(fino.dirichlet_row, current_size_dirichlet * sizeof(dirichlet_row_t));
+        if (k >= current_threshold) {
+          current_size += n_bcs;
+          current_threshold = current_size - 2*fino.degrees;
+          indexes = realloc(indexes, current_size * sizeof(PetscInt));
+          rhs = realloc(rhs, current_size * sizeof(PetscScalar));
+          fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
         }
-/*        
-        if (k_algebraic >= current_threshold_algebraic) {
-          current_size_algebraic += n_bcs;
-          current_threshold_algebraic = current_size_algebraic - 2*fino.degrees;
-          indexes_algebraic = realloc(indexes_algebraic, current_size_algebraic * sizeof(PetscInt));
-          rhs_algebraic = realloc(rhs_algebraic, current_size_algebraic * sizeof(PetscScalar));
-          fino.algebraic_row = realloc(fino.algebraic_row, current_size_algebraic * sizeof(dirichlet_row_t));
-        }
-*/
 
         if (associated_element->element->type->dim > 1) {
           wasora_call(mesh_compute_outward_normal(associated_element->element, n));
@@ -415,39 +393,29 @@ int fino_set_essential_bc(Mat A, Vec b) {
         // empezamos a ver que nos dieron
         if (physical_entity->bc_type_phys == bc_phys_displacement_fixed) {
           for (d = 0; d < fino.degrees; d++) {
-            fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
-            fino.dirichlet_row[k_dirichlet].dof = d;
-            indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[d];
-            rhs_dirichlet[k_dirichlet] = 0;
-            k_dirichlet++;
+            fino.dirichlet_row[k].physical_entity = physical_entity;
+            fino.dirichlet_row[k].dof = d;
+            indexes[k] = fino.mesh->node[j].index[d];
+            rhs[k] = 0;
+            k++;
           }
 
         } else if (physical_entity->bc_type_phys == bc_phys_displacement_mimic) {
           
-          wasora_push_error_message("wait!");
-          return WASORA_RUNTIME_ERROR;
-
-/*          
+          gsl_matrix *c;
+          gsl_matrix *K;
+          int l[2];
+          double w = 1e7;
           int dof;
           int i, target_index;
+              
+          c = gsl_matrix_calloc(1, fino.degrees);
+          K = gsl_matrix_calloc(fino.degrees, fino.degrees);
 
-          // ponemos +1 nosotros -1 lo que hay que mimicar = 0
-          fino.algebraic_row[k_algebraic].physical_entity = physical_entity;
-
-          // shorthand
-          dof = physical_entity->bc_strings->dof;
+          gsl_matrix_set(c, 0, 0, +w);
+          gsl_matrix_set(c, 0, 1, -w);
           
-          // dos terminos
-          fino.algebraic_row[k_algebraic].n_cols = 2;
-          fino.algebraic_row[k_algebraic].alg_col = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscInt));
-          fino.algebraic_row[k_algebraic].alg_val = calloc(fino.algebraic_row[k_algebraic].n_cols, sizeof(PetscScalar));
-
-          // igual a cero
-          rhs_algebraic[k_algebraic] = 0;
-            
-          // nosotros
-          fino.algebraic_row[k_algebraic].alg_col[0] = fino.mesh->node[j].index[dof];
-          fino.algebraic_row[k_algebraic].alg_val[0] = +wasora_var(fino.vars.dirichlet_diagonal);
+          dof = physical_entity->bc_strings->dof;
 
           // lo que hay que mimicar
           target_index = -1;
@@ -464,33 +432,36 @@ int fino_set_essential_bc(Mat A, Vec b) {
             return WASORA_RUNTIME_ERROR;
           }
             
-          fino.algebraic_row[k_algebraic].alg_col[1] = target_index;
-          fino.algebraic_row[k_algebraic].alg_val[1] = -wasora_var(fino.vars.dirichlet_diagonal);
-            
-          // la fila y el dof
-          indexes_algebraic[k_algebraic] = fino.mesh->node[j].index[dof];
-          fino.algebraic_row[k_algebraic].dof = dof;
-                
-          k_algebraic++;
-*/
+          l[0] = fino.mesh->node[j].index[dof];
+          l[1] = target_index;
+          
+          wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, w, c, c, 0, K));
+          // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
+          petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+          MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+          petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+              
+          gsl_matrix_free(c);
+          gsl_matrix_free(K);
+
         } else if (physical_entity->bc_strings != NULL) {
 
           LL_FOREACH(physical_entity->bc_strings, bc) {
 
             if (bc->bc_type_phys == bc_phys_displacement ||
                 bc->bc_type_phys == bc_phys_temperature) {
-              fino.dirichlet_row[k_dirichlet].physical_entity = physical_entity;
-              fino.dirichlet_row[k_dirichlet].dof = bc->dof;
+              fino.dirichlet_row[k].physical_entity = physical_entity;
+              fino.dirichlet_row[k].dof = bc->dof;
 
-              indexes_dirichlet[k_dirichlet] = fino.mesh->node[j].index[bc->dof];
+              indexes[k] = fino.mesh->node[j].index[bc->dof];
 
               if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                rhs_dirichlet[k_dirichlet] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
+                rhs[k] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
               } else {
-                rhs_dirichlet[k_dirichlet] = 0;
+                rhs[k] = 0;
               }
 
-              k_dirichlet++;
+              k++;
               
             } else if (bc->bc_type_phys == bc_phys_displacement_constrained) {
 
@@ -536,10 +507,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
     }
   }
 
-  fino.n_dirichlet_rows = k_dirichlet;
-//  fino.n_algebraic_rows = k_algebraic;
+  fino.n_dirichlet_rows = k;
 
-  // esto solo si hubo construains
+  // esto solo si hubo constrains
   wasora_call(fino_assembly());
 
     
@@ -549,7 +519,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   if (fino.math_type != math_type_eigen) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
-      petsc_call(MatGetRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
+      petsc_call(MatGetRow(A, indexes[i], &ncols, &cols, &vals));
       fino.dirichlet_row[i].ncols = ncols;
       if (ncols != 0) {
         fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
@@ -559,7 +529,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           fino.dirichlet_row[i].cols[j] = cols[j];
           fino.dirichlet_row[i].vals[j] = vals[j];
         }
-        petsc_call(MatRestoreRow(A, indexes_dirichlet[i], &ncols, &cols, &vals));
+        petsc_call(MatRestoreRow(A, indexes[i], &ncols, &cols, &vals));
       } else {
         wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s' (do you have volumetric elements?)", fino.dirichlet_row->physical_entity->name);
         PetscFunctionReturn(WASORA_RUNTIME_ERROR);
@@ -567,45 +537,23 @@ int fino_set_essential_bc(Mat A, Vec b) {
     
       // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
       // despues con rhs le ponemos lo que va
-      local_b[indexes_dirichlet[i]] = 0;
+      local_b[indexes[i]] = 0;
     }
     petsc_call(VecRestoreArray(b, &local_b));
   }
   
   
-  // TODO: hacer un array ya listo para hacer un unico MatSetValuesS
-  // TODO: esto rompe simetria como loco!
-/*  
-  if (fino.n_algebraic_rows != 0) {
-    // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-    petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-  
-    petsc_call(MatZeroRows(A, k_algebraic, indexes_algebraic, 1.0, PETSC_NULL, PETSC_NULL));
-    petsc_call(VecGetArray(b, &local_b));
-
-    for (i = 0; i < fino.n_algebraic_rows; i++) {
-      petsc_call(MatSetValues(A, 1, &indexes_algebraic[i], fino.algebraic_row[i].n_cols, fino.algebraic_row[i].alg_col, fino.algebraic_row[i].alg_val, INSERT_VALUES));
-      local_b[indexes_algebraic[i]] = rhs_algebraic[i];
-    }
-    petsc_call(VecRestoreArray(b, &local_b));
-    petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
-    wasora_call(fino_assembly());
-  }  
-*/  
-
-  petsc_call(MatCreateVecs(A, &vec_rhs_dirichlet, NULL));
-  petsc_call(VecSetValues(vec_rhs_dirichlet, k_dirichlet, indexes_dirichlet, rhs_dirichlet, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, k_dirichlet, indexes_dirichlet, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs_dirichlet, b));
-  petsc_call(VecDestroy(&vec_rhs_dirichlet));
+  petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
+  petsc_call(VecSetValues(vec_rhs, k, indexes, rhs, INSERT_VALUES));
+  petsc_call(MatZeroRowsColumns(A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs, b));
+  petsc_call(VecDestroy(&vec_rhs));
   
   if (fino.math_type == math_type_eigen) {
-    petsc_call(MatZeroRowsColumns(fino.M, k_dirichlet, indexes_dirichlet, 0.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(MatZeroRowsColumns(fino.M, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
     
-  free(indexes_dirichlet);
-//  free(indexes_algebraic);
-  free(rhs_dirichlet);
-//  free(rhs_algebraic);
+  free(indexes);
+  free(rhs);
 
   wasora_call(fino_assembly());
 
@@ -746,41 +694,6 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
     
   } else {
     // sino hacemos la cuenta general
-
-    // esto es solo para la presion!
-/*    
-    // viene de sn_elements_compute_outward_normal
-    // calculamos el vector normal para las variables nx ny y nx
-    mesh_subtract(element->node[0]->x, element->node[1]->x, a);
-    mesh_subtract(element->node[0]->x, element->node[2]->x, b);
-    mesh_normalized_cross(a, b, n);
-    
-    // ahora tenemos que ver si la normal que elegimos es efectivamente la outward
-    // para eso primero calculamos el centro del elemento de superficie
-    wasora_call(mesh_compute_element_barycenter(element, surface_center));
-
-    // y despues el centro del elemento de volumen
-    if ((volumetric_neighbor = mesh_find_element_volumetric_neighbor(element)) == NULL) {
-      wasora_push_error_message("cannot find any volumetric neighbor for surface element %d", element->id);
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    }
-    
-    volumetric_neighbor = mesh_find_element_volumetric_neighbor(element);
-    wasora_call(mesh_compute_element_barycenter(volumetric_neighbor, volumetric_neighbor_center));
-
-    // calculamos el producto entre la normal propuesta y la resta de estos dos vectores
-    // si elegimos la otra direccion, la damos tavuel
-    if (mesh_subtract_dot(volumetric_neighbor_center, surface_center, n) > 0) {
-      n[0] = -n[0];
-      n[1] = -n[1];
-      n[2] = -n[2];
-    }    
-    
-    mesh_compute_outward_normal(element, n);
-    wasora_var_value(fino.vars.nx) = n[0];
-    wasora_var_value(fino.vars.ny) = n[1];
-    wasora_var_value(fino.vars.nz) = n[2];
-*/
     
     if (fino.n_local_nodes != element->type->nodes) {
       wasora_call(fino_allocate_elemental_objects(element));
