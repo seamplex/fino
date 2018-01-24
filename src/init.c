@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's initialization routines
  *
- *  Copyright (C) 2015-2017 jeremy theler
+ *  Copyright (C) 2015-2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -146,14 +146,21 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+fino_gamg_threshold+desc Default `0.01`.  
   wasora_var(fino.vars.gamg_threshold) = 0.01;
   
-///va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
-///va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows
-///va+fino_dirichlet_diagonal+desc that correspond to Dirichlet boundary conditions.
-///va+fino_dirichlet_diagonal+desc Default is one, but PETSc internally scales it up
-///va+fino_dirichlet_diagonal+desc automatically to keep a good condition number.
-  fino.vars.dirichlet_diagonal = wasora_define_variable("fino_dirichlet_diagonal");
+//va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
+//va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows
+//va+fino_dirichlet_diagonal+desc that correspond to Dirichlet boundary conditions.
+//va+fino_dirichlet_diagonal+desc Default is one, but PETSc internally scales it up
+//va+fino_dirichlet_diagonal+desc automatically to keep a good condition number.
+//  fino.vars.dirichlet_diagonal = wasora_define_variable("fino_dirichlet_diagonal");
   
- 
+///va+fino_penalty_weight+name fino_penalty_weight
+///va+fino_penalty_weight+desc The weight $w$ used when setting multi-freedom boundary conditions.
+///va+fino_penalty_weight+desc Higher values mean better precision in the constrain but distort
+///va+fino_penalty_weight+desc the matrix condition number. 
+  fino.vars.penalty_weight = wasora_define_variable("fino_penalty_weight");
+///va+fino_penalty_weight+desc Default is `1e7`.
+  wasora_var(fino.vars.penalty_weight) = 1e7;  
+  
 ///va+fino_iterations+name fino_iterations
 ///va+fino_iterations+desc This variable contains the actual number of iterations used
 ///va+fino_iterations+desc by the solver. It is set after `FINO_STEP`.

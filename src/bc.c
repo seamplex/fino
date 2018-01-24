@@ -351,10 +351,12 @@ int fino_set_essential_bc(Mat A, Vec b) {
   double n[3];
   double y1, y2;
   double h = 1e-3;
-  
+
+/*  
   if (wasora_var(fino.vars.dirichlet_diagonal) == 0) {
     wasora_var(fino.vars.dirichlet_diagonal) = 1;
   }
+ */
 
   n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
   current_size = n_bcs;
@@ -364,7 +366,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   rhs = malloc(n_bcs * sizeof(PetscScalar));
   indexes = malloc(n_bcs * sizeof(PetscInt));
   fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
-   
+  
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
       if (associated_element->element->type->dim != fino.dimensions &&
@@ -405,15 +407,14 @@ int fino_set_essential_bc(Mat A, Vec b) {
           gsl_matrix *c;
           gsl_matrix *K;
           int l[2];
-          double w = 1e7;
           int dof;
           int i, target_index;
               
-          c = gsl_matrix_calloc(1, fino.degrees);
-          K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+          c = gsl_matrix_calloc(1, 2);
+          K = gsl_matrix_calloc(2, 2);
 
-          gsl_matrix_set(c, 0, 0, +w);
-          gsl_matrix_set(c, 0, 1, -w);
+          gsl_matrix_set(c, 0, 0, +1);
+          gsl_matrix_set(c, 0, 1, -1);
           
           dof = physical_entity->bc_strings->dof;
 
@@ -435,7 +436,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           l[0] = fino.mesh->node[j].index[dof];
           l[1] = target_index;
           
-          wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, w, c, c, 0, K));
+          wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
           // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
           petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
           MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
@@ -456,7 +457,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
               indexes[k] = fino.mesh->node[j].index[bc->dof];
 
               if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                rhs[k] = wasora_var(fino.vars.dirichlet_diagonal) * wasora_evaluate_expression(&bc->expr);
+                rhs[k] = wasora_evaluate_expression(&bc->expr);
               } else {
                 rhs[k] = 0;
               }
@@ -468,7 +469,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
               gsl_matrix *c;
               gsl_matrix *K;
               int l[3];
-              double w = 1e7;
               
               c = gsl_matrix_calloc(1, fino.degrees);
               K = gsl_matrix_calloc(fino.degrees, fino.degrees);
@@ -490,7 +490,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 gsl_matrix_set(c, 0, d, -(y1-y2)/(2.0*h));
               }
               
-              wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, w, c, c, 0, K));
+              wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
               MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
               
               // TODO: RHS
@@ -545,7 +545,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
   petsc_call(VecSetValues(vec_rhs, k, indexes, rhs, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, k, indexes, wasora_var(fino.vars.dirichlet_diagonal), vec_rhs, b));
+  petsc_call(MatZeroRowsColumns(A, k, indexes, 1.0, vec_rhs, b));
   petsc_call(VecDestroy(&vec_rhs));
   
   if (fino.math_type == math_type_eigen) {
