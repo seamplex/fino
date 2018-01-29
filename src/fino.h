@@ -158,7 +158,8 @@ struct {
     var_t *iterations;
     var_t *residual_norm;
     
-    var_t *dirichlet_diagonal;
+//    var_t *dirichlet_diagonal;
+    var_t *penalty_weight;
   
     var_t *unknowns;
     
