@@ -126,7 +126,7 @@ int fino_instruction_debug(void *arg) {
   
   fino_debug_t *debug = (fino_debug_t *)arg;
 
-  struct rusage resource_usage;
+//  struct rusage resource_usage;
 
   PetscViewer viewer, viewer2;
   char *filename;
@@ -182,11 +182,13 @@ int fino_instruction_debug(void *arg) {
     // system resources
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "### System resource usage\n\n"));
 /* TODO: esto da errores en el valgrind  */  
+/*    
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "user CPU time                          %.4g seconds\n", resource_usage.ru_utime.tv_sec + 1e-6*resource_usage.ru_utime.tv_usec));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "system CPU time                        %.4g seconds\n", resource_usage.ru_stime.tv_sec + 1e-6*resource_usage.ru_stime.tv_usec));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "total                                  %.4g seconds\n", resource_usage.ru_utime.tv_sec + resource_usage.ru_stime.tv_sec + 1e-6*(resource_usage.ru_utime.tv_usec + resource_usage.ru_stime.tv_usec)));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
+ */
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------ ------------------\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "time insumed to                        cpu [secs]         wall [secs]\n"));
@@ -196,6 +198,7 @@ int fino_instruction_debug(void *arg) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "total                                  %.4g               %.4g\n", wasora_value(fino.vars.time_cpu_build)+wasora_value(fino.vars.time_cpu_solve), wasora_value(fino.vars.time_wall_build)+wasora_value(fino.vars.time_wall_solve)));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------ ------------------\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n"));
+/*    
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "maximum memory resident set size       %ld kb\n", resource_usage.ru_maxrss));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "PETSc's maximum memory set size        %.0f kb\n", wasora_value(fino.vars.memory_usage_petsc)/1024.0));
@@ -205,7 +208,7 @@ int fino_instruction_debug(void *arg) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "number of block input operations       %ld\n", resource_usage.ru_inblock));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "number of block output operations      %ld\n", resource_usage.ru_oublock));
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "-------------------------------------- ------------------\n"));
-
+*/
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "\n\n"));
     
 
