@@ -829,10 +829,61 @@ int fino_define_functions(void) {
   }
     
   if (fino.nev > 1) {
+///va+mass+name mass
+///va+mass+desc Total mass\ $m$ computed from the mass matrix\ $M$ as
+///va+mass+desc 
+///va+mass+desc \[ m = \frac{1}{n_\text{DOFs}} \cdot [1]^T \cdot M \cdot [1] \]
+///va+mass+desc 
+///va+mass+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+    fino.vars.mass = wasora_define_variable("mass");
+    
+///ve+f+name f
+///ve+f+desc _Size:_ number of requested eigen-pairs.
+///ve+f+desc _Elements:_ The frequency $f_i$ of the $i$-th mode, in cycles per unit of time.
     fino.vectors.f = wasora_define_vector("f", fino.nev, NULL, NULL);    
 
+///ve+omega+name omega
+///ve+omega+desc _Size:_ number of requested eigen-pairs.
+///ve+omega+desc _Elements:_ The angular frequency $\omega_i$ of the $i$-th mode, in radians per unit of time.
+    fino.vectors.omega = wasora_define_vector("omega", fino.nev, NULL, NULL);    
+
+    
+///ve+M+name M
+///ve+M+desc _Size:_ number of requested eigen-pairs.
+///ve+M+desc _Elements:_ The generalized modal mass $M_i$ of the $i$-th mode computed as
+///ve+M+desc
+///ve+M+desc \[ M_i = \frac{1}{n_\text{DOFs}} \vec{\phi}_i^T \cdot M \vec{\phi}_i \]
+///va+M+desc 
+///va+M+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+
+    fino.vectors.M = wasora_define_vector("M", fino.nev, NULL, NULL);    
+
+///ve+L+name L
+///ve+L+desc _Size:_ number of requested eigen-pairs.
+///ve+L+desc _Elements:_ The excitation factor $L_i$ of the $i$-th mode computed as
+///ve+L+desc
+///ve+L+desc \[ L_i = \frac{1}{n_\text{DOFs}} \vec{\phi}_i^T \cdot M [\vec{1}] \]
+///va+L+desc 
+///va+K+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+    fino.vectors.L = wasora_define_vector("L", fino.nev, NULL, NULL);    
+
+///ve+Gamma+name Gamma
+///ve+Gamma+desc _Size:_ number of requested eigen-pairs.
+///ve+Gamma+desc _Elements:_ The participation factor $\Gamma_i$ of the $i$-th mode computed as
+///ve+Gamma+desc
+///ve+Gamma+desc \[ \Gamma_i = \frac{L_i}{M_i} \]
+    fino.vectors.Gamma = wasora_define_vector("Gamma", fino.nev, NULL, NULL);    
+    
+///ve+Me+name Me
+///ve+Me+desc _Size:_ number of requested eigen-pairs.
+///ve+Me+desc _Elements:_ The effective modal mass factor $M^e_i$ of the $i$-th mode computed as
+///ve+Me+desc
+///ve+Me+desc \[ M^e_i = \frac{L_i^2}{n_\text{DOFs} \cdot M_i} \]
+///ve+Me+desc
+///ve+Me+desc Note that $\sum_{i=1}^N M^e_i = m$, where $N$ is number of nodes.
+    fino.vectors.Me = wasora_define_vector("Me", fino.nev, NULL, NULL);    
+    
     fino.vectors.phi = malloc(fino.nev * sizeof(vector_t *));
-    fino.vectors.Mphi = malloc(fino.nev * sizeof(vector_t *));
     for (i = 0; i < fino.nev; i++) {
       if (asprintf(&vibname, "phi%d", i+1) == -1) {
         wasora_push_error_message("cannot asprintf");
@@ -840,17 +891,6 @@ int fino_define_functions(void) {
       }
       
       if ((fino.vectors.phi[i] = wasora_define_vector(vibname, 0, NULL, NULL)) == NULL) {
-        wasora_push_error_message("cannot define vector %s", vibname);
-        return WASORA_RUNTIME_ERROR;
-      }
-      free(vibname);
-      
-      if (asprintf(&vibname, "Mphi%d", i+1) == -1) {
-        wasora_push_error_message("cannot asprintf");
-        return WASORA_RUNTIME_ERROR;
-      }
-      
-      if ((fino.vectors.Mphi[i] = wasora_define_vector(vibname, 0, NULL, NULL)) == NULL) {
         wasora_push_error_message("cannot define vector %s", vibname);
         return WASORA_RUNTIME_ERROR;
       }

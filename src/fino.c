@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino plugin for wasora
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -46,7 +46,7 @@ int fino_instruction_step(void *arg) {
   fino_times_t wall;
   fino_times_t cpu;
   fino_times_t petsc;
-  double xi;
+  double xi, fu;
   int i, j, k, g;
 
   PetscFunctionBegin;
@@ -66,6 +66,12 @@ int fino_instruction_step(void *arg) {
   if (fino_step->do_not_build == 0 && wasora_var_value(wasora_special_var(end_time)) == 0) {
     time_checkpoint(build_begin);
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
+
+    // nos acordamos de la matriz de masa antes de ponerle las condiciones de contorno de Dirichlet
+    if (fino.has_mass) {
+      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.Morig);
+    }
+    
     wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
     time_checkpoint(build_end);
   }
@@ -85,10 +91,10 @@ int fino_instruction_step(void *arg) {
 #ifdef HAVE_SLEPC
         int i;
 
-        // si no nos pidieron que autovalor quieren, pedimos el primero
+        // si no nos pidieron que autovalor que quieren, pedimos el primero
         if (fino.nev == 0) {
           fino.nev = 1;
-        }        
+        }
         
         wasora_call(fino_solve_eigen_slepc(fino.K, fino.M));
         wasora_var(fino.vars.lambda) = fino.lambda;        // leemos el autovalor
@@ -97,46 +103,51 @@ int fino_instruction_step(void *arg) {
         if (fino.nev > 1) {
           
           Vec tmp;
-//          PetscScalar normM, normK;
-          PetscScalar norm;
+          Vec one;
+          PetscScalar norm, M, L;
           
           VecDuplicate(fino.phi, &tmp);
+          VecDuplicate(fino.phi, &one);
+          VecSet(one, 1.0);
+    
+          // masa total
+          MatMult(fino.M, one, tmp);
+          VecDot(one, tmp, &xi);
+          wasora_var_value(fino.vars.mass) = xi/(double)fino.degrees;
+          
           
           // la fiesta de la ineficiencia
           for (i = 0; i < fino.nev; i++) {
-            // autovalor
-            wasora_vector_set(fino.vectors.f, i, 2*sqrt(2*M_PI/fino.eigenvalue[i]));
+            // autovalor convertido a frequencia
+            fu = 4.0/1.0; // factor fumanchu
+            wasora_vector_set(fino.vectors.f, i, sqrt(fu*2*M_PI/fino.eigenvalue[i]));
+            wasora_vector_set(fino.vectors.omega, i, sqrt(fu/fino.eigenvalue[i]));
             
-            // autovector
+            // autovector i
+            fino.vectors.phi[i]->size = fino.problem_size;
+
+            // normalizado para que el maximo sea uno
             VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
             VecScale(fino.eigenvector[i], 1.0/norm);
-            
-            fino.vectors.phi[i]->size = fino.problem_size;
-            wasora_vector_init(fino.vectors.phi[i]);
-
-            fino.vectors.Mphi[i]->size = fino.problem_size;
-            wasora_vector_init(fino.vectors.Mphi[i]);
-            MatMult(fino.M, fino.eigenvector[i], tmp);
             
             for (j = 0; j < fino.problem_size; j++) {
               petsc_call(VecGetValues(fino.eigenvector[i], 1, &j, &xi));
               wasora_vector_set(fino.vectors.phi[i], j, xi);
-              
-              petsc_call(VecGetValues(tmp, 1, &j, &xi));
-              wasora_vector_set(fino.vectors.Mphi[i], j, xi);
-              
             }
             
-/*
-            MatMult(fino.M, fino.eigenvector[i], v1);
-            VecDot(fino.eigenvector[i], v1, &normM);
+            // masa modal
+            MatMult(fino.Morig, fino.eigenvector[i], tmp);
+            VecDot(fino.eigenvector[i], tmp, &M);
+            wasora_vector_set(fino.vectors.M, i, M);
             
-            MatMult(fino.K, fino.eigenvector[i], v1);
-            VecDot(fino.eigenvector[i], v1, &normK);
- */
+            // excitacion
+            MatMult(fino.Morig, one, tmp);
+            VecDot(fino.eigenvector[i], tmp, &L);
+            wasora_vector_set(fino.vectors.L, i, L);
+
+            wasora_vector_set(fino.vectors.Gamma, i, L/M);
+            wasora_vector_set(fino.vectors.Me, i, gsl_pow_2(L)/(fino.degrees*M));
             
-//            VecNorm(fino.eigenvector[i], NORM_2, &norm);
-//            printf("%d\t%g\t%g\t%g\t%g\t%g\n", i, norm, normM, normK, sqrt(normK/normM), 2*sqrt(2*M_PI/fino.eigenvalue[i]));
           }
         }
 #else 

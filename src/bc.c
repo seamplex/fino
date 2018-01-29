@@ -351,10 +351,14 @@ int fino_set_essential_bc(Mat A, Vec b) {
   double n[3];
   double y1, y2;
   double h = 1e-3;
-  
+
+/*
   if (wasora_var(fino.vars.dirichlet_diagonal) == 0) {
     wasora_var(fino.vars.dirichlet_diagonal) = 1;
   }
+*/
+  
+  wasora_var(fino.vars.dirichlet_diagonal) = 1;  
 
   n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
   current_size = n_bcs;

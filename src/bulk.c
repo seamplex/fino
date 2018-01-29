@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's bulk routines
  *
- *  Copyright (C) 2015-2017 jeremy theler
+ *  Copyright (C) 2015-2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -145,9 +145,11 @@ int fino_build_element_volumetric(element_t *element) {
 
 /*    
     printf("\nelement %d\n", element->id);
-    fino_print_gsl_matrix(fino.Ai, stdout);
+    fino_print_gsl_matrix(fino.Ki, stdout);
     printf("\n");
-*/
+    fino_print_gsl_matrix(fino.Mi, stdout);
+    printf("\n");
+ */
 /*    
     if (fino.dump != NULL) {
       fprintf(fino.dump, "\nelement %d\n", element->id);

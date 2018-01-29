@@ -478,7 +478,7 @@ int fino_problem_init(void) {
 // alocamos objetos globales
 //---------------------------------
 
-  width = fino.mesh->max_first_neighbor_nodes * fino.degrees;
+  width = GSL_MAX(fino.mesh->max_nodes_per_element, fino.mesh->max_first_neighbor_nodes) * fino.degrees;
   
   // la matriz de stiffnes global
   petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.K));

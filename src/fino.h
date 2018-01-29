@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino main header
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -213,13 +213,20 @@ struct {
     var_t *memory_usage_global;
     var_t *memory_usage_petsc;
     
+    var_t *mass;
+    
   } vars;
 
   // vectores
   struct {
     vector_t *f;
+    vector_t *omega;
+    vector_t *M;
+    vector_t *L;
+    vector_t *Gamma;
+    vector_t *Me;
+    
     vector_t **phi;
-    vector_t **Mphi;
   } vectors;
 
   // flag
@@ -246,6 +253,9 @@ struct {
   Mat lastM;
   Mat dotM;
   Vec m;
+  
+  Mat Morig;     // la matriz de masa sin las condiciones de contorno
+                 // (para calcular cosas de los modos como masa total = <1> M [1]
   
   // contexto del solver de krylov
   KSP ksp;
@@ -306,10 +316,7 @@ struct {
   int n_dirichlet_rows;
   dirichlet_row_t *dirichlet_row;
   
-  // holder para poner multifreedom constrains
-//  int n_algebraic_rows;
-//  dirichlet_row_t *algebraic_row;
-  
+ 
   // user-provided functions para los objetos elementales, las linkeamos
   // a las que dio el usuario en el input en init
   function_t ***Ai_function;
@@ -370,15 +377,6 @@ struct {
   
 } fino;
 
-/*
-struct fino_reaction_t {
-  physical_entity_t *physical_entity;
-  char *name_root;
-  var_t *R[3];
-  
-  fino_reaction_t *next;
-};
-*/
 
 // se rellena value a partir o bien de una variable o bien de una funcion
 struct fino_distribution_t {

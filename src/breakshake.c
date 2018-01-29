@@ -63,6 +63,7 @@ int fino_break_build_element(element_t *element, int v) {
   
   material_t *material;
 
+  double rho;
   double c;
   double alphaDT;
   
@@ -245,7 +246,8 @@ int fino_break_build_element(element_t *element, int v) {
   
   if (fino.has_mass) {
     // calculamos la matriz de masa Ht*rho*H
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+    rho = fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * rho, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
   } 
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -860,7 +862,7 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
   double S12 = fabs(sigma1-sigma2);
   double S23 = fabs(sigma2-sigma3);
   double S31 = fabs(sigma3-sigma1);
-  
+
   if (S31 >= S12 && S31 >= S23) {
     return S31;
   } else if (S12 >= S23 && S12 >= S31) {
@@ -868,9 +870,9 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
   } else if (S23 >= S12 && S23 >= S31) {
     return S23;
   }
-  
+
   return 0;
-  
+
 }
 
 #undef  __FUNCT__
@@ -878,10 +880,10 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
 double fino_compute_tresca_from_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
 
   double sigma1, sigma2, sigma3;
-  
+
   wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx, &sigma1, &sigma2, &sigma3));
   return fino_compute_tresca_from_principal(sigma1, sigma2, sigma3);
-  
+
 }
 
 
