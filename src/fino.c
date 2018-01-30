@@ -128,6 +128,8 @@ int fino_instruction_step(void *arg) {
 
             // normalizado para que el maximo sea uno
             VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
+//            VecNorm(fino.eigenvector[i], NORM_1, &norm);
+//            VecNorm(fino.eigenvector[i], NORM_2, &norm);            
             VecScale(fino.eigenvector[i], 1.0/norm);
             
             for (j = 0; j < fino.problem_size; j++) {
@@ -179,7 +181,9 @@ int fino_instruction_step(void *arg) {
         
         if (fino.nev > 1) {
           for (i = 0; i < fino.nev; i++) {
-            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[k].index[g], &fino.vibration[g][i]->data_value[k]));
+            // las funciones ya tienen el factor de excitacion
+            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[k].index[g], &xi));
+            fino.vibration[g][i]->data_value[k] = gsl_vector_get(wasora_value_ptr(fino.vectors.Gamma), i) * xi;
           }
         }
       }
