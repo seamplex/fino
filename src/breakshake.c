@@ -142,6 +142,7 @@ int fino_break_build_element(element_t *element, int v) {
     gsl_matrix_free(CB);
     CB = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
+    // esto lo ponemos aca porque sino es mucho lio ponerlo en otro lado
     gsl_vector_free(Cet);
     Cet = gsl_vector_alloc(stress_strain_size);
   }  
@@ -356,24 +357,26 @@ int fino_break_compute_stresses(void) {
   
   double c1 = 1.0;
   double c1c2 = 1.0;
-  double sigma = 0;
+  double c3 = 0;
   
+  double sigma = 0;
   double sigma1 = 0;
   double sigma2 = 0;
   double sigma3 = 0;
   double tresca = 0;
   
   double displ2 = 0;
-
   double max_displ2 = 0;
+  
   double nu = 0;
   double E = 0;
+  double alpha = 0;
+  double DT;
   
   int j, m;
   
   PetscFunctionBegin;
 
-  // von mises  
   if (fino.sigma->data_value == NULL) {
     // tensor de tensiones
     fino.sigmax->data_argument = fino.gradient[0][0]->data_argument;
@@ -426,7 +429,7 @@ int fino_break_compute_stresses(void) {
     fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   }
   
-  // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
+  // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
   if (distribution_nu.variable != NULL) {
     nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
     if (nu > 0.5) {
@@ -444,8 +447,11 @@ int fino_break_compute_stresses(void) {
       return WASORA_RUNTIME_ERROR;
     }
   }
+  if (distribution_alpha.variable != NULL) {
+    alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
+  }
+
   
- 
   wasora_var(fino.vars.sigma_max) = 0;
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
@@ -473,6 +479,9 @@ int fino_break_compute_stresses(void) {
         wasora_push_error_message("E is negative at node %d", j+1);
         return WASORA_RUNTIME_ERROR;
       }      
+    }
+    if (distribution_alpha.physical_property != NULL) {
+      alpha = fino_distribution_evaluate(&distribution_alpha, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
     }
 
     // deformaciones
@@ -511,23 +520,26 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     
     // tensiones
     if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
-  /*
-  sigma_x(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_x(x,y,z) + nu*(e_y(x,y,z)+e_z(x,y,z)))
-  sigma_y(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_y(x,y,z) + nu*(e_x(x,y,z)+e_z(x,y,z)))
-  sigma_z(x,y,z) := E/((1+nu)*(1-2*nu))*((1-nu)*e_z(x,y,z) + nu*(e_x(x,y,z)+e_y(x,y,z)))
-  tau_xy(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_xy(x,y,z)
-  tau_yz(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_yz(x,y,z)
-  tau_zx(x,y,z) :=  E/((1+nu)*(1-2*nu))*(1-2*nu)/2*gamma_zx(x,y,z)
-  VM_stress(x,y,z) := sqrt(1/2*((sigma_x(x,y,z)-sigma_y(x,y,z))^2 + (sigma_y(x,y,z)-sigma_z(x,y,z))^2 + (sigma_z(x,y,z)-sigma_x(x,y,z))^2 + 6*(tau_xy(x,y,z)^2+tau_yz(x,y,z)^2+tau_zx(x,y,z)^2)))
-  */
-      // constantes    
+      // constantes para convertir de strain a stress
       c1 = E/((1+nu)*(1-2*nu));
       c1c2 = c1 * 0.5*(1-2*nu);
     }
 
+    // tensiones normales
     sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
     sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
     sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));  // esta es sigmatheta en axi
+    
+    // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
+    if (alpha != 0) {
+      c3 = E/(1-2*nu);
+      DT = fino_distribution_evaluate(&distribution_T, fino.mesh->node[j].master_material, fino.mesh->node[j].x) - T0;
+      sigmax -= c3*alpha*DT;
+      sigmay -= c3*alpha*DT;
+      sigmaz -= c3*alpha*DT;
+    }
+    
+    // esfuerzos de corte
     tauxy =  c1c2 * gammaxy;
     if (fino.dimensions == 3) {
       tauyz =  c1c2 * gammayz;

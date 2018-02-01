@@ -852,7 +852,7 @@ int fino_define_functions(void) {
 ///ve+M+desc _Size:_ number of requested eigen-pairs.
 ///ve+M+desc _Elements:_ The generalized modal mass $M_i$ of the $i$-th mode computed as
 ///ve+M+desc
-///ve+M+desc \[ M_i = \frac{1}{n_\text{DOFs}} \vec{\phi}_i^T \cdot M \vec{\phi}_i \]
+///ve+M+desc \[ M_i = \frac{1}{n_\text{DOFs}} \cdot \vec{\phi}_i^T \cdot M \cdot \vec{\phi}_i \]
 ///va+M+desc 
 ///va+M+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
 
@@ -862,7 +862,7 @@ int fino_define_functions(void) {
 ///ve+L+desc _Size:_ number of requested eigen-pairs.
 ///ve+L+desc _Elements:_ The excitation factor $L_i$ of the $i$-th mode computed as
 ///ve+L+desc
-///ve+L+desc \[ L_i = \frac{1}{n_\text{DOFs}} \vec{\phi}_i^T \cdot M [\vec{1}] \]
+///ve+L+desc \[ L_i = \frac{1}{n_\text{DOFs}} \cdot \vec{\phi}_i^T \cdot M \cdot [\vec{1}] \]
 ///va+L+desc 
 ///va+K+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
     fino.vectors.L = wasora_define_vector("L", fino.nev, NULL, NULL);    
