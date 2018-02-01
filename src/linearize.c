@@ -56,6 +56,9 @@ int fino_instruction_linearize(void *arg) {
   int i, j, k, v;
 
   struct linearize_params_t params;
+  
+  char *total_name = NULL;
+  function_t *total_function = NULL;
 
   // http://www.eng-tips.com/faqs.cfm?fid=982
 
@@ -236,59 +239,71 @@ int fino_instruction_linearize(void *arg) {
  
   switch (linearize->total) {
     case linearize_vonmises:
+      total_function = fino.sigma;
+      total_name = strdup("Von Mises");
       M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
       MBplus = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
       MBminus = fino_compute_vonmises_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
       
-      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
+      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia
       T1 = wasora_evaluate_function(fino.sigma, x1);
       T2 = wasora_evaluate_function(fino.sigma, x2);
     break;
       
     case linearize_tresca:
+      total_function = fino.tresca;
+      total_name = strdup("Tresca");
       M = fino_compute_tresca_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
       MBplus = fino_compute_tresca_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
       MBminus = fino_compute_tresca_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
       
-      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
       T1 = wasora_evaluate_function(fino.tresca, x1);
       T2 = wasora_evaluate_function(fino.tresca, x2);
     break;
 
     case linearize_principal1:
+      total_function = fino.sigma1;
+      total_name = strdup("Principal 1");
       fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, &M, NULL, NULL);
       fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, &MBplus, NULL, NULL);
       fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, &MBminus, NULL, NULL);
       
-      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
       T1 = wasora_evaluate_function(fino.sigma1, x1);
       T2 = wasora_evaluate_function(fino.sigma1, x2);
     break;
 
     case linearize_principal2:
+      total_function = fino.sigma2;
+      total_name = strdup("Principal 2");
       fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, NULL, &M, NULL);
       fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, NULL, &MBplus, NULL);
       fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, NULL, &MBminus, NULL);
       
-      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
       T1 = wasora_evaluate_function(fino.sigma1, x1);
       T2 = wasora_evaluate_function(fino.sigma2, x2);
     break;
   
     case linearize_principal3:
+      total_function = fino.sigma3;
+      total_name = strdup("Principal 3");
       fino_compute_principal_stress(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m, NULL, NULL, &M);
       fino_compute_principal_stress(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b, NULL, NULL, &MBplus);
       fino_compute_principal_stress(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b, NULL, NULL, &MBminus);
       
-      // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia y calcular von mises de eso
       T1 = wasora_evaluate_function(fino.sigma3, x1);
       T2 = wasora_evaluate_function(fino.sigma3, x2);
     break;
   }
 
-  MB = (MBplus>MBminus)?MBplus:MBminus;
-  T = (T1>T2)?T1:T2;
-  B = MB - M;
+  if (linearize->total != linearize_principal3) {
+    MB = (MBplus>MBminus)?MBplus:MBminus;
+    T = (T1>T2)?T1:T2;
+    B = MB - M;
+  } else {
+    MB = (MBplus<MBminus)?MBplus:MBminus;
+    T = (T1<T2)?T1:T2;
+    B = M - MB;
+  }
   P = T - MB;
   
   wasora_var_value(linearize->M) = M;
@@ -305,7 +320,8 @@ int fino_instruction_linearize(void *arg) {
 
     fprintf(linearize->file->pointer, "# Start point: (%g, %g, %g)\n", params.x1, params.y1, params.z1);
     fprintf(linearize->file->pointer, "#   End point: (%g, %g, %g)\n", params.x2, params.y2, params.z2);
-
+    fprintf(linearize->file->pointer, "#       Total: %s\n", total_name);
+    
     fprintf(linearize->file->pointer, "#\n");
     fprintf(linearize->file->pointer, "# ## Membrane stress tensor\n");
     fprintf(linearize->file->pointer, "#\n");
@@ -325,7 +341,7 @@ int fino_instruction_linearize(void *arg) {
     fprintf(linearize->file->pointer, "#   $\\tau_{yz}$ = %g\n", tauyz_b);
     fprintf(linearize->file->pointer, "#   $\\tau_{zx}$ = %g\n", tauzx_b);
     fprintf(linearize->file->pointer, "#\n");
-
+/*
     fprintf(linearize->file->pointer, "# ## Membrane plus bending stress tensor\n");
     fprintf(linearize->file->pointer, "#\n");
     fprintf(linearize->file->pointer, "#  $\\sigma_{x}$ = %g\n", sigmax_m+sigmax_b);
@@ -335,29 +351,30 @@ int fino_instruction_linearize(void *arg) {
     fprintf(linearize->file->pointer, "#   $\\tau_{yz}$ = %g\n", tauyz_m+tauyz_b);
     fprintf(linearize->file->pointer, "#   $\\tau_{zx}$ = %g\n", tauzx_m+tauzx_b);
     fprintf(linearize->file->pointer, "#\n");
-
+*/
     fprintf(linearize->file->pointer, "# ## Linearization results\n");
     fprintf(linearize->file->pointer, "#\n");
     fprintf(linearize->file->pointer, "#                Membrane stress $M$ = %g\n", wasora_var_value(linearize->M));
     fprintf(linearize->file->pointer, "#  Membrane plus bending stress $MB$ = %g\n", wasora_var_value(linearize->MB));
     fprintf(linearize->file->pointer, "#                    Peak stress $P$ = %g\n", wasora_var_value(linearize->P));
     fprintf(linearize->file->pointer, "#\n");
-//    fprintf(linearize->file->pointer, "# t_prime\tM\tMB\tT\n");
+    fprintf(linearize->file->pointer, "# t_prime\tM\tMB\tT\n");
 
-    for (i = 0; i <= 25; i++) {
-      t_prime = i/25.0;
+    for (i = 0; i <= 50; i++) {
+      t_prime = i/50.0;
       x1[0] = params.x1 + t_prime * (params.x2 - params.x1);
       x1[1] = params.y1 + t_prime * (params.y2 - params.y1);
-      x2[2] = params.z1 + t_prime * (params.z2 - params.z1);
+      x1[2] = params.z1 + t_prime * (params.z2 - params.z1);
       
       if (t_prime < 0.5) {
-        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T1>M)?(+1):(-1))*B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x1));
+        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T1>M)?(+1):(-1))*B*(1-2*t_prime), wasora_evaluate_function(total_function, x1));
       } else {
-        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T2>M)?(-1):(+1))*B*(1-2*t_prime), wasora_evaluate_function(fino.sigma, x1));
+        fprintf(linearize->file->pointer, "%.2f\t%e\t%e\t%e\n", t_prime, M, M+((T2>M)?(-1):(+1))*B*(1-2*t_prime), wasora_evaluate_function(total_function, x1));
       }
     }
   }    
-    
+   
+  free(total_name);
   
   return WASORA_RUNTIME_OK;
 }
