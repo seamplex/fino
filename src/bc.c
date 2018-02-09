@@ -430,11 +430,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
           l[0] = fino.mesh->node[j].index[dof];
           l[1] = target_index;
           
-          wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-          // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-          petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-          MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-          petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+          if (l[0] != l[1]) {
+            wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+            // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
+            petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+            MatSetValues(fino.K, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+            petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+          }
               
           gsl_matrix_free(c);
           gsl_matrix_free(K);
