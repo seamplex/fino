@@ -55,6 +55,10 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage |
 ///kw+FINO_PROBLEM+desc * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
         } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "MODAL") == 0) {
+#ifndef HAVE_SLEPC
+          wasora_push_error_message("MODAL needs a fino binary linked agains SLEPc.");
+          return WASORA_PARSER_ERROR;
+#endif
           fino.problem_family = problem_family_shake;
           fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_type_eigen;
