@@ -462,7 +462,6 @@ int fino_problem_init(void) {
     return WASORA_RUNTIME_ERROR;
   }
 
-/*
   LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
     if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' (id %d) has a BC but no associated elements", physical_entity->name, physical_entity->id);
@@ -473,7 +472,6 @@ int fino_problem_init(void) {
       return WASORA_RUNTIME_ERROR;
     }
   }
-*/
 
 
   // ponemos esto para hacer explicito que somos FEM y no FVM
