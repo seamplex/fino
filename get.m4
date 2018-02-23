@@ -1,7 +1,7 @@
 divert(-1)
 include(`wasora/m4/getscript.m4')
 define(name, fino)
-define(petsc_version, 3.7.6)
+define(petsc_version, 3.8.3)
 divert(0)dnl
 GET_HEADER
 GET_STEP0
