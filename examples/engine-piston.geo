@@ -9,7 +9,7 @@ Mesh.CharacteristicLengthMax = 1.1*lc;
 Mesh.CharacteristicLengthExtendFromBoundary = 0;
 Mesh.ElementOrder = 1;
 Mesh.Algorithm = 2;
-Mesh.Algorithm3D = 1;
+Mesh.Algorithm3D = 2;
 
 Physical Surface("top", 1) = {70};
 Physical Surface("ring 1", 2) = {69};
