@@ -30,29 +30,39 @@ Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [U
 
 # Quick start
 
-If you are impatient to run Fino, open a terminal in any GNU/Linux box (may be a VirtualBox box) and run:
+> It is really worth any amount of time and effort to get away from Windows
+if you are doing computational science.
+>
+> <https://lists.mcs.anl.gov/pipermail/petsc-users/2015-July/026388.html>
+
+Open a terminal in a GNU/Linux box (may be a VirtualBox box) and install the following tools:
 
 ```
-sudo apt-get install curl m4 make autoconf automake gcc git libgsl0-dev wget findutils
-curl https://www.seamplex.com/fino/get.sh | sh
+sudo apt-get install m4 make autoconf automake gcc g++ git findutils
 ```
-
-You might need to use a different package manager if your distribution is not [Debian](http://www.debian.org)-based.
-If you are behind a proxy, make sure that both `http_proxy` and `https_proxy` are properly set. If you get any error, either
-
- a. See the detailed explanation in [INSTALL](INSTALL.md)  
- b. Ask for help in the mailing list at <https://groups.google.com/a/seamplex.com/forum/#!forum/wasora>
-
-Should you want to directly clone the repository, knock yourself out with:
+and the following libraries
 
 ```
-git clone https://bitbucket.org/seamplex/fino
+sudo apt-get install libgsl-dev libsundials-serial-dev libreadline-dev petsc-dev slepc-dev
 ```
 
-If these instructions are non-sense to you, go directly to point (b) above.
+If your distribution does not have a bundled version of [PETSc](http://www.mcs.anl.gov/petsc/) or [SLEPc](http://www.grycap.upv.es/slepc/), then you might need to compile them yourself (SLEPc is optional for Fino). Ask for help in the [mailing list](https://www.seamplex.com/lists.html).
+
+Clone the Fino repository, bootstrap (might take a while as it has to clone and bootstrap [wasora](https://www.seamplex.com/wasora/) first), configure, compile and check:
+
+```
+git clone https://bitbucket.org/seamplex/fino/
+cd fino
+./autogen.sh
+./configure
+make
+make check
+```
+
+If these instructions are non-sense to you, go directly to the [mailing list](https://www.seamplex.com/lists.html).
 
 
-# Features 
+# Features
 
 Fino uses the a finite-element formulation to solve
 
