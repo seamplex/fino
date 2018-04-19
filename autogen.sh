@@ -31,7 +31,7 @@ m4 wasora/m4/bootstrap.m4 - << EOF | sh -s $1 || exit 1
 plugin=${plugin}
 WASORA_CHECK_VCS
 PLUGIN_VERSION_VCS
-PLUGIN_README_INSTALL
+WASORA_README_INSTALL
 EOF
 
 # build makefile.am
