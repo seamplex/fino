@@ -83,7 +83,7 @@ PetscErrorCode petsc_err;
 #define bc_dof_coordinates_offset        128
 
 
-#define BC_FACTOR 0.1
+#define BC_FACTOR 0.25
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;
@@ -97,7 +97,6 @@ typedef struct fino_debug_t fino_debug_t;
 typedef struct {
   physical_entity_t *physical_entity;
   
-  int n_cols;
   PetscScalar *alg_val;
   PetscInt *alg_col;
   
@@ -315,6 +314,8 @@ struct {
 
   // holder para poner las BCs dirichlet (y calcular las reacciones de vinculo)
   int n_dirichlet_rows;
+  PetscScalar     *dirichlet_rhs;
+  PetscInt        *dirichlet_indexes;
   dirichlet_row_t *dirichlet_row;
   
  

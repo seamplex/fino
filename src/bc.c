@@ -328,17 +328,15 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // TODO: hacer esto mas limpio!!
   
   PetscScalar *local_b;
-  PetscScalar *rhs;
-  PetscInt *indexes;
 
   physical_entity_t *physical_entity;
   element_list_item_t *associated_element;
   
   const PetscInt *cols;
   const PetscScalar *vals;
-  size_t n_bcs;
-  size_t current_size;
-  size_t current_threshold;
+  size_t n_bcs = 0;
+  size_t current_size = 0;
+//  size_t current_threshold = 0;
   PetscInt ncols;
   Vec vec_rhs;
   int k = 0;
@@ -352,18 +350,15 @@ int fino_set_essential_bc(Mat A, Vec b) {
   double y1, y2;
   double h = 1e-3;
 
-  n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
-  current_size = n_bcs;
-  current_threshold = n_bcs - 2*fino.degrees;
-
-  
-  rhs = malloc(n_bcs * sizeof(PetscScalar));
-  indexes = malloc(n_bcs * sizeof(PetscInt));
-
-  // en problemas transient esto hace un memory leak de locos sin este free
-  // en problemas static hace un free de un NULL asi que todo manzana
-  free(fino.dirichlet_row);
-  fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
+  if (fino.n_dirichlet_rows == 0) {
+    n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
+    current_size = n_bcs;
+//    current_threshold = n_bcs - 2*fino.degrees;
+    
+    fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
+    fino.dirichlet_rhs = calloc(n_bcs, sizeof(PetscScalar));
+    fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
+  }
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
@@ -371,11 +366,11 @@ int fino_set_essential_bc(Mat A, Vec b) {
           (physical_entity = associated_element->element->physical_entity) != NULL &&
           physical_entity->bc_type_math == bc_math_dirichlet) {
           
-        if (k >= current_threshold) {
+        if (fino.n_dirichlet_rows == 0 && k >= current_size) {
           current_size += n_bcs;
-          current_threshold = current_size - 2*fino.degrees;
-          indexes = realloc(indexes, current_size * sizeof(PetscInt));
-          rhs = realloc(rhs, current_size * sizeof(PetscScalar));
+//          current_threshold = current_size - 2*fino.degrees;
+          fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, current_size * sizeof(PetscInt));
+          fino.dirichlet_rhs = realloc(fino.dirichlet_rhs, current_size * sizeof(PetscScalar));
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
         }
 
@@ -395,8 +390,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
           for (d = 0; d < fino.degrees; d++) {
             fino.dirichlet_row[k].physical_entity = physical_entity;
             fino.dirichlet_row[k].dof = d;
-            indexes[k] = fino.mesh->node[j].index[d];
-            rhs[k] = 0;
+            fino.dirichlet_indexes[k] = fino.mesh->node[j].index[d];
+            fino.dirichlet_rhs[k] = 0;
             k++;
           }
 
@@ -454,12 +449,12 @@ int fino_set_essential_bc(Mat A, Vec b) {
               fino.dirichlet_row[k].physical_entity = physical_entity;
               fino.dirichlet_row[k].dof = bc->dof;
 
-              indexes[k] = fino.mesh->node[j].index[bc->dof];
+              fino.dirichlet_indexes[k] = fino.mesh->node[j].index[bc->dof];
 
               if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                rhs[k] = wasora_evaluate_expression(&bc->expr);
+                fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr);
               } else {
-                rhs[k] = 0;
+                fino.dirichlet_rhs[k] = 0;
               }
 
               k++;
@@ -507,29 +502,47 @@ int fino_set_essential_bc(Mat A, Vec b) {
     }
   }
 
-  fino.n_dirichlet_rows = k;
+  if (fino.n_dirichlet_rows == 0) {
+    fino.n_dirichlet_rows = k;
+    
+    // si k == 0 esto es como hacer free
+    fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, fino.n_dirichlet_rows * sizeof(PetscInt));
+    fino.dirichlet_rhs = realloc(fino.dirichlet_rhs, fino.n_dirichlet_rows * sizeof(PetscScalar));
+    fino.dirichlet_row = realloc(fino.dirichlet_row, fino.n_dirichlet_rows * sizeof(dirichlet_row_t));
+  }
 
-  // esto solo si hubo constrains
+  // esto se necesita solo si hubo constrains
   wasora_call(fino_assembly());
-
     
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
-  if (fino.math_type != math_type_eigen) {
+//  if (fino.problem_family == problem_family_break) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
-      petsc_call(MatGetRow(A, indexes[i], &ncols, &cols, &vals));
-      fino.dirichlet_row[i].ncols = ncols;
+      
+      fprintf(stderr, "i = %d\tncols = %d\n", i, fino.dirichlet_row[i].ncols);
+      
+      petsc_call(MatGetRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
       if (ncols != 0) {
-        fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
-        fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
+        if (fino.dirichlet_row[i].ncols != ncols) {
+          fino.dirichlet_row[i].ncols = ncols;
+          
+          free(fino.dirichlet_row[i].cols);
+          fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
+
+          free(fino.dirichlet_row[i].vals);
+          fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
+        }
+        
         // por si acaso igualamos en lugar de hacer memcpy
         for (j = 0; j < ncols; j++) {
           fino.dirichlet_row[i].cols[j] = cols[j];
           fino.dirichlet_row[i].vals[j] = vals[j];
         }
-        petsc_call(MatRestoreRow(A, indexes[i], &ncols, &cols, &vals));
+        
+        petsc_call(MatRestoreRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
+        
       } else {
         wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s' (do you have volumetric elements?)", fino.dirichlet_row->physical_entity->name);
         PetscFunctionReturn(WASORA_RUNTIME_ERROR);
@@ -537,24 +550,21 @@ int fino_set_essential_bc(Mat A, Vec b) {
     
       // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
       // despues con rhs le ponemos lo que va
-      local_b[indexes[i]] = 0;
+      local_b[fino.dirichlet_indexes[i]] = 0;
     }
     petsc_call(VecRestoreArray(b, &local_b));
-  }
+//  }
   
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
-  petsc_call(VecSetValues(vec_rhs, k, indexes, rhs, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, k, indexes, 1.0, vec_rhs, b));
+  petsc_call(VecSetValues(vec_rhs, k, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));
+  petsc_call(MatZeroRowsColumns(A, k, fino.dirichlet_indexes, 1.0, vec_rhs, b));
   petsc_call(VecDestroy(&vec_rhs));
   
   if (fino.math_type == math_type_eigen) {
-    petsc_call(MatZeroRowsColumns(fino.M, k, indexes, 0.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(MatZeroRowsColumns(fino.M, k, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
     
-  free(indexes);
-  free(rhs);
-
   wasora_call(fino_assembly());
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);

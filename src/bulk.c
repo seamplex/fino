@@ -116,7 +116,7 @@ int fino_build_bulk(void) {
     *fino.shmem_progress_build = 1.0;
   }
 
-  wasora_call(fino_free_elemental_objects());
+//  wasora_call(fino_free_elemental_objects());
   
   return WASORA_RUNTIME_OK;
 

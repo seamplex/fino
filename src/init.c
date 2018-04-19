@@ -576,6 +576,8 @@ int fino_problem_free(void) {
     mesh_free(fino.mesh);
   }
   
+  wasora_call(fino_free_elemental_objects());
+  
   if (fino.problem_family == problem_family_break) {
     fino_function_clean_nodal_data(fino.sigma1);
     fino_function_clean_nodal_data(fino.sigma2);
@@ -597,6 +599,8 @@ int fino_problem_free(void) {
   }
   
   free(fino.dirichlet_row);
+  free(fino.dirichlet_rhs);
+  free(fino.dirichlet_indexes);
   
      
   if (fino.phi != PETSC_NULL) {

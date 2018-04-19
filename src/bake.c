@@ -80,7 +80,7 @@ int fino_bake_step_transient(void) {
 
   // TODO: elegir esto desde input
   double theta = 0.5;
-  int nonlinear = 0;
+  int nonlinear = 1;
 
   // TODO: ver como hacer esto mas eficiente
   petsc_call(MatZeroEntries(fino.K));
