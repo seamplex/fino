@@ -29,41 +29,163 @@
 #undef  __FUNCT__
 #define __FUNCT__ "fino_compute_gradients"
 int fino_compute_gradients(void) {
-  
-  double w_gauss, w_lobatto;
-  double *den;
-  double total_mass;
-  double det;
+
   double vol;
+//  double avg;
   double xi;
-
-  Mat M;
-  Vec b;
-  Vec x;
-  PetscScalar  *data;
-  KSP ksp;
-  
-  gsl_vector *diag_M = NULL;
-  double trace_M;
   element_t *element;
-  element_list_item_t *item;
 
-  int i, v;
+  int i_global, i_local;
   int m, g;
   int j_global, j_global_prime;
   int j_local,  j_local_prime;
-  int j1, j2;
   
+  int done;
+  
+  double ****data;
+  double ****weight;
+  double **num;
+  double **den;
 
+  data = calloc(fino.degrees, sizeof(double ***));
+  weight = calloc(fino.degrees, sizeof(double ***));
+  num = calloc(fino.degrees, sizeof(double *));
+  den = calloc(fino.degrees, sizeof(double *));
   for (g = 0; g < fino.degrees; g++) {
+    data[g] = calloc(fino.dimensions, sizeof(double **));
+    weight[g] = calloc(fino.dimensions, sizeof(double **));
+    num[g] = calloc(fino.dimensions, sizeof(double));
+    den[g] = calloc(fino.dimensions, sizeof(double));
+    
     for (m = 0; m <fino.dimensions; m++) {
+      data[g][m] = calloc(fino.mesh->n_nodes, sizeof(double *));
+      weight[g][m] = calloc(fino.mesh->n_nodes, sizeof(double *));
+      
+      for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+        data[g][m][j_global] = calloc(fino.mesh->node[j_global].n_associated_elements, sizeof(double));
+        weight[g][m][j_global] = calloc(fino.mesh->node[j_global].n_associated_elements, sizeof(double));
+      }
+      
       free(fino.gradient[g][m]->data_value);
       fino.gradient[g][m]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
       fino.gradient[g][m]->data_size = fino.mesh->n_nodes;
       fino.gradient[g][m]->data_argument = fino.solution[g]->data_argument;
     }
   }
+  
+ 
+  
+  // paso 1. barremos elementos
+  for (i_global = 0; i_global < fino.mesh->n_elements; i_global++) {
+    element = &fino.mesh->element[i_global];
+    if (element->type->dim == fino.dimensions) {
+      vol = element->type->element_volume(element);
+      for (j_local = 0; j_local < element->type->nodes; j_local++) {
 
+        if (element->node[j_local]->master_material == NULL ||       // no hay interfaces 
+            element->node[j_local]->materials_list == NULL ||        // no hay materiales diferentes
+            element->node[j_local]->materials_list->next == NULL ||  // todos los elementos asociados tienen un solo material
+            element->physical_entity->material == element->node[j_local]->master_material // hay una interfaz pero el material es el master
+          ) {
+            
+          // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
+          wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
+          
+          // TODO: esto da lo mismo para todos los nodos en primer orden
+          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+//          det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+          
+          mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+
+          // el indice global del nodo
+          j_global = element->node[j_local]->id - 1;
+          
+          // el primer indice local de elementos que esta libre
+          i_local = 0;
+          while (i_local < fino.mesh->node[j_global].n_associated_elements && weight[0][0][j_global][i_local] != 0) {
+            i_local++;
+          }
+          
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+              weight[g][m][j_global][i_local] = vol;
+              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+                j_global_prime = element->node[j_local_prime]->id - 1;
+                data[g][m][j_global][i_local] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // paso 2. barremos nodos
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+    do {
+      done = 1;
+      // calculamos num y den
+      
+      for (g = 0; g < fino.degrees; g++) {
+        for (m = 0; m < fino.dimensions; m++) {
+          num[g][m] = 0;
+          den[g][m] = 0;
+          for (i_local = 0; i_local < fino.mesh->node[j_global].n_associated_elements; i_local++) {
+            if (weight[j_global][i_local] != 0) {
+              den[g][m] += weight[g][m][j_global][i_local];
+              num[g][m] += weight[g][m][j_global][i_local] * data[g][m][j_global][i_local];
+              // TODO: gradiente base
+            }
+          }
+        }
+      }
+    
+      // dividimos num por den
+      for (g = 0; g < fino.degrees; g++) {
+        for (m = 0; m < fino.dimensions; m++) {
+          if (den[j_global] != 0) {
+            fino.gradient[g][m]->data_value[j_global] = num[g][m]/den[g][m];
+            // verificamos que todos los datos esten dentro del threshold
+            for (i_local = 0; i_local < fino.mesh->node[j_global].n_associated_elements; i_local++) {
+              if (weight[j_global][i_local] != 0) {
+                xi = fabs((data[g][m][j_global][i_local] - fino.gradient[g][m]->data_value[j_global])/fino.gradient[g][m]->data_value[j_global]);
+                if (xi > 1.5) {
+                  // si no esta, lo tiramos
+                  weight[g][m][j_global][i_local] = 0;
+                  // y avisamos que hay que hacer de nuevo la cuenta
+                  done = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+    } while (!done);
+    
+  }
+  
+  // 3. free up memory
+  free(den);
+
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+    free(weight[j_global]);
+  }
+  free(weight);
+  
+  for (g = 0; g < fino.degrees; g++) {
+    for (m = 0; m <fino.dimensions; m++) {
+      for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+        free(data[g][m][j_global]);
+      }
+      free(data[g][m]);
+    }
+    free(data[g]);
+  }
+  free(data);
+    
+   
+/*  
   // defaults
   if (fino.gradient_evaluation == gradient_undefined) {
     if (fino.mesh->order > 1) {
@@ -531,6 +653,6 @@ int fino_compute_gradients(void) {
       }
     }
   }  
-
+*/
   return WASORA_RUNTIME_OK;
 }
