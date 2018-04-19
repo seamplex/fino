@@ -462,6 +462,7 @@ extern int fino_add_single_surface_term_to_rhs(element_t *, bc_string_based_t *)
 
 // bulk.c
 extern int fino_allocate_elemental_objects(element_t *);
+extern int fino_free_elemental_objects(void);
 extern int fino_build_bulk(void);
 extern int fino_build_element_volumetric(element_t *);
 extern int fino_build_element_bc(element_t *);

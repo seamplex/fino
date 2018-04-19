@@ -32,22 +32,40 @@
 #define __FUNCT__ "fino_allocate_elemental_objects"
 int fino_allocate_elemental_objects(element_t *element) {
 
+  fino_free_elemental_objects();
+      
   fino.n_local_nodes = element->type->nodes;
   fino.elemental_size = element->type->nodes * fino.degrees;
   
-  // TODO: esta las tendria que alocar mesh
-  gsl_matrix_free(fino.mesh->fem.H);
+  // TODO: estas las tendria que alocar mesh
   fino.mesh->fem.H = gsl_matrix_calloc(fino.mesh->degrees_of_freedom, fino.elemental_size);
-  
-  gsl_matrix_free(fino.mesh->fem.B);
   fino.mesh->fem.B = gsl_matrix_calloc(fino.mesh->degrees_of_freedom * fino.mesh->bulk_dimensions, fino.elemental_size);
-
-  gsl_matrix_free(fino.Ki);
+  
   fino.Ki = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
-  gsl_matrix_free(fino.Mi);
   fino.Mi = gsl_matrix_calloc(fino.elemental_size, fino.elemental_size);
-  gsl_vector_free(fino.bi);
   fino.bi = gsl_vector_calloc(fino.elemental_size);
+  
+  return WASORA_RUNTIME_OK;
+
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_free_elemental_objects"
+int fino_free_elemental_objects(void) {
+
+  if (fino.n_local_nodes != 0 && fino.elemental_size != 0) {
+    gsl_matrix_free(fino.mesh->fem.H);
+    gsl_matrix_free(fino.mesh->fem.B);
+    
+    gsl_matrix_free(fino.Ki);
+    gsl_matrix_free(fino.Mi);
+    gsl_vector_free(fino.bi);
+  }
+  
+  fino.n_local_nodes = 0;
+  fino.elemental_size = 0;
+  
   
   return WASORA_RUNTIME_OK;
 
@@ -98,6 +116,8 @@ int fino_build_bulk(void) {
     *fino.shmem_progress_build = 1.0;
   }
 
+  wasora_call(fino_free_elemental_objects());
+  
   return WASORA_RUNTIME_OK;
 
 }

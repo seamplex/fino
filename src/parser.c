@@ -341,6 +341,7 @@ int plugin_parse_line(char *line) {
     } else if (strcasecmp(token, "FINO_STEP") == 0) {
 
       fino_step_t *fino_step = calloc(1, sizeof(fino_step_t));
+      instruction_t *instruction;
       
       if (fino.mesh == NULL && (fino.mesh = wasora_mesh.main_mesh) == NULL) {
         wasora_push_error_message("no mesh found! (FINO_STEP before MESH)");
@@ -430,7 +431,11 @@ int plugin_parse_line(char *line) {
 
       }
       
-      wasora_define_instruction(fino_instruction_step, fino_step);
+      
+      instruction = wasora_define_instruction(fino_instruction_step, fino_step);
+      // esto no me gusta pero es para callar al valgrind
+      instruction->argument_alloced = 1;
+      
       
       return WASORA_PARSER_OK;
 
@@ -775,6 +780,7 @@ int fino_define_functions(void) {
     // esto lo ponemos aca por si alguien quiere hacer un PRINT o algo sin pasar por el STEP
     fino.solution[g]->mesh = fino.mesh;
     fino.solution[g]->var_argument = calloc(fino.dimensions, sizeof(var_t *));
+    fino.solution[g]->var_argument_alloced = 1;
     fino.solution[g]->type = type_pointwise_mesh_node;
 
     // las derivadas de las soluciones con respecto al espacio

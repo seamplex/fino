@@ -582,7 +582,21 @@ int fino_problem_free(void) {
     fino_function_clean_nodal_data(fino.sigma3);
     fino_function_clean_nodal_data(fino.sigma);
     fino_function_clean_nodal_data(fino.tresca);
+  } else if (fino.problem_family == problem_family_bake) {
+    if (fino.has_transient) {
+      MatDestroy(&fino.A);
+      MatDestroy(&fino.B);
+      VecDestroy(&fino.c);
+      
+      MatDestroy(&fino.lastM);
+      MatDestroy(&fino.dotM);
+      VecDestroy(&fino.m);
+
+      fino.has_transient = 0;
+    }
   }
+  
+  free(fino.dirichlet_row);
   
      
   if (fino.phi != PETSC_NULL) {

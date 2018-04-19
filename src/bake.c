@@ -80,7 +80,7 @@ int fino_bake_step_transient(void) {
 
   // TODO: elegir esto desde input
   double theta = 0.5;
-  int nonlinear = 1;
+  int nonlinear = 0;
 
   // TODO: ver como hacer esto mas eficiente
   petsc_call(MatZeroEntries(fino.K));
@@ -176,6 +176,12 @@ int fino_bake_step_transient(void) {
   // esto viene aca porque el ksp tiene que ser != null, capaz que se pueda meter en el solver  
   petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
  
+/*  
+  MatDestroy(&fino.A);
+  MatDestroy(&fino.B);
+  VecDestroy(&fino.c);
+  fino.has_transient = 0;
+*/
         
   return WASORA_RUNTIME_OK;
 }
