@@ -517,11 +517,11 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
   // TODO: hacer lo que dijo barry
-//  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_break) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
       
-      fprintf(stderr, "i = %d\tncols = %d\n", i, fino.dirichlet_row[i].ncols);
+//      fprintf(stderr, "i = %d\tncols = %d\n", i, fino.dirichlet_row[i].ncols);
       
       petsc_call(MatGetRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
       if (ncols != 0) {
@@ -553,7 +553,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
       local_b[fino.dirichlet_indexes[i]] = 0;
     }
     petsc_call(VecRestoreArray(b, &local_b));
-//  }
+  }
   
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
