@@ -29,7 +29,7 @@
 #undef  __FUNCT__
 #define __FUNCT__ "fino_compute_gradients"
 int fino_compute_gradients(void) {
-
+/*
   double vol;
 //  double avg;
   double xi;
@@ -183,7 +183,7 @@ int fino_compute_gradients(void) {
     free(data[g]);
   }
   free(data);
-    
+*/    
    
 /*  
   // defaults
