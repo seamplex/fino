@@ -359,6 +359,10 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   rhs = malloc(n_bcs * sizeof(PetscScalar));
   indexes = malloc(n_bcs * sizeof(PetscInt));
+
+  // en problemas transient esto hace un memory leak de locos sin este free
+  // en problemas static hace un free de un NULL asi que todo manzana
+  free(fino.dirichlet_row);
   fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
