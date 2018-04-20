@@ -325,18 +325,16 @@ int fino_evaluate_bc_expressions(physical_entity_t *physical_entity, node_t *nod
 #define __FUNCT__ "fino_set_essential_bc"
 int fino_set_essential_bc(Mat A, Vec b) {
 
-  // TODO: hacer esto mas limpio!!
-  
   PetscScalar *local_b;
-
-  physical_entity_t *physical_entity;
-  element_list_item_t *associated_element;
-  
   const PetscInt *cols;
   const PetscScalar *vals;
+  
+  physical_entity_t *physical_entity = NULL;
+  physical_entity_t *physical_entity_last = NULL;
+  element_list_item_t *associated_element = NULL;
+  
   size_t n_bcs = 0;
   size_t current_size = 0;
-//  size_t current_threshold = 0;
   PetscInt ncols;
   Vec vec_rhs;
   int k = 0;
@@ -353,7 +351,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
   if (fino.n_dirichlet_rows == 0) {
     n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
     current_size = n_bcs;
-//    current_threshold = n_bcs - 2*fino.degrees;
     
     fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
     fino.dirichlet_rhs = calloc(n_bcs, sizeof(PetscScalar));
@@ -361,20 +358,24 @@ int fino_set_essential_bc(Mat A, Vec b) {
   }
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
+    
+    physical_entity_last = NULL;
+    
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
-      if (associated_element->element->type->dim != fino.dimensions &&
-          (physical_entity = associated_element->element->physical_entity) != NULL &&
-          physical_entity->bc_type_math == bc_math_dirichlet) {
-          
+      if (associated_element->element->type->dim < fino.dimensions &&
+          associated_element->element->physical_entity != physical_entity_last &&
+          associated_element->element->physical_entity->bc_type_math == bc_math_dirichlet) {
+
+        physical_entity = associated_element->element->physical_entity;
+        
         if (fino.n_dirichlet_rows == 0 && k >= current_size) {
           current_size += n_bcs;
-//          current_threshold = current_size - 2*fino.degrees;
           fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, current_size * sizeof(PetscInt));
           fino.dirichlet_rhs = realloc(fino.dirichlet_rhs, current_size * sizeof(PetscScalar));
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
         }
 
-        if (associated_element->element->type->dim > 1) {
+        if (associated_element->element->type->dim > 0) {
           wasora_call(mesh_compute_outward_normal(associated_element->element, n));
           wasora_var_value(fino.vars.nx) = n[0];
           wasora_var_value(fino.vars.ny) = n[1];
@@ -498,6 +499,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
             }
           }
         }
+        physical_entity_last = physical_entity;
       }
     }
   }
