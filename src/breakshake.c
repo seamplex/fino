@@ -591,12 +591,12 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         
         // los sigmas 
         if (distribution_nu.physical_property != NULL) {
-          j = element->node[j]->id-1;
+          j = element->node[j_local]->id-1;
           wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
           wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
           wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
 
-          nu = fino_distribution_evaluate(&distribution_nu, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+          nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
 
           if (nu > 0.5) {
             wasora_push_error_message("nu is greater than 1/2 at node %d", j+1);
@@ -608,12 +608,12 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         }
 
         if (distribution_E.physical_property != NULL) {
-          j = element->node[j]->id-1;
+          j = element->node[j_local]->id-1;
           wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
           wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
           wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
           
-          E = fino_distribution_evaluate(&distribution_E, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+          E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
 
           if (E < 0) {
             wasora_push_error_message("E is negative at node %d", j+1);
@@ -621,12 +621,12 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           }      
         }
         if (distribution_alpha.physical_property != NULL) {
-          j = element->node[j]->id-1;
+          j = element->node[j_local]->id-1;
           wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
           wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
           wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
           
-          alpha = fino_distribution_evaluate(&distribution_alpha, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+          alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, fino.mesh->node[j].x);
         }
         
         if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
@@ -643,7 +643,13 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
         if (alpha != 0) {
           c3 = E/(1-2*nu);
-          DT = fino_distribution_evaluate(&distribution_T, fino.mesh->node[j].master_material, fino.mesh->node[j].x) - T0;
+          
+          j = element->node[j_local]->id-1;
+          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+          DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
+          
           sigmax -= c3*alpha*DT;
           sigmay -= c3*alpha*DT;
           sigmaz -= c3*alpha*DT;
