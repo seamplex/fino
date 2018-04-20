@@ -25,4 +25,4 @@ MESH_POST FILE_PATH engine-piston.vtk T
 MESH_POST FILE_PATH engine-piston-out.msh T
 
 # PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
-PRINT %.1f T(0,0,0)
+PRINT %.0f T(0,0,0)
