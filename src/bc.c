@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's boundary conditions
  *
- *  Copyright (C) 2015--2019 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *

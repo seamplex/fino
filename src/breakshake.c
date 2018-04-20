@@ -42,6 +42,37 @@ fino_distribution_t distribution_T0;    // temperatura de referencia (i.e. sin d
 
 double T0;  // este es el escalar
 
+// offsets del array data
+#define DATA_DUDX 0
+#define DATA_DUDY 1
+#define DATA_DUDZ 2
+
+#define DATA_DVDX 3
+#define DATA_DVDY 4
+#define DATA_DVDZ 5
+
+#define DATA_DWDX 6
+#define DATA_DWDY 7
+#define DATA_DWDZ 8
+
+#define DATA_EX   0
+#define DATA_EY   4
+#define DATA_EZ   8
+
+#define DATA_GAMMAXY 9
+#define DATA_GAMMAYZ 10
+#define DATA_GAMMAZX 11
+
+#define DATA_SIGMAX 12
+#define DATA_SIGMAY 13
+#define DATA_SIGMAZ 14
+        
+#define DATA_TAUXY 15
+#define DATA_TAUYZ 16
+#define DATA_TAUZX 17
+
+#define DATA_SIZE 18
+
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_build_element"
 int fino_break_build_element(element_t *element, int v) {
@@ -341,6 +372,18 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 #define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
   
+  double dudx = 0;
+  double dudy = 0;
+  double dudz = 0;
+
+  double dvdx = 0;
+  double dvdy = 0;
+  double dvdz = 0;
+  
+  double dwdx = 0;
+  double dwdy = 0;
+  double dwdz = 0;
+  
   double ex = 0;
   double ey = 0;
   double ez = 0;
@@ -373,58 +416,67 @@ int fino_break_compute_stresses(void) {
   double alpha = 0;
   double DT;
   
-  int j, m;
+  double vol;
+  double den;
+  double ***data;
+
+  element_t *element;  
+  element_list_item_t *associated_element;
+  int i, j, g, m;
+  int j_global, j_global_prime;
+  int j_local,  j_local_prime;
+  
   
   PetscFunctionBegin;
 
   if (fino.sigma->data_value == NULL) {
     // tensor de tensiones
-    fino.sigmax->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmax->data_argument = fino.solution[0]->data_argument;
     fino.sigmax->data_size = fino.mesh->n_nodes;
     fino.sigmax->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-    fino.sigmay->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmay->data_argument = fino.solution[0]->data_argument;
     fino.sigmay->data_size = fino.mesh->n_nodes;
     fino.sigmay->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-    fino.sigmaz->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigmaz->data_argument = fino.solution[0]->data_argument;
     fino.sigmaz->data_size = fino.mesh->n_nodes;
     fino.sigmaz->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
       
-    fino.tauxy->data_argument = fino.gradient[0][0]->data_argument;
+    fino.tauxy->data_argument = fino.solution[0]->data_argument;
     fino.tauxy->data_size = fino.mesh->n_nodes;
     fino.tauxy->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
     
     if (fino.dimensions == 3) {
-      fino.tauyz->data_argument = fino.gradient[0][0]->data_argument;
+      fino.tauyz->data_argument = fino.solution[0]->data_argument;
       fino.tauyz->data_size = fino.mesh->n_nodes;
       fino.tauyz->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
       
-      fino.tauzx->data_argument = fino.gradient[0][0]->data_argument;
+      fino.tauzx->data_argument = fino.solution[0]->data_argument;
       fino.tauzx->data_size = fino.mesh->n_nodes;
       fino.tauzx->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
     }
 
     // tensiones principales
-    fino.sigma1->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigma1->data_argument = fino.solution[0]->data_argument;
     fino.sigma1->data_size = fino.mesh->n_nodes;
     fino.sigma1->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-    fino.sigma2->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigma2->data_argument = fino.solution[0]->data_argument;
     fino.sigma2->data_size = fino.mesh->n_nodes;
     fino.sigma2->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
-    fino.sigma3->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigma3->data_argument = fino.solution[0]->data_argument;
     fino.sigma3->data_size = fino.mesh->n_nodes;
     fino.sigma3->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
 
     // von mises
-    fino.sigma->data_argument = fino.gradient[0][0]->data_argument;
+    fino.sigma->data_argument = fino.solution[0]->data_argument;
     fino.sigma->data_size = fino.mesh->n_nodes;
     fino.sigma->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
     
     // tresca
-    fino.tresca->data_argument = fino.gradient[0][0]->data_argument;
+    fino.tresca->data_argument = fino.solution[0]->data_argument;
     fino.tresca->data_size = fino.mesh->n_nodes;
     fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   }
@@ -452,39 +504,56 @@ int fino_break_compute_stresses(void) {
   }
 
   
-  wasora_var(fino.vars.sigma_max) = 0;
+  // paso 1. barremos elementos y fabricamos los tensores 
   
-  for (j = 0; j < fino.mesh->n_nodes; j++) {
-
-    wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-    wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-    wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
-    
-    if (distribution_nu.physical_property != NULL) {
-      nu = fino_distribution_evaluate(&distribution_nu, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+  // es calloc porque los de superficie van a quedar en null
+  data = calloc(fino.mesh->n_elements, sizeof(double **));
+  for (i = 0; i < fino.mesh->n_elements; i++) {
+    element = &fino.mesh->element[i];
+    if (element->type->dim == fino.dimensions) {
       
-      if (nu > 0.5) {
-        wasora_push_error_message("nu is greater than 1/2 at node %d", j+1);
-        return WASORA_RUNTIME_ERROR;
-      } else if (nu < 0) {
-        wasora_push_error_message("nu is negative at node %d", j+1);
-        return WASORA_RUNTIME_ERROR;
-      }      
-    }
-    
-    if (distribution_E.physical_property != NULL) {
-      E = fino_distribution_evaluate(&distribution_E, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+      data[i] = calloc(element->type->nodes, sizeof(double *));
       
-      if (E < 0) {
-        wasora_push_error_message("E is negative at node %d", j+1);
-        return WASORA_RUNTIME_ERROR;
-      }      
-    }
-    if (distribution_alpha.physical_property != NULL) {
-      alpha = fino_distribution_evaluate(&distribution_alpha, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
-    }
+      for (j_local = 0; j_local < element->type->nodes; j_local++) {
+      
+        // nueve de las derivadas completas +
+        // tres de epsilon (los normales son iguales a las derivadas)
+        // y seis de sigma
+        // TODO: dependiente de la dimension del problema!
+        data[i][j_local] = calloc(DATA_SIZE, sizeof(double));
+        
+        // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
+        wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
+          
+        // TODO: esto da lo mismo para todos los nodos en primer orden
+        mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
+//        det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
+          
+        mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+        mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-    // deformaciones
+        // las nueve derivadas
+        for (g = 0; g < fino.degrees; g++) {
+          for (m = 0; m < fino.dimensions; m++) {
+            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+              j_global_prime = element->node[j_local_prime]->id - 1;
+              data[i][j_local][g*fino.degrees+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+            }
+          }
+        }
+        
+        dudx = data[i][j_local][DATA_DUDX];
+        dudy = data[i][j_local][DATA_DUDY];
+        dudz = data[i][j_local][DATA_DUDZ];
+
+        dvdx = data[i][j_local][DATA_DVDX];
+        dvdy = data[i][j_local][DATA_DVDY];
+        dvdz = data[i][j_local][DATA_DVDZ];
+
+        dwdx = data[i][j_local][DATA_DWDX];
+        dwdy = data[i][j_local][DATA_DWDY];
+        dwdz = data[i][j_local][DATA_DWDZ];
+        
 /*  
 e_x(x,y,z) := du_dx(x,y,z)
 e_y(x,y,z) := dv_dy(x,y,z)
@@ -492,118 +561,263 @@ e_z(x,y,z) := dw_dz(x,y,z)
 gamma_xy(x,y,z) := du_dy(x,y,z) + dv_dx(x,y,z)
 gamma_yz(x,y,z) := dv_dz(x,y,z) + dw_dy(x,y,z)
 gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
-*/    
-    ex = fino.gradient[0][0]->data_value[j];
-    ey = fino.gradient[1][1]->data_value[j];
-    if (fino.problem_kind == problem_kind_full3d) {
-      ez = fino.gradient[2][2]->data_value[j];
-    } else if (fino.problem_kind == problem_kind_axisymmetric) {
-      if (fino.symmetry_axis == symmetry_axis_y) {
-        // etheta = u/r
-        if (fino.solution[0]->data_argument[0][j] > 1e-3) {
-          ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+*/         
+        // el tensor de deformaciones
+        ex = dudx;
+        ey = dvdy;
+        
+        if (fino.problem_kind == problem_kind_full3d) {
+          ez = dwdz;
+        } else if (fino.problem_kind == problem_kind_axisymmetric) {
+          // TODO
+          if (fino.symmetry_axis == symmetry_axis_y) {
+            // etheta = u/r
+            j = element->node[j_local]->id-1;
+            if (fino.solution[0]->data_argument[0][j] > 1e-3) {
+              ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+            }
+          } else if (fino.symmetry_axis == symmetry_axis_x) {
+            // etheta = v/r
+            j = element->node[j_local]->id-1;
+            if (fino.solution[1]->data_argument[1][j] > 1e-3) {
+              ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
+            }
+          }
         }
-      } else if (fino.symmetry_axis == symmetry_axis_x) {
-        // etheta = v/r
-        if (fino.solution[1]->data_argument[1][j] > 1e-3) {
-          ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
+        
+        gammaxy = dudy + dvdx;
+        gammayz = dvdz + dwdy;
+        gammazx = dwdx + dudz;
+        
+        // los sigmas 
+        if (distribution_nu.physical_property != NULL) {
+          j = element->node[j]->id-1;
+          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+
+          nu = fino_distribution_evaluate(&distribution_nu, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+
+          if (nu > 0.5) {
+            wasora_push_error_message("nu is greater than 1/2 at node %d", j+1);
+            return WASORA_RUNTIME_ERROR;
+          } else if (nu < 0) {
+            wasora_push_error_message("nu is negative at node %d", j+1);
+            return WASORA_RUNTIME_ERROR;
+          }      
         }
+
+        if (distribution_E.physical_property != NULL) {
+          j = element->node[j]->id-1;
+          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+          
+          E = fino_distribution_evaluate(&distribution_E, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+
+          if (E < 0) {
+            wasora_push_error_message("E is negative at node %d", j+1);
+            return WASORA_RUNTIME_ERROR;
+          }      
+        }
+        if (distribution_alpha.physical_property != NULL) {
+          j = element->node[j]->id-1;
+          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+          
+          alpha = fino_distribution_evaluate(&distribution_alpha, fino.mesh->node[j].master_material, fino.mesh->node[j].x);
+        }
+        
+        if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
+          // constantes para convertir de strain a stress
+          c1 = E/((1+nu)*(1-2*nu));
+          c1c2 = c1 * 0.5*(1-2*nu);
+        }
+
+        // tensiones normales
+        sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
+        sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
+        sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));  // esta es sigmatheta en axi
+        
+        // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
+        if (alpha != 0) {
+          c3 = E/(1-2*nu);
+          DT = fino_distribution_evaluate(&distribution_T, fino.mesh->node[j].master_material, fino.mesh->node[j].x) - T0;
+          sigmax -= c3*alpha*DT;
+          sigmay -= c3*alpha*DT;
+          sigmaz -= c3*alpha*DT;
+        }
+    
+        // esfuerzos de corte
+        tauxy =  c1c2 * gammaxy;
+        if (fino.dimensions == 3) {
+          tauyz =  c1c2 * gammayz;
+          tauzx =  c1c2 * gammazx;
+        }
+        
+        // llenamos los datas
+        data[i][j_local][DATA_GAMMAXY] = gammaxy;
+        data[i][j_local][DATA_GAMMAYZ] = gammayz;
+        data[i][j_local][DATA_GAMMAZX] = gammazx;
+
+        data[i][j_local][DATA_SIGMAX] = sigmax;
+        data[i][j_local][DATA_SIGMAY] = sigmay;
+        data[i][j_local][DATA_SIGMAZ] = sigmaz;
+        
+        data[i][j_local][DATA_TAUXY] = tauxy;
+        data[i][j_local][DATA_TAUYZ] = tauyz;
+        data[i][j_local][DATA_TAUZX] = tauzx;
+        
+      }
+    }
+  }
+
+  // paso 2. barremos nodos
+  wasora_var(fino.vars.sigma_max) = 0;
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+    dudx = dudy = dudz = 0;
+    dvdx = dvdy = dvdz = 0;
+    dwdx = dwdy = dwdz = 0;
+    
+    ex = ey = ez = 0;
+    gammaxy = gammayz = gammazx = 0;
+    sigmax = sigmay = sigmaz = 0;
+    tauxy = tauyz = tauzx = 0;
+    
+    den = 0;
+    
+    LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
+      element = associated_element->element;
+      i = element->id-1;
+      if (data[i] != NULL) {
+        vol = element->type->element_volume(element);
+        j = 0;
+        while (j < element->type->nodes && j_global != element->node[j]->id-1) {
+          j++;
+        }
+      
+        dudx += data[i][j][DATA_DUDX];
+        dudy += data[i][j][DATA_DUDY];
+        dudz += data[i][j][DATA_DUDZ];
+        
+        dvdx += data[i][j][DATA_DVDX];
+        dvdy += data[i][j][DATA_DVDY];
+        dvdz += data[i][j][DATA_DVDZ];
+
+        dwdx += data[i][j][DATA_DWDX];
+        dwdy += data[i][j][DATA_DWDY];
+        dwdz += data[i][j][DATA_DWDZ];
+        
+        ex += data[i][j][DATA_EX];
+        ey += data[i][j][DATA_EY];
+        ez += data[i][j][DATA_EZ];
+        
+        gammaxy += data[i][j][DATA_GAMMAXY];
+        gammayz += data[i][j][DATA_GAMMAYZ];
+        gammazx += data[i][j][DATA_GAMMAZX];
+        
+        sigmax += data[i][j][DATA_SIGMAX];
+        sigmay += data[i][j][DATA_SIGMAY];
+        sigmaz += data[i][j][DATA_SIGMAZ];
+    
+        tauxy += data[i][j][DATA_TAUXY];
+        tauyz += data[i][j][DATA_TAUYZ];
+        tauzx += data[i][j][DATA_TAUZX];
+        
+        den += 1;
       }
     }
     
-    gammaxy = fino.gradient[0][1]->data_value[j] + fino.gradient[1][0]->data_value[j];
-    if (fino.problem_kind == problem_kind_full3d) {
-      gammayz = fino.gradient[1][2]->data_value[j] + fino.gradient[2][1]->data_value[j];
-      gammazx = fino.gradient[2][0]->data_value[j] + fino.gradient[0][2]->data_value[j];
-    }
-    
-    
-    // tensiones
-    if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
-      // constantes para convertir de strain a stress
-      c1 = E/((1+nu)*(1-2*nu));
-      c1c2 = c1 * 0.5*(1-2*nu);
-    }
+    dudx /= den;
+    dudy /= den;
+    dudz /= den;
 
-    // tensiones normales
-    sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
-    sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
-    sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));  // esta es sigmatheta en axi
-    
-    // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
-    if (alpha != 0) {
-      c3 = E/(1-2*nu);
-      DT = fino_distribution_evaluate(&distribution_T, fino.mesh->node[j].master_material, fino.mesh->node[j].x) - T0;
-      sigmax -= c3*alpha*DT;
-      sigmay -= c3*alpha*DT;
-      sigmaz -= c3*alpha*DT;
-    }
-    
-    // esfuerzos de corte
-    tauxy =  c1c2 * gammaxy;
-    if (fino.dimensions == 3) {
-      tauyz =  c1c2 * gammayz;
-      tauzx =  c1c2 * gammazx;
-    }
+    dvdx /= den;
+    dvdy /= den;
+    dvdz /= den;
 
+    dwdx /= den;
+    dwdy /= den;
+    dwdz /= den;
+
+    ex /= den;
+    ey /= den;
+    ez /= den;
+    
+    gammaxy /= den;
+    gammayz /= den;
+    gammazx /= den;
+    
+    sigmax /= den;
+    sigmay /= den;
+    sigmaz /= den;
+    
+    tauxy /= den;
+    tauyz /= den;
+    tauzx /= den;
+    
+
+    // ya tenemos el promedio, rellenamos las funciones    
+    
     wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx, &sigma1, &sigma2, &sigma3));
 
-    fino.sigmax->data_value[j] = sigmax;
-    fino.sigmay->data_value[j] = sigmay;
-    fino.tauxy->data_value[j] = tauxy;
-    fino.sigmaz->data_value[j] = sigmaz;
+    fino.sigmax->data_value[j_global] = sigmax;
+    fino.sigmay->data_value[j_global] = sigmay;
+    fino.tauxy->data_value[j_global] = tauxy;
+    fino.sigmaz->data_value[j_global] = sigmaz;
     
     if (fino.dimensions == 3) {
-      fino.tauyz->data_value[j] = tauyz;
-      fino.tauzx->data_value[j] = tauzx;
+      fino.tauyz->data_value[j_global] = tauyz;
+      fino.tauzx->data_value[j_global] = tauzx;
     }
 
-    fino.sigma1->data_value[j] = sigma1;
-    fino.sigma2->data_value[j] = sigma2;
-    fino.sigma3->data_value[j] = sigma3;
+    fino.sigma1->data_value[j_global] = sigma1;
+    fino.sigma2->data_value[j_global] = sigma2;
+    fino.sigma3->data_value[j_global] = sigma3;
 
     // tresca
     tresca = fino_compute_tresca_from_principal(sigma1, sigma2, sigma3);
-    fino.tresca->data_value[j] = tresca;
+    fino.tresca->data_value[j_global] = tresca;
 
     // von mises
     sigma = fino_compute_vonmises_from_principal(sigma1, sigma2, sigma3);
     //sigma = fino_compute_vonmises_from_tensor(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx);
       
     
-    if ((fino.sigma->data_value[j] = sigma) > wasora_var(fino.vars.sigma_max)) {
-      wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j];
+    if ((fino.sigma->data_value[j_global] = sigma) > wasora_var(fino.vars.sigma_max)) {
+      wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j_global];
       
-      wasora_var(fino.vars.sigma_max_x) = fino.mesh->node[j].x[0];
-      wasora_var(fino.vars.sigma_max_y) = fino.mesh->node[j].x[1];
-      wasora_var(fino.vars.sigma_max_z) = fino.mesh->node[j].x[2];
+      wasora_var(fino.vars.sigma_max_x) = fino.mesh->node[j_global].x[0];
+      wasora_var(fino.vars.sigma_max_y) = fino.mesh->node[j_global].x[1];
+      wasora_var(fino.vars.sigma_max_z) = fino.mesh->node[j_global].x[2];
       
-      wasora_var(fino.vars.u_at_sigma_max) = fino.solution[0]->data_value[j];
-      wasora_var(fino.vars.v_at_sigma_max) = fino.solution[1]->data_value[j];
+      wasora_var(fino.vars.u_at_sigma_max) = fino.solution[0]->data_value[j_global];
+      wasora_var(fino.vars.v_at_sigma_max) = fino.solution[1]->data_value[j_global];
       if (fino.dimensions == 3) {
-        wasora_var(fino.vars.w_at_sigma_max) = fino.solution[2]->data_value[j];
+        wasora_var(fino.vars.w_at_sigma_max) = fino.solution[2]->data_value[j_global];
       }
     }
     
     displ2 = 0;
     for (m = 0; m < fino.dimensions; m++) {
-      displ2 += gsl_pow_2(fino.solution[m]->data_value[j]);
+      displ2 += gsl_pow_2(fino.solution[m]->data_value[j_global]);
     }
     
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
     if (displ2 >= max_displ2) {
       max_displ2 = displ2;
       wasora_var(fino.vars.displ_max) = sqrt(displ2);
-      wasora_var(fino.vars.displ_max_x) = fino.mesh->node[j].x[0];
-      wasora_var(fino.vars.displ_max_y) = fino.mesh->node[j].x[1];
+      wasora_var(fino.vars.displ_max_x) = fino.mesh->node[j_global].x[0];
+      wasora_var(fino.vars.displ_max_y) = fino.mesh->node[j_global].x[1];
       if (fino.dimensions == 3) {
-        wasora_var(fino.vars.displ_max_z) = fino.mesh->node[j].x[2];
+        wasora_var(fino.vars.displ_max_z) = fino.mesh->node[j_global].x[2];
       }
       
-      wasora_var(fino.vars.u_at_displ_max) = fino.solution[0]->data_value[j];
-      wasora_var(fino.vars.v_at_displ_max) = fino.solution[1]->data_value[j];
+      wasora_var(fino.vars.u_at_displ_max) = fino.solution[0]->data_value[j_global];
+      wasora_var(fino.vars.v_at_displ_max) = fino.solution[1]->data_value[j_global];
       if (fino.dimensions == 3) {
-        wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j];
+        wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j_global];
       }
     }
     
