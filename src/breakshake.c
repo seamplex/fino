@@ -703,35 +703,35 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           j++;
         }
       
-        dudx += data[i][j][DATA_DUDX];
-        dudy += data[i][j][DATA_DUDY];
-        dudz += data[i][j][DATA_DUDZ];
+        dudx += vol*data[i][j][DATA_DUDX];
+        dudy += vol*data[i][j][DATA_DUDY];
+        dudz += vol*data[i][j][DATA_DUDZ];
         
-        dvdx += data[i][j][DATA_DVDX];
-        dvdy += data[i][j][DATA_DVDY];
-        dvdz += data[i][j][DATA_DVDZ];
+        dvdx += vol*data[i][j][DATA_DVDX];
+        dvdy += vol*data[i][j][DATA_DVDY];
+        dvdz += vol*data[i][j][DATA_DVDZ];
 
-        dwdx += data[i][j][DATA_DWDX];
-        dwdy += data[i][j][DATA_DWDY];
-        dwdz += data[i][j][DATA_DWDZ];
+        dwdx += vol*data[i][j][DATA_DWDX];
+        dwdy += vol*data[i][j][DATA_DWDY];
+        dwdz += vol*data[i][j][DATA_DWDZ];
         
-        ex += data[i][j][DATA_EX];
-        ey += data[i][j][DATA_EY];
-        ez += data[i][j][DATA_EZ];
+        ex += vol*data[i][j][DATA_EX];
+        ey += vol*data[i][j][DATA_EY];
+        ez += vol*data[i][j][DATA_EZ];
         
-        gammaxy += data[i][j][DATA_GAMMAXY];
-        gammayz += data[i][j][DATA_GAMMAYZ];
-        gammazx += data[i][j][DATA_GAMMAZX];
+        gammaxy += vol*data[i][j][DATA_GAMMAXY];
+        gammayz += vol*data[i][j][DATA_GAMMAYZ];
+        gammazx += vol*data[i][j][DATA_GAMMAZX];
         
-        sigmax += data[i][j][DATA_SIGMAX];
-        sigmay += data[i][j][DATA_SIGMAY];
-        sigmaz += data[i][j][DATA_SIGMAZ];
+        sigmax += vol*data[i][j][DATA_SIGMAX];
+        sigmay += vol*data[i][j][DATA_SIGMAY];
+        sigmaz += vol*data[i][j][DATA_SIGMAZ];
     
-        tauxy += data[i][j][DATA_TAUXY];
-        tauyz += data[i][j][DATA_TAUYZ];
-        tauzx += data[i][j][DATA_TAUZX];
+        tauxy += vol*data[i][j][DATA_TAUXY];
+        tauyz += vol*data[i][j][DATA_TAUYZ];
+        tauzx += vol*data[i][j][DATA_TAUZX];
         
-        den += 1;
+        den += vol;
       }
     }
     
