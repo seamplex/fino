@@ -21,4 +21,4 @@ ur(x) := (p*a^2*x)/(E*(b^2-a^2)) * ((1-2*nu)*(1+nu) + (1+nu)*b^2/x^2)
 MESH_POST FILE_PATH infinite-cylinder-axi.vtk VECTOR u v 0 sigma
 PRINT_FUNCTION u 
 
-PRINT_FUNCTION FILE_PATH ur.dat ur MIN a MAX b NSTEPS 100
+PRINT_FUNCTION FILE_PATH ur.dat ur u(x,0) MIN a MAX b NSTEPS 100

@@ -16,3 +16,4 @@ PHYSICAL_ENTITY NAME top     BC Mz=1
 FINO_STEP
 
 MESH_POST FILE_PATH square-$1.vtk VECTOR u v 0 sigma sigma1 sigma2 sigma3
+

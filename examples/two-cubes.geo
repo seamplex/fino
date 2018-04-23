@@ -9,7 +9,6 @@ Mesh.ElementOrder = 1;
 Mesh.CharacteristicLengthFromPoints = 1;
 Mesh.CharacteristicLengthFromCurvature = 1;
 Mesh.CharacteristicLengthExtendFromBoundary = 1;
-Mesh.Lloyd = 1;
 Mesh.Optimize = 1;
 Mesh.OptimizeNetgen = 1;
 Mesh.HighOrderOptimize = 1;

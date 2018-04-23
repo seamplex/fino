@@ -9,8 +9,7 @@ MESH FILE_PATH conic_valve.msh DIMENSIONS 3
 E = 200e3
 nu = 0.3
 
-# FINO_SOLVER PC_TYPE lu KSP_TYPE preonly
-fino_gamg_threshold = 1e-3
+#fino_gamg_threshold = 1e-3
 
 PHYSICAL_ENTITY NAME base  BC u=0 v=1e-2 w=0
 PHYSICAL_ENTITY NAME top   BC u=0 v=1e-2 w=0
@@ -29,4 +28,4 @@ r = root(f(x), x, -10, 0)
 PHYSICAL_ENTITY NAME cone  BC implicit=((x+u)^2+(z+w)^2)/(r/h)^2-(y+v-h)^2
 
 FINO_STEP
-MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w dudx dvdx dwdx dudy dvdy dwdy dudz dvdz dwdz 
+MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w #dudx dvdx dwdx dudy dvdy dwdy dudz dvdz dwdz 
