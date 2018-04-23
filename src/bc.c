@@ -362,7 +362,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
     physical_entity_last = NULL;
     
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
-      if (associated_element->element->type->dim < fino.dimensions &&
+      if (associated_element->element != NULL &&
+          associated_element->element->type->dim < fino.dimensions &&
           associated_element->element->physical_entity != NULL &&
           associated_element->element->physical_entity != physical_entity_last &&
           associated_element->element->physical_entity->bc_type_math == bc_math_dirichlet) {
@@ -553,6 +554,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
     
       // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
       // despues con rhs le ponemos lo que va
+//      printf("%d\n", fino.dirichlet_indexes[i]);
       local_b[fino.dirichlet_indexes[i]] = 0;
     }
     petsc_call(VecRestoreArray(b, &local_b));

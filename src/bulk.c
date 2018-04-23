@@ -167,7 +167,8 @@ int fino_build_element_volumetric(element_t *element) {
     printf("\nelement %d\n", element->id);
     fino_print_gsl_matrix(fino.Ki, stdout);
     printf("\n");
-    fino_print_gsl_matrix(fino.Mi, stdout);
+//    fino_print_gsl_matrix(fino.Mi, stdout);
+    fino_print_gsl_vector(fino.bi, stdout);
     printf("\n");
  */
 /*    
@@ -179,8 +180,7 @@ int fino_build_element_volumetric(element_t *element) {
       fino_print_gsl_vector(fino.bi, fino.dump);
       fprintf(fino.dump, "\n");
     }
- */ 
-    
+*/    
     
   }
 
@@ -218,6 +218,12 @@ int fino_build_element_bc(element_t *element) {
       wasora_call(fino_bake_set_convection(element));
     }
   }
+  
+/*  
+  printf("\nelement %d\n", element->id);
+  fino_print_gsl_vector(fino.bi, stdout);
+  printf("\n");
+ */  
   
   return WASORA_RUNTIME_OK;
   

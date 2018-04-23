@@ -796,9 +796,11 @@ int fino_define_functions(void) {
       if ((fino.gradient[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
         return WASORA_PARSER_ERROR;
       }
+/*      
       fino.gradient[g][d]->mesh = fino.mesh;
       fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
       fino.gradient[g][d]->type = type_pointwise_mesh_node;
+ */
       free(gradname);
     }
     

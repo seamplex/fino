@@ -2,7 +2,7 @@
  *  fino's construction of linear elastic problem (break) with optional vibration (shake)
  *  and evaluation of the stress tensor out of the gradients of the displacements
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -366,7 +366,41 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }    
 
+/*
+# strains
+ex(x,y,z) := dudx(x,y,z)
+ey(x,y,z) := dvdy(x,y,z)
+ez(x,y,z) := dwdz(x,y,z)
+gammaxy(x,y,z) := dudy(x,y,z) + dvdx(x,y,z)
+gammayz(x,y,z) := dvdz(x,y,z) + dwdy(x,y,z)
+gammazx(x,y,z) := dwdx(x,y,z) + dudz(x,y,z)
 
+# stresses
+c1(x,y,z) := E(x,y,z)/((1+nu(x,y,z))*(1-2*nu(x,y,z)))
+c1c2(x,y,z) := c1(x,y,z) * 0.5*(1-2*nu(x,y,z))
+
+sigmax(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ex(x,y,z) + nu(x,y,z)*(ey(x,y,z)+ez(x,y,z)))
+sigmay(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ey(x,y,z) + nu(x,y,z)*(ex(x,y,z)+ez(x,y,z)))
+sigmaz(x,y,z) := c1(x,y,z) * ((1-nu(x,y,z))*ez(x,y,z) + nu(x,y,z)*(ex(x,y,z)+ey(x,y,z)))
+tauxy(x,y,z) :=  c1c2(x,y,z) * gammaxy(x,y,z)
+tauyz(x,y,z) :=  c1c2(x,y,z) * gammayz(x,y,z)
+tauzx(x,y,z) :=  c1c2(x,y,z) * gammazx(x,y,z)
+
+# stress invariants
+I1(x,y,z) := sigmax(x,y,z) + sigmay(x,y,z) + sigmaz(x,y,z)
+I2(x,y,z) := sigmax(x,y,z)*sigmay(x,y,z) + sigmay(x,y,z)*sigmaz(x,y,z) + sigmaz(x,y,z)*sigmax(x,y,z) - tauxy(x,y,z)^2 - tauyz(x,y,z)^2 - tauzx(x,y,z)^2
+I3(x,y,z) := sigmax(x,y,z)*sigmay(x,y,z)*sigmaz(x,y,z) - sigmax(x,y,z)*tauyz(x,y,z)^2 - sigmay(x,y,z)*tauzx(x,y,z)^2 - sigmaz(x,y,z)*tauxy(x,y,z)^2 + 2*tauxy(x,y,z)*tauyz(x,y,z)*tauzx(x,y,z)
+
+# principal stresses
+c5(x,y,z) := sqrt(abs(I1(x,y,z)^2 - 3*I2(x,y,z)))
+phi(x,y,z) := 1.0/3.0 * acos((2.0*I1(x,y,z)^3 - 9.0*I1(x,y,z)*I2(x,y,z) + 27.0*I3(x,y,z))/(2.0*c5(x,y,z)^3))
+c3(x,y,z) := I1(x,y,z)/3.0
+c4(x,y,z) := 2.0/3.0 * c5(x,y,z)
+
+# sigma1(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z))
+# sigma2(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 2.0*pi/3.0)
+# sigma3(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 4.0*pi/3.0)
+*/
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_stresses"
@@ -430,6 +464,21 @@ int fino_break_compute_stresses(void) {
   PetscFunctionBegin;
 
   if (fino.sigma->data_value == NULL) {
+    // derivadas
+    for (g = 0; g < fino.degrees; g++) {
+      for (m = 0; m < fino.dimensions; m++) {
+        
+        fino.gradient[g][m]->mesh = fino.mesh;
+        fino.gradient[g][m]->var_argument = fino.solution[g]->var_argument;
+        fino.gradient[g][m]->type = type_pointwise_mesh_node;
+        
+        fino.gradient[g][m]->data_argument = fino.solution[0]->data_argument;  
+        fino.gradient[g][m]->data_size = fino.mesh->n_nodes;
+        fino.gradient[g][m]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+
+      }
+    }
+    
     // tensor de tensiones
     fino.sigmax->data_argument = fino.solution[0]->data_argument;
     fino.sigmax->data_size = fino.mesh->n_nodes;
@@ -516,10 +565,14 @@ int fino_break_compute_stresses(void) {
       
       for (j_local = 0; j_local < element->type->nodes; j_local++) {
       
+        j = element->node[j_local]->id-1;
+        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
+        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
+        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+        
         // nueve de las derivadas completas +
         // tres de epsilon (los normales son iguales a las derivadas)
         // y seis de sigma
-        // TODO: dependiente de la dimension del problema!
         data[i][j_local] = calloc(DATA_SIZE, sizeof(double));
         
         // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
@@ -527,8 +580,6 @@ int fino_break_compute_stresses(void) {
           
         // TODO: esto da lo mismo para todos los nodos en primer orden
         mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-//        det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr);
-          
         mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
         mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
@@ -569,16 +620,13 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         if (fino.problem_kind == problem_kind_full3d) {
           ez = dwdz;
         } else if (fino.problem_kind == problem_kind_axisymmetric) {
-          // TODO
           if (fino.symmetry_axis == symmetry_axis_y) {
             // etheta = u/r
-            j = element->node[j_local]->id-1;
             if (fino.solution[0]->data_argument[0][j] > 1e-3) {
               ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
             }
           } else if (fino.symmetry_axis == symmetry_axis_x) {
             // etheta = v/r
-            j = element->node[j_local]->id-1;
             if (fino.solution[1]->data_argument[1][j] > 1e-3) {
               ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
             }
@@ -591,11 +639,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         
         // los sigmas 
         if (distribution_nu.physical_property != NULL) {
-          j = element->node[j_local]->id-1;
-          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
-
+          
           nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
 
           if (nu > 0.5) {
@@ -608,10 +652,6 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         }
 
         if (distribution_E.physical_property != NULL) {
-          j = element->node[j_local]->id-1;
-          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
           
           E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
 
@@ -621,19 +661,14 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           }      
         }
         if (distribution_alpha.physical_property != NULL) {
-          j = element->node[j_local]->id-1;
-          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
           
           alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, fino.mesh->node[j].x);
+          
         }
         
-        if (fino.problem_kind == problem_kind_axisymmetric || fino.problem_kind == problem_kind_full3d) {
-          // constantes para convertir de strain a stress
-          c1 = E/((1+nu)*(1-2*nu));
-          c1c2 = c1 * 0.5*(1-2*nu);
-        }
+        // constantes para convertir de strain a stress
+        c1 = E/((1+nu)*(1-2*nu));
+        c1c2 = c1 * 0.5*(1-2*nu);
 
         // tensiones normales
         sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
@@ -644,10 +679,6 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         if (alpha != 0) {
           c3 = E/(1-2*nu);
           
-          j = element->node[j_local]->id-1;
-          wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-          wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-          wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
           DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
           
           sigmax -= c3*alpha*DT;
@@ -765,6 +796,21 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     
 
     // ya tenemos el promedio, rellenamos las funciones    
+    fino.gradient[0][0]->data_value[j_global] = dudx;
+    fino.gradient[0][1]->data_value[j_global] = dudy;
+    
+    fino.gradient[1][0]->data_value[j_global] = dvdx;
+    fino.gradient[1][1]->data_value[j_global] = dvdy;
+
+    if (fino.dimensions > 2) {
+      fino.gradient[0][2]->data_value[j_global] = dudz;
+      fino.gradient[1][2]->data_value[j_global] = dvdz;
+
+      fino.gradient[2][0]->data_value[j_global] = dwdx;
+      fino.gradient[2][1]->data_value[j_global] = dwdy;
+      fino.gradient[2][2]->data_value[j_global] = dwdz;
+    }
+    
     
     wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx, &sigma1, &sigma2, &sigma3));
 
@@ -990,8 +1036,7 @@ int fino_break_set_pressure(element_t *element) {
   int v;
   gsl_vector *Nb;
 
-  if ((fino.dimensions == 3 && element->type->dim != 2) ||
-      (fino.dimensions == 2 && element->type->dim != 1)) {
+  if ((fino.dimensions-element->type->dim != 1)) {
     wasora_push_error_message("pressure BCs can only be applied to surfaces");
     return WASORA_RUNTIME_ERROR;
   }
