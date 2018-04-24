@@ -391,7 +391,6 @@ struct fino_distribution_t {
 struct fino_step_t {
   int do_not_build;
   int do_not_solve;
-  int do_not_compute_gradients;
 };
 
 struct fino_linearize_t {

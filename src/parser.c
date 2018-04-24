@@ -417,12 +417,6 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "JUST_SOLVE") == 0) {
           fino_step->do_not_build = 1;
           fino_step->do_not_solve = 0;
-///kw+FINO_STEP+usage [ DO_NOT_COMPUTE_GRADIENTS |
-        } else if (strcasecmp(token, "DO_NOT_COMPUTE_GRADIENT") == 0 || strcasecmp(token, "DO_NOT_COMPUTE_GRADIENTS") == 0) {
-          fino_step->do_not_compute_gradients = 1;
-///kw+FINO_STEP+usage COMPUTE_GRADIENTS ]
-        } else if (strcasecmp(token, "COMPUTE_GRADIENT") == 0 || strcasecmp(token, "COMPUTE_GRADIENTS") == 0) {
-          fino_step->do_not_compute_gradients = 0;
           
 ///kw+FINO_STEP+usage [ DUMP_FILE_PATH <filepath> ]
 /*          
