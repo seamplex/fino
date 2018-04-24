@@ -14,5 +14,5 @@ FINO_STEP
 
 # http://solidmechanics.org/text/Chapter4_1/Chapter4_1.htm
 
-MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v 0 sigma
+MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v 0 sigma sigmax sigmay sigmaz dudx dvdx dudy dvdy
 # PRINT_FUNCTION u

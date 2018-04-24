@@ -120,6 +120,10 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
+          if (fino.symmetry_axis == symmetry_axis_none) {
+            fino.symmetry_axis = symmetry_axis_y;
+          }
+          fino.math_type = math_type_linear;
           fino.dimensions = 2;
           fino.degrees = 2;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));
@@ -132,6 +136,10 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_axisymmetric;
+          if (fino.symmetry_axis == symmetry_axis_none) {
+            fino.symmetry_axis = symmetry_axis_y;
+          }
+          fino.math_type = math_type_linear;
           fino.dimensions = 2;
           fino.degrees = 2;
           fino.unknown_name = calloc(fino.degrees, sizeof(char *));

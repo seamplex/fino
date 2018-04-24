@@ -583,27 +583,31 @@ int fino_break_compute_stresses(void) {
         mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
         mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-        // las nueve derivadas
+        // las nueve derivadas (o menos)
         for (g = 0; g < fino.degrees; g++) {
           for (m = 0; m < fino.dimensions; m++) {
             for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
               j_global_prime = element->node[j_local_prime]->id - 1;
-              data[i][j_local][g*fino.degrees+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+              // el hardcoded 3 es para respetar los indices de los defines
+              data[i][j_local][3*g+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
             }
           }
         }
         
         dudx = data[i][j_local][DATA_DUDX];
         dudy = data[i][j_local][DATA_DUDY];
-        dudz = data[i][j_local][DATA_DUDZ];
 
         dvdx = data[i][j_local][DATA_DVDX];
         dvdy = data[i][j_local][DATA_DVDY];
-        dvdz = data[i][j_local][DATA_DVDZ];
 
-        dwdx = data[i][j_local][DATA_DWDX];
-        dwdy = data[i][j_local][DATA_DWDY];
-        dwdz = data[i][j_local][DATA_DWDZ];
+        if (fino.dimensions == 3) {
+          dudz = data[i][j_local][DATA_DUDZ];
+          dvdz = data[i][j_local][DATA_DVDZ];
+        
+          dwdx = data[i][j_local][DATA_DWDX];
+          dwdy = data[i][j_local][DATA_DWDY];
+          dwdz = data[i][j_local][DATA_DWDZ];
+        }
         
 /*  
 e_x(x,y,z) := du_dx(x,y,z)
@@ -622,20 +626,27 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         } else if (fino.problem_kind == problem_kind_axisymmetric) {
           if (fino.symmetry_axis == symmetry_axis_y) {
             // etheta = u/r
-            if (fino.solution[0]->data_argument[0][j] > 1e-3) {
+            if (fino.solution[0]->data_argument[0][j] > 1e-6) {
               ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
             }
           } else if (fino.symmetry_axis == symmetry_axis_x) {
             // etheta = v/r
-            if (fino.solution[1]->data_argument[1][j] > 1e-3) {
+            if (fino.solution[1]->data_argument[1][j] > 1e-6) {
               ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
             }
           }
+        } else {
+          ez = 0;
         }
         
         gammaxy = dudy + dvdx;
-        gammayz = dvdz + dwdy;
-        gammazx = dwdx + dudz;
+        if (fino.problem_kind == problem_kind_full3d) {
+          gammayz = dvdz + dwdy;
+          gammazx = dwdx + dudz;
+        } else {
+          gammayz = 0;
+          gammazx = 0;
+        }
         
         // los sigmas 
         if (distribution_nu.physical_property != NULL) {
@@ -691,6 +702,9 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         if (fino.dimensions == 3) {
           tauyz =  c1c2 * gammayz;
           tauzx =  c1c2 * gammazx;
+        } else {
+          tauyz = 0;
+          tauzx = 0;
         }
         
         // llenamos los datas
