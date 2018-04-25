@@ -25,6 +25,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
+//#include <gsl/gsl_statistics.h>
 
 #include "fino.h"
 
@@ -450,18 +451,31 @@ int fino_break_compute_stresses(void) {
   double alpha = 0;
   double DT;
   
-  double vol;
-  double den;
-  double ***data;
+//  double vol;
+  double det;
+  double ***data_element;      // data[elemento global][nodo local][prop]
+  gsl_vector ***data_node;     // data[nodo global][prop][elemento_local]
+  double **data_node_weight;  // weight[nodo global][elemento_local]
+  double **avg;                // avg[nodo_global][prop]
+  node_relative_t **parent_global;
+  node_relative_t *parent;
+
+  double mu;
+  double std;
+  double den = 0;
 
   element_t *element;  
   element_list_item_t *associated_element;
-  int i, j, g, m;
+  int i, j, k, g, m, n, N;
   int j_global, j_global_prime;
-  int j_local,  j_local_prime;
+  int j_local_prime;
   
   
   PetscFunctionBegin;
+  if (fino.gradient_jacobian_threshold == 0) {
+    fino.gradient_jacobian_threshold = 1e-5;
+  }
+  
 
   if (fino.sigma->data_value == NULL) {
     // derivadas
@@ -553,60 +567,68 @@ int fino_break_compute_stresses(void) {
   }
 
   
-  // paso 1. barremos elementos y fabricamos los tensores 
+  // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   
   // es calloc porque los de superficie van a quedar en null
-  data = calloc(fino.mesh->n_elements, sizeof(double **));
+  data_element = calloc(fino.mesh->n_elements, sizeof(double **));
+  parent_global = calloc(fino.mesh->n_nodes, sizeof(node_relative_t *));
+  
   for (i = 0; i < fino.mesh->n_elements; i++) {
     element = &fino.mesh->element[i];
     if (element->type->dim == fino.dimensions) {
       
-      data[i] = calloc(element->type->nodes, sizeof(double *));
+      data_element[i] = calloc(element->type->nodes, sizeof(double *));
       
-      for (j_local = 0; j_local < element->type->nodes; j_local++) {
+      for (j = 0; j < element->type->nodes; j++) {
       
-        j = element->node[j_local]->id-1;
-        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+        j_global = element->node[j]->id-1;
+        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j_global].x[0];
+        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
+        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
         
-        // nueve de las derivadas completas +
-        // tres de epsilon (los normales son iguales a las derivadas)
-        // y seis de sigma
-        data[i][j_local] = calloc(DATA_SIZE, sizeof(double));
+        if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL) {
+          LL_FOREACH(element->type->node_parents[j], parent) {
+            wasora_mesh_add_node_parent(&parent_global[j_global], element->node[parent->index]->id-1);
+          }
+        }
+        
+        data_element[i][j] = calloc(DATA_SIZE, sizeof(double));
         
         // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
-        wasora_call(mesh_compute_r_at_node(element, j_local, fino.mesh->fem.r));
-          
+        wasora_call(mesh_compute_r_at_node(element, j, fino.mesh->fem.r));
         // TODO: esto da lo mismo para todos los nodos en primer orden
         mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-        mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-        mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+        
+        
+        if ((det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr)) > fino.gradient_jacobian_threshold) {
+          mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
-        // las nueve derivadas (o menos)
-        for (g = 0; g < fino.degrees; g++) {
-          for (m = 0; m < fino.dimensions; m++) {
-            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
-              j_global_prime = element->node[j_local_prime]->id - 1;
-              // el hardcoded 3 es para respetar los indices de los defines
-              data[i][j_local][3*g+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+          // las nueve derivadas (o menos)
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+                j_global_prime = element->node[j_local_prime]->id - 1;
+                // el hardcoded 3 es para respetar los indices de los defines
+                data_element[i][j][3*g+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+              }
             }
           }
         }
         
-        dudx = data[i][j_local][DATA_DUDX];
-        dudy = data[i][j_local][DATA_DUDY];
+        dudx = data_element[i][j][DATA_DUDX];
+        dudy = data_element[i][j][DATA_DUDY];
 
-        dvdx = data[i][j_local][DATA_DVDX];
-        dvdy = data[i][j_local][DATA_DVDY];
+        dvdx = data_element[i][j][DATA_DVDX];
+        dvdy = data_element[i][j][DATA_DVDY];
 
         if (fino.dimensions == 3) {
-          dudz = data[i][j_local][DATA_DUDZ];
-          dvdz = data[i][j_local][DATA_DVDZ];
+          dudz = data_element[i][j][DATA_DUDZ];
+          dvdz = data_element[i][j][DATA_DVDZ];
         
-          dwdx = data[i][j_local][DATA_DWDX];
-          dwdy = data[i][j_local][DATA_DWDY];
-          dwdz = data[i][j_local][DATA_DWDZ];
+          dwdx = data_element[i][j][DATA_DWDX];
+          dwdy = data_element[i][j][DATA_DWDY];
+          dwdz = data_element[i][j][DATA_DWDZ];
         }
         
 /*  
@@ -708,108 +730,159 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         }
         
         // llenamos los datas
-        data[i][j_local][DATA_GAMMAXY] = gammaxy;
-        data[i][j_local][DATA_GAMMAYZ] = gammayz;
-        data[i][j_local][DATA_GAMMAZX] = gammazx;
+        data_element[i][j][DATA_GAMMAXY] = gammaxy;
+        data_element[i][j][DATA_GAMMAYZ] = gammayz;
+        data_element[i][j][DATA_GAMMAZX] = gammazx;
 
-        data[i][j_local][DATA_SIGMAX] = sigmax;
-        data[i][j_local][DATA_SIGMAY] = sigmay;
-        data[i][j_local][DATA_SIGMAZ] = sigmaz;
+        data_element[i][j][DATA_SIGMAX] = sigmax;
+        data_element[i][j][DATA_SIGMAY] = sigmay;
+        data_element[i][j][DATA_SIGMAZ] = sigmaz;
         
-        data[i][j_local][DATA_TAUXY] = tauxy;
-        data[i][j_local][DATA_TAUYZ] = tauyz;
-        data[i][j_local][DATA_TAUZX] = tauzx;
+        data_element[i][j][DATA_TAUXY] = tauxy;
+        data_element[i][j][DATA_TAUYZ] = tauyz;
+        data_element[i][j][DATA_TAUZX] = tauzx;
         
       }
     }
   }
 
-  // paso 2. barremos nodos
-  wasora_var(fino.vars.sigma_max) = 0;
+  // paso 2. barremos nodos y obtenemos los promedios sobre cada nodo pero tambien
+  // nos acordamos del conjunto de contribuciones elementales a cada nodo global
+  data_node = calloc(fino.mesh->n_nodes, sizeof(gsl_vector **));
+  data_node_weight = calloc(fino.mesh->n_nodes, sizeof(double **));
+  avg = calloc(fino.mesh->n_nodes, sizeof(double *));
+  
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-    dudx = dudy = dudz = 0;
-    dvdx = dvdy = dvdz = 0;
-    dwdx = dwdy = dwdz = 0;
-    
-    ex = ey = ez = 0;
-    gammaxy = gammayz = gammazx = 0;
-    sigmax = sigmay = sigmaz = 0;
-    tauxy = tauyz = tauzx = 0;
-    
-    den = 0;
-    
-    LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
-      element = associated_element->element;
-      i = element->id-1;
-      if (data[i] != NULL) {
-        vol = element->type->element_volume(element);
-        j = 0;
-        while (j < element->type->nodes && j_global != element->node[j]->id-1) {
-          j++;
-        }
-      
-        dudx += vol*data[i][j][DATA_DUDX];
-        dudy += vol*data[i][j][DATA_DUDY];
-        dudz += vol*data[i][j][DATA_DUDZ];
-        
-        dvdx += vol*data[i][j][DATA_DVDX];
-        dvdy += vol*data[i][j][DATA_DVDY];
-        dvdz += vol*data[i][j][DATA_DVDZ];
 
-        dwdx += vol*data[i][j][DATA_DWDX];
-        dwdy += vol*data[i][j][DATA_DWDY];
-        dwdz += vol*data[i][j][DATA_DWDZ];
-        
-        ex += vol*data[i][j][DATA_EX];
-        ey += vol*data[i][j][DATA_EY];
-        ez += vol*data[i][j][DATA_EZ];
-        
-        gammaxy += vol*data[i][j][DATA_GAMMAXY];
-        gammayz += vol*data[i][j][DATA_GAMMAYZ];
-        gammazx += vol*data[i][j][DATA_GAMMAZX];
-        
-        sigmax += vol*data[i][j][DATA_SIGMAX];
-        sigmay += vol*data[i][j][DATA_SIGMAY];
-        sigmaz += vol*data[i][j][DATA_SIGMAZ];
+    avg[j_global] = calloc(DATA_SIZE, sizeof(double));
     
-        tauxy += vol*data[i][j][DATA_TAUXY];
-        tauyz += vol*data[i][j][DATA_TAUYZ];
-        tauzx += vol*data[i][j][DATA_TAUZX];
-        
-        den += vol;
+      
+    N = 0;
+    LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
+      if (data_element[associated_element->element->id-1] != NULL) {
+        N++;
       }
     }
-    
-    dudx /= den;
-    dudy /= den;
-    dudz /= den;
 
-    dvdx /= den;
-    dvdy /= den;
-    dvdz /= den;
+    if (N > 2) {
+      data_node[j_global] = calloc(DATA_SIZE, sizeof(gsl_vector *));
+      data_node_weight[j_global] = calloc(N, sizeof(double));
+      for (k = 0; k < DATA_SIZE; k++) {
+        data_node[j_global][k] = gsl_vector_alloc(N);
+      }
 
-    dwdx /= den;
-    dwdy /= den;
-    dwdz /= den;
+      n = 0;
+      LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
+        element = associated_element->element; 
+        i = element->id-1;
+        
+        if (data_element[i] != NULL) {
+          data_node_weight[j_global][n] = element->type->element_volume(element);
+          
+          // buscamos el indice local del nodo
+          j = 0;
+          while (j < element->type->nodes && j_global != element->node[j]->id-1) {
+            j++;
+          }
 
-    ex /= den;
-    ey /= den;
-    ez /= den;
-    
-    gammaxy /= den;
-    gammayz /= den;
-    gammazx /= den;
-    
-    sigmax /= den;
-    sigmay /= den;
-    sigmaz /= den;
-    
-    tauxy /= den;
-    tauyz /= den;
-    tauzx /= den;
-    
+          for (k = 0; k < DATA_SIZE; k++) {
+            gsl_vector_set(data_node[j_global][k], n, data_element[i][j][k]);
+          }
+          n++;
+        }
+      }
 
-    // ya tenemos el promedio, rellenamos las funciones    
+      for (k = 0; k < DATA_SIZE; k++) {
+        
+        // calculamos el promedio pesado
+        mu = 0;
+        den = 0;
+        for (n = 0; n < data_node[j_global][k]->size; n++) {
+          mu  += data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n);
+          den += data_node_weight[j_global][n];
+        }
+        if (den != 0) {
+          mu /= den;
+        } else {
+          mu = 0;
+        }
+        
+        if (n > 1) {
+          std = 0;
+          for (n = 0; n < data_node[j_global][k]->size; n++) {
+            std += gsl_pow_2(data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n) - mu);
+          }
+          std = sqrt(std/(n-1));
+        } else {
+          std = 1e6;
+        }
+        
+        // y ahora tiramos los que estan lejos
+        avg[j_global][k] = 0;
+        den = 0;
+        for (n = 0; n < data_node[j_global][k]->size; n++) {
+          if (fabs(gsl_vector_get(data_node[j_global][k], n) - mu) < 3.0*std) {
+            den += data_node_weight[j_global][n];
+            avg[j_global][k] += data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n);
+          } else {
+            ;
+//            printf("pistola %g %g %g\n", mu, gsl_vector_get(data_node[j_global][k], n), data_node_weight[j_global][n]);
+          }
+        }
+        if (den != 0) {
+          avg[j_global][k] /= den;
+        } else {
+          avg[j_global][k] = 0;
+        }
+      }
+    }
+  }
+  
+  // paso 3. volvemos a barrer nodos y calculamos los promedios descartando valores fuera de la desviacion estandar
+  wasora_var(fino.vars.sigma_max) = 0;
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+
+    if (parent_global[j_global] != NULL) {
+      for (k = 0; k < DATA_SIZE; k++) {
+        den = 0;
+        avg[j_global][k] = 0;
+        LL_FOREACH(parent_global[j_global], parent) {
+          den += 1.0;
+          avg[j_global][k] += avg[parent->index][k];
+        }
+        avg[j_global][k] /= den;
+      }
+    }
+
+    dudx = avg[j_global][DATA_DUDX];
+    dudy = avg[j_global][DATA_DUDY];
+    dudz = avg[j_global][DATA_DUDZ];
+
+    dvdx = avg[j_global][DATA_DVDX];
+    dvdy = avg[j_global][DATA_DVDY];
+    dvdz = avg[j_global][DATA_DVDZ];
+
+    dwdx = avg[j_global][DATA_DWDX];
+    dwdy = avg[j_global][DATA_DWDY];
+    dwdz = avg[j_global][DATA_DWDZ];
+
+    ex = avg[j_global][DATA_EX];
+    ey = avg[j_global][DATA_EY];
+    ez = avg[j_global][DATA_EZ];
+
+    gammaxy = avg[j_global][DATA_GAMMAXY];
+    gammayz = avg[j_global][DATA_GAMMAYZ];
+    gammazx = avg[j_global][DATA_GAMMAZX];
+
+    sigmax = avg[j_global][DATA_SIGMAX];
+    sigmay = avg[j_global][DATA_SIGMAY];
+    sigmaz = avg[j_global][DATA_SIGMAZ];
+
+    tauxy = avg[j_global][DATA_TAUXY];
+    tauyz = avg[j_global][DATA_TAUYZ];
+    tauzx = avg[j_global][DATA_TAUZX];       
+    
+    // ya tenemos los promedios ahora, rellenamos las funciones    
     fino.gradient[0][0]->data_value[j_global] = dudx;
     fino.gradient[0][1]->data_value[j_global] = dudy;
     
@@ -885,9 +958,9 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       if (fino.dimensions == 3) {
         wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j_global];
       }
-    }
-    
+    }    
   }
+  
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
