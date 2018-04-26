@@ -377,7 +377,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           fino.dirichlet_row = realloc(fino.dirichlet_row, current_size * sizeof(dirichlet_row_t));
         }
 
-        if (associated_element->element->type->dim > 0) {
+        if (associated_element->element->type->dim > 1) {
           wasora_call(mesh_compute_outward_normal(associated_element->element, n));
           wasora_var_value(fino.vars.nx) = n[0];
           wasora_var_value(fino.vars.ny) = n[1];
