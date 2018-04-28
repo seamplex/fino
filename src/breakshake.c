@@ -473,7 +473,7 @@ int fino_break_compute_stresses(void) {
   
   PetscFunctionBegin;
   if (fino.gradient_jacobian_threshold == 0) {
-    fino.gradient_jacobian_threshold = 1e-5;
+    fino.gradient_jacobian_threshold = 1e-2;
   }
   
 
