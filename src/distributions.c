@@ -77,8 +77,11 @@ double fino_distribution_evaluate(fino_distribution_t *distribution, material_t 
             wasora_var_value(wasora_mesh.vars.z) = x[2];
           }
         }
+        PetscFunctionReturn(wasora_evaluate_expression(&property_data->expr));
+      } else {
+        wasora_push_error_message("cannot find property '%s' in material '%s'", distribution->physical_property->name, material->name);
+        wasora_runtime_error();
       }
-      PetscFunctionReturn(wasora_evaluate_expression(&property_data->expr));
       
     } else {
       function_t *function;
