@@ -370,7 +370,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
         physical_entity = associated_element->element->physical_entity;
         
-        if (fino.n_dirichlet_rows == 0 && k >= current_size) {
+        if (fino.n_dirichlet_rows == 0 && k >= (current_size-16)) {
           current_size += n_bcs;
           fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, current_size * sizeof(PetscInt));
           fino.dirichlet_rhs = realloc(fino.dirichlet_rhs, current_size * sizeof(PetscScalar));
