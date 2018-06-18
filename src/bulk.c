@@ -19,6 +19,7 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+#include <stdio.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
@@ -89,6 +90,10 @@ int fino_build_bulk(void) {
       if (fino.shmem_progress_build != NULL) {
         *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
       }
+      if (fino.progress_ascii) {
+        printf(".");  
+        fflush(stdout);
+      }
     }
 // --------------------------------------------------------------    
 
@@ -114,6 +119,9 @@ int fino_build_bulk(void) {
   
   if (fino.shmem_progress_build != NULL) {
     *fino.shmem_progress_build = 1.0;
+  }
+  if (fino.progress_ascii) {
+    printf("\n");  
   }
 
 //  wasora_call(fino_free_elemental_objects());

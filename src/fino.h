@@ -282,9 +282,12 @@ struct {
   
   int do_not_set_block_size;
   
-  char *shmem_progress_build_name;  
-  char *shmem_progress_solve_name;
-  char *shmem_memory_name;
+  int progress_ascii;
+  double last_progress;
+  
+  char *progress_build_shname;  
+  char *progress_solve_shname;
+  char *memory_shname;
   
   double *shmem_progress_build;
   double *shmem_progress_solve;

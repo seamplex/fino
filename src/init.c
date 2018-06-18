@@ -388,14 +388,14 @@ int plugin_init_after_parser(void) {
   }
   
   // los objetos para mostrar el progress
-  if (fino.shmem_progress_build_name != NULL) {
-    fino.shmem_progress_build = wasora_get_shared_pointer(fino.shmem_progress_build_name, sizeof(double));
+  if (fino.progress_build_shname != NULL) {
+    fino.shmem_progress_build = wasora_get_shared_pointer(fino.progress_build_shname, sizeof(double));
   }
-  if (fino.shmem_progress_solve_name != NULL) {
-    fino.shmem_progress_solve = wasora_get_shared_pointer(fino.shmem_progress_solve_name, sizeof(double));
+  if (fino.progress_solve_shname != NULL) {
+    fino.shmem_progress_solve = wasora_get_shared_pointer(fino.progress_solve_shname, sizeof(double));
   }
-  if (fino.shmem_memory_name != NULL) {
-    fino.shmem_memory = wasora_get_shared_pointer(fino.shmem_memory_name, sizeof(double));
+  if (fino.memory_shname != NULL) {
+    fino.shmem_memory = wasora_get_shared_pointer(fino.memory_shname, sizeof(double));
   }  
 
   return WASORA_RUNTIME_OK;
@@ -429,14 +429,14 @@ int plugin_finalize(void) {
   }
   
   // los objetos para mostrar el progress
-  if (fino.shmem_progress_build_name != NULL) {
-    wasora_free_shared_pointer(fino.shmem_progress_build, fino.shmem_progress_build_name, sizeof(double));
+  if (fino.progress_build_shname != NULL) {
+    wasora_free_shared_pointer(fino.shmem_progress_build, fino.progress_build_shname, sizeof(double));
   }
-  if (fino.shmem_progress_solve_name != NULL) {
-    wasora_free_shared_pointer(fino.shmem_progress_solve, fino.shmem_progress_solve_name, sizeof(double));
+  if (fino.progress_solve_shname != NULL) {
+    wasora_free_shared_pointer(fino.shmem_progress_solve, fino.progress_solve_shname, sizeof(double));
   }
-  if (fino.shmem_memory_name != NULL) {
-    wasora_free_shared_pointer(fino.shmem_memory, fino.shmem_memory_name, sizeof(double));
+  if (fino.memory_shname != NULL) {
+    wasora_free_shared_pointer(fino.shmem_memory, fino.memory_shname, sizeof(double));
   }  
   
   return WASORA_RUNTIME_OK;

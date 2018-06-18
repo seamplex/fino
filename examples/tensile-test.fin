@@ -1,6 +1,8 @@
 MESH FILE_PATH tensile-test-specimen2.msh  DIMENSIONS 3 # mesh file in Gmsh format
 # the file tensile-test-specimen1.msh has the same grid but with first-order elements
 
+FINO_SOLVER PROGRESS_ASCII
+
 # uniform properties
 E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
 nu = 0.3    # Poisson ratio
