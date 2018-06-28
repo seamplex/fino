@@ -322,7 +322,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ GRADIENT_JACOBIAN_THRESHOLD <expr> ]
         } else if (strcasecmp(token, "GRADIENT_JACOBIAN_THRESHOLD") == 0) {
           wasora_call(wasora_parser_expression_in_string(&fino.gradient_jacobian_threshold));
-          
+
 ///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;

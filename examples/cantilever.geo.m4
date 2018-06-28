@@ -1,9 +1,11 @@
 //
-Merge "square-beam.step";
+SetFactory("OpenCASCADE");
+Geometry.OCCTargetUnit = "MM";
+a() = ShapeFromFile("square-beam.step");
 
-//lc = 2;
+//lc = 1;
 //struct = 0;
-//hex = 1;
+//hex = 0;
 
 If ( struct != 0 )
  Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc;
@@ -11,7 +13,8 @@ If ( struct != 0 )
  Transfinite Surface "*";
  Transfinite Volume "*";
 Else
- Characteristic Length {1:8} = lc;
+ Mesh.CharacteristicLengthMax = lc;
+ //Characteristic Length {1:8} = lc;
 EndIf
 
 //If ( hex != 0 ) 

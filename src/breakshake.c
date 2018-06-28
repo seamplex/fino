@@ -961,6 +961,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
     }    
   }
   
+  free(data_node);
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

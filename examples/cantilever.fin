@@ -1,7 +1,8 @@
 DEFAULT_ARGUMENT_VALUE 1 1        # use first (1) or second (2) order elements
 DEFAULT_ARGUMENT_VALUE 2 0        # use structured (1) or unstructured (0) tets
 
-PARAMETRIC c MIN 0.4 MAX 1.2 NSTEPS 5
+# PARAMETRIC c MIN 0.4 MAX 1.2 NSTEPS 5
+c = 1
 
 OUTPUT_FILE geo  cantilever-$1-$2-%.2f.geo c
 M4 {
@@ -26,4 +27,4 @@ FINO_STEP
 PRINT %.2f 1/c c %g nodes elements %.5g displ_max sigma_max %g fino_iterations %.2f time_cpu_build time_cpu_solve %.0f memory_usage_global/1e6
 
 OUTPUT_FILE vtk cantilever-$1-$2-%.2f.vtk c
-MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
