@@ -1,6 +1,11 @@
-Merge "conic_valve.brep";
+//
+SetFactory("OpenCASCADE");
+Geometry.OCCTargetUnit = "MM";
+a() = ShapeFromFile("conic_valve.brep");
 
-Characteristic Length{1:10} = 0.25;
+Mesh.CharacteristicLengthMax = 0.25;
+Mesh.Algorithm = 6;
+Mesh.ElementOrder = 2;
 
 Physical Volume("bulk") = {1};
 Physical Surface("base") = {1};

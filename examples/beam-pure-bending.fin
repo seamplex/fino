@@ -1,0 +1,24 @@
+MESH FILE_PATH beam-quads.msh DIMENSIONS 3
+
+PHYSICAL_ENTITY NAME fixed  BC fixed
+
+# PHYSICAL_ENTITY NAME load BC Ty=1
+# PHYSICAL_ENTITY NAME load BC tx=(z-load_cog(3))
+
+# torsion
+# PHYSICAL_ENTITY NAME load BC tz=y ty=-z
+#PHYSICAL_ENTITY NAME load BC ty=cos(atan2(y,z)) tz=-sin(atan2(y,z))
+
+PHYSICAL_ENTITY NAME load BC My=1
+
+E = 200e3
+nu = 0.3
+
+FINO_STEP
+
+MESH_POST FILE_PATH beam-pure-bending.vtk VECTOR u v w sigma sigma1 sigma2 sigma3
+
+PRINT HEADER %g fixed_cog
+
+PRINT HEADER %g fixed_RF
+PRINT HEADER %g fixed_RM

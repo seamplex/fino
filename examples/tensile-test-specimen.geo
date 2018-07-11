@@ -1,9 +1,11 @@
+SetFactory("OpenCASCADE");
 Geometry.OCCTargetUnit = "MM";
-Merge "tensile-test-specimen.step";
+a() = ShapeFromFile("tensile-test-specimen.step");
 
-Mesh.CharacteristicLengthMin = 1;
 Mesh.CharacteristicLengthMax = 3;
-Mesh.Algorithm = 8;
+Mesh.Algorithm = 6;
+Mesh.ElementOrder = 2;
+Mesh.Optimize = 1;
 
 Physical Surface("left") = {1};
 Physical Surface("right") = {7};

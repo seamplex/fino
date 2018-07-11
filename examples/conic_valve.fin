@@ -6,10 +6,10 @@
 SHELL "gmsh -v 0 -3 conic_valve.geo"
 MESH FILE_PATH conic_valve.msh DIMENSIONS 3
 
+FINO_SOLVER PROGRESS_ASCII
+
 E = 200e3
 nu = 0.3
-
-#fino_gamg_threshold = 1e-3
 
 PHYSICAL_ENTITY NAME base  BC u=0 v=1e-2 w=0
 PHYSICAL_ENTITY NAME top   BC u=0 v=1e-2 w=0
@@ -25,7 +25,7 @@ f(x) := (y2-y1)/(x2-x1)*(x-x1) + y1
 h = f(0)
 r = root(f(x), x, -10, 0) 
 
-PHYSICAL_ENTITY NAME cone  BC implicit=((x+u)^2+(z+w)^2)/(r/h)^2-(y+v-h)^2
+PHYSICAL_ENTITY NAME cone  BC 0=((x+u)^2+(z+w)^2)/(r/h)^2-(y+v-h)^2
 
 FINO_STEP
 MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w #dudx dvdx dwdx dudy dvdy dwdy dudz dvdz dwdz 

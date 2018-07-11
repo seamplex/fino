@@ -14,14 +14,14 @@ PHYSICAL_ENTITY NAME right   BC Mx=1
 
 FINO_STEP
 
-PRINT HEADER %g left_F
-PRINT HEADER %g left_M
+PRINT HEADER %g left_RF
+PRINT HEADER %g left_RM
 
-PRINT HEADER %g front_F
-PRINT HEADER %g front_M
+PRINT HEADER %g front_RF
+PRINT HEADER %g front_RM
 
-PRINT HEADER %g bottom_F
-PRINT HEADER %g bottom_M
+PRINT HEADER %g bottom_RF
+PRINT HEADER %g bottom_RM
 
 MESH_POST FILE_PATH torsion.vtk VECTOR u v w sigma sigma1 sigma2 sigma3
 MESH_POST FILE_PATH torsion.msh VECTOR u v w

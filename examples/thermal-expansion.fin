@@ -1,19 +1,16 @@
-SHELL "gmsh -v 0 -3 -order 2 prism.geo"
 MESH FILE_PATH prism.msh
-
-# FINO_SOLVER GRADIENT_EVALUATION mass_matrix_consistent
-# FINO_SOLVER GRADIENT_EVALUATION gauss_average
 
 E = 200e3      # Young modulus
 nu = 0.3       # Poisson ratio
 
-T = 100        # Temperature increment (with respect to reference)
+T = 100        # Temperature (uniform)
+T0 = 0         # Reference temperature
 alpha = 1e-3   # Thermal expansion coefficient
 
 # the prism is fixed on these planes
 PHYSICAL_ENTITY NAME "xy" BC  w=0
-PHYSICAL_ENTITY NAME "yz" BC  u=0  
-PHYSICAL_ENTITY NAME "zx" BC  v=0 
+PHYSICAL_ENTITY NAME "yz" BC  u=0
+PHYSICAL_ENTITY NAME "zx" BC  v=0
 
 FINO_STEP
 

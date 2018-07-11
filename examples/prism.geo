@@ -1,6 +1,11 @@
-Merge "prism.brep";
-Mesh.CharacteristicLengthFactor = 1.0;
-Mesh.Algorithm = 8;
+//+
+SetFactory("OpenCASCADE");
+//+
+Box(1) = {0, 0, 0, 4, 1, 2};
+
+Mesh.CharacteristicLengthMax = 0.2;
+Mesh.Algorithm = 5;
+Mesh.ElementOrder = 2;
 
 Physical Surface("xy", 1) = {5};
 Physical Surface("yz", 2) = {1};
