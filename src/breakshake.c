@@ -452,7 +452,6 @@ int fino_break_compute_stresses(void) {
   double DT;
   
 //  double vol;
-  double det;
   double ***data_element;      // data[elemento global][nodo local][prop]
   gsl_vector ***data_node;     // data[nodo global][prop][elemento_local]
   double **data_node_weight;  // weight[nodo global][elemento_local]
@@ -582,9 +581,6 @@ int fino_break_compute_stresses(void) {
       for (j = 0; j < element->type->nodes; j++) {
       
         j_global = element->node[j]->id-1;
-        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j_global].x[0];
-        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
-        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
         
         if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL) {
           LL_FOREACH(element->type->node_parents[j], parent) {
@@ -594,13 +590,7 @@ int fino_break_compute_stresses(void) {
         
         data_element[i][j] = calloc(DATA_SIZE, sizeof(double));
         
-        // esto da exactamente ceros o unos (o 0.5 para nodos intermedios)
-        wasora_call(mesh_compute_r_at_node(element, j, fino.mesh->fem.r));
-        // TODO: esto da lo mismo para todos los nodos en primer orden
-        mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-        
-        
-        if ((det = mesh_determinant(element->type->dim, fino.mesh->fem.dxdr)) > fino.gradient_jacobian_threshold) {
+        if (element->type->order == 1 || mesh_compute_quality(fino.mesh, element) > fino.gradient_jacobian_threshold) {
           mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
           mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
@@ -671,6 +661,10 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         }
         
         // los sigmas 
+        wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j_global].x[0];
+        wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
+        wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
+        
         if (distribution_nu.physical_property != NULL) {
           
           nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
@@ -764,7 +758,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       }
     }
 
-    if (N > 2) {
+    if (N > 0) {
       data_node[j_global] = calloc(DATA_SIZE, sizeof(gsl_vector *));
       data_node_weight[j_global] = calloc(N, sizeof(double));
       for (k = 0; k < DATA_SIZE; k++) {
@@ -777,7 +771,12 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         i = element->id-1;
         
         if (data_element[i] != NULL) {
-          data_node_weight[j_global][n] = element->type->element_volume(element);
+          if (element->type->order == 1) {
+            data_node_weight[j_global][n] = element->type->element_volume(element);
+          } else {
+            data_node_weight[j_global][n] = element->type->element_volume(element)*mesh_compute_quality(fino.mesh, element);
+//            data_node_weight[j_global][n] = 1/gsl_pow_2(1-mesh_compute_quality(fino.mesh, element));
+          }
           
           // buscamos el indice local del nodo
           j = 0;
