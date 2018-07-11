@@ -205,6 +205,7 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
   if (fino.progress_ascii) {
     for (i = (int)(100*fino.last_progress); i < (int)(100*current_progress); i++) {
       printf("x");
+      fflush(stdout);
     }
     fino.last_progress = current_progress;
   }

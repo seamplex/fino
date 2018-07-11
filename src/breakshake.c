@@ -451,7 +451,6 @@ int fino_break_compute_stresses(void) {
   double alpha = 0;
   double DT;
   
-//  double vol;
   double ***data_element;      // data[elemento global][nodo local][prop]
   gsl_vector ***data_node;     // data[nodo global][prop][elemento_local]
   double **data_node_weight;  // weight[nodo global][elemento_local]
@@ -543,29 +542,7 @@ int fino_break_compute_stresses(void) {
     fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   }
   
-  // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
-  if (distribution_nu.variable != NULL) {
-    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
-    if (nu > 0.5) {
-      wasora_push_error_message("nu is greater than 1/2");
-      return WASORA_RUNTIME_ERROR;
-    } else if (nu < 0) {
-      wasora_push_error_message("nu is negative");
-      return WASORA_RUNTIME_ERROR;
-    }
-  }
-  if (distribution_E.variable != NULL) {
-    E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
-    if (E < 0) {
-      wasora_push_error_message("E is negative (%g)", E);
-      return WASORA_RUNTIME_ERROR;
-    }
-  }
-  if (distribution_alpha.variable != NULL) {
-    alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
-  }
 
-  
   // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   
   // es calloc porque los de superficie van a quedar en null
@@ -591,6 +568,8 @@ int fino_break_compute_stresses(void) {
         data_element[i][j] = calloc(DATA_SIZE, sizeof(double));
         
         if (element->type->order == 1 || mesh_compute_quality(fino.mesh, element) > fino.gradient_jacobian_threshold) {
+          wasora_call(mesh_compute_r_at_node(element, j, fino.mesh->fem.r));
+          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
           mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
           mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
 
@@ -664,6 +643,27 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j_global].x[0];
         wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
         wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
+        // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
+        if (distribution_nu.variable != NULL) {
+          nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
+          if (nu > 0.5) {
+            wasora_push_error_message("nu is greater than 1/2");
+            return WASORA_RUNTIME_ERROR;
+          } else if (nu < 0) {
+            wasora_push_error_message("nu is negative");
+            return WASORA_RUNTIME_ERROR;
+          }
+        }
+        if (distribution_E.variable != NULL) {
+          E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
+          if (E < 0) {
+            wasora_push_error_message("E is negative (%g)", E);
+            return WASORA_RUNTIME_ERROR;
+          }
+        }
+        if (distribution_alpha.variable != NULL) {
+          alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
+        }
         
         if (distribution_nu.physical_property != NULL) {
           
@@ -774,8 +774,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           if (element->type->order == 1) {
             data_node_weight[j_global][n] = element->type->element_volume(element);
           } else {
-            data_node_weight[j_global][n] = element->type->element_volume(element)*mesh_compute_quality(fino.mesh, element);
-//            data_node_weight[j_global][n] = 1/gsl_pow_2(1-mesh_compute_quality(fino.mesh, element));
+            data_node_weight[j_global][n] = element->type->element_volume(element)*GSL_MAX(mesh_compute_quality(fino.mesh, element), 1);
           }
           
           // buscamos el indice local del nodo
@@ -820,7 +819,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         avg[j_global][k] = 0;
         den = 0;
         for (n = 0; n < data_node[j_global][k]->size; n++) {
-          if (fabs(gsl_vector_get(data_node[j_global][k], n) - mu) < 3.0*std) {
+          if (fabs(gsl_vector_get(data_node[j_global][k], n) - mu) < 1.5*std) {
             den += data_node_weight[j_global][n];
             avg[j_global][k] += data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n);
           } else {
@@ -840,7 +839,6 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
   // paso 3. volvemos a barrer nodos y calculamos los promedios descartando valores fuera de la desviacion estandar
   wasora_var(fino.vars.sigma_max) = 0;
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-
     if (parent_global[j_global] != NULL) {
       for (k = 0; k < DATA_SIZE; k++) {
         den = 0;
