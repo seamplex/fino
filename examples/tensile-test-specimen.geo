@@ -3,7 +3,7 @@ Geometry.OCCTargetUnit = "MM";
 a() = ShapeFromFile("tensile-test-specimen.step");
 
 Mesh.CharacteristicLengthMax = 3;
-Mesh.Algorithm = 6;
+Mesh.Algorithm = 8;
 Mesh.ElementOrder = 2;
 Mesh.Optimize = 1;
 

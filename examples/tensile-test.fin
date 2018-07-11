@@ -1,4 +1,4 @@
-MESH FILE_PATH tensile-test-specimen.msh  DIMENSIONS 3 # mesh file in Gmsh format
+MESH FILE_PATH tensile-test-specimen2.msh  DIMENSIONS 3 # mesh file in Gmsh format
 # the file tensile-test-specimen1.msh has the same grid but with first-order elements
 
 FINO_SOLVER PROGRESS_ASCII

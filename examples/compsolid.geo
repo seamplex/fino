@@ -3,9 +3,10 @@
 
 SetFactory("OpenCASCADE");
 
-//Mesh.Algorithm = 6;
-Mesh.CharacteristicLengthMin = 0.1;
-Mesh.CharacteristicLengthMax = 0.1;
+Mesh.Algorithm = 6;
+Mesh.CharacteristicLengthMax = 0.15;
+Mesh.ElementOrder = 2;
+Mesh.Optimize = 1;
 
 x = 0;
 y = 0;
