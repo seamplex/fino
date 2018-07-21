@@ -4,7 +4,7 @@ DEFAULT_ARGUMENT_VALUE 2 0        # use structured (1) or unstructured (0) tets
 PARAMETRIC c MIN 0.4 MAX 1.2 NSTEPS 5
 c = 1
 
-OUTPUT_FILE geo  cantilever-$1-$2-%.2f.geo c
+OUTPUT_FILE geo  cantilever-$1-$2-%03.0f.geo 100*c
 M4 {
  INPUT_FILE_PATH  cantilever.geo.m4
  OUTPUT_FILE geo
@@ -12,10 +12,11 @@ M4 {
  MACRO struct $2
 }
 
-SHELL "if [ ! -e cantilever-$1-$2-%.2f.msh ]; then gmsh -v 0 -3 -order $1 cantilever-$1-$2-%.2f.geo > /dev/null; fi" c c
-INPUT_FILE mesh cantilever-$1-$2-%.2f.msh c
+SHELL "if [ ! -e cantilever-$1-$2-%03.0f.msh ]; then gmsh -v 0 -3 -order $1 cantilever-$1-$2-%03.0f.geo > /dev/null; fi" 100*c 100*c
+INPUT_FILE mesh cantilever-$1-$2-%03.0f.msh 100*c
 MESH FILE mesh DIMENSIONS 3
 
+PHYSICAL_ENTITY NAME bulk
 PHYSICAL_ENTITY NAME left  BC fixed
 PHYSICAL_ENTITY NAME right BC Tz=-1000
 
@@ -24,7 +25,19 @@ nu = 0.3
 
 FINO_STEP
 
-PRINT %.2f 1/c c %g nodes elements %.5g displ_max sigma_max %g fino_iterations %.2f time_cpu_build time_cpu_solve %.0f memory_usage_global/1e6
+energy_density(x,y,z) := 0.5*{( 
+ sigmax(x,y,z)*dudx(x,y,z) +
+ sigmay(x,y,z)*dvdy(x,y,z) +
+ sigmaz(x,y,z)*dwdz(x,y,z) +
+ tauxy(x,y,z)*(dudy(x,y,z) + dvdx(x,y,z)) +
+ tauyz(x,y,z)*(dvdz(x,y,z) + dwdy(x,y,z)) +
+ tauzx(x,y,z)*(dwdx(x,y,z) + dudz(x,y,z))
+)}
+
+MESH_INTEGRATE FUNCTION energy_density OVER bulk RESULT energy
+
+
+PRINT %.2f 1/c c %g nodes elements %.5g displ_max sigma_max energy %g fino_iterations %.2f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory_usage_global/1e6
 
 OUTPUT_FILE vtk cantilever-$1-$2-%.2f.vtk c
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma

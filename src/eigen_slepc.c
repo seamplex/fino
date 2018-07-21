@@ -164,4 +164,63 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   return WASORA_RUNTIME_OK;
 
 }
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_eigen_nev"
+int fino_eigen_nev() {
+  int i, j;
+  double xi, fu;
+
+  Vec tmp;
+  Vec one;
+  PetscScalar norm, M, L;
+
+  VecDuplicate(fino.phi, &tmp);
+  VecDuplicate(fino.phi, &one);
+  VecSet(one, 1.0);
+
+  // masa total
+  MatMult(fino.M, one, tmp);
+  VecDot(one, tmp, &xi);
+  wasora_var_value(fino.vars.mass) = xi/(double)fino.degrees;
+
+
+  // la fiesta de la ineficiencia
+  for (i = 0; i < fino.nev; i++) {
+    // autovalor convertido a frequencia
+    fu = 4.0/1.0; // factor fumanchu
+    wasora_vector_set(fino.vectors.f, i, sqrt(fu*2*M_PI/fino.eigenvalue[i]));
+    wasora_vector_set(fino.vectors.omega, i, sqrt(fu/fino.eigenvalue[i]));
+
+    // autovector i
+    fino.vectors.phi[i]->size = fino.problem_size;
+
+    // normalizado para que el maximo sea uno
+    VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
+//            VecNorm(fino.eigenvector[i], NORM_1, &norm);
+//            VecNorm(fino.eigenvector[i], NORM_2, &norm);            
+    VecScale(fino.eigenvector[i], 1.0/norm);
+
+    for (j = 0; j < fino.problem_size; j++) {
+      petsc_call(VecGetValues(fino.eigenvector[i], 1, &j, &xi));
+      wasora_vector_set(fino.vectors.phi[i], j, xi);
+    }
+
+    // masa modal
+    MatMult(fino.Morig, fino.eigenvector[i], tmp);
+    VecDot(fino.eigenvector[i], tmp, &M);
+    wasora_vector_set(fino.vectors.M, i, M);
+
+    // excitacion
+    MatMult(fino.Morig, one, tmp);
+    VecDot(fino.eigenvector[i], tmp, &L);
+    wasora_vector_set(fino.vectors.L, i, L);
+
+    wasora_vector_set(fino.vectors.Gamma, i, L/M);
+    wasora_vector_set(fino.vectors.Me, i, gsl_pow_2(L)/(fino.degrees*M));
+  }
+  
+  return WASORA_RUNTIME_OK;
+}
+
 #endif

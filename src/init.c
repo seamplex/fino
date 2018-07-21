@@ -253,8 +253,12 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.time_wall_build = wasora_define_variable("time_wall_build");
 
 ///va+time_wall_solve+name time_wall_solve
-///va+time_wall_solve+desc Wall time insumed to solve the eigen-problem, in seconds.
+///va+time_wall_solve+desc Wall time insumed to solve the problem, in seconds.
   fino.vars.time_wall_solve = wasora_define_variable("time_wall_solve");
+
+///va+time_wall_stress+name time_wall_stress
+///va+time_wall_stress+desc Wall time insumed to compute the stresses, in seconds.
+  fino.vars.time_wall_stress = wasora_define_variable("time_wall_stress");
 
 ///va+time_wall_total+name time_wall_total
 ///va+time_wall_total+desc Wall time insumed to initialize, build and solve, in seconds.
@@ -265,9 +269,13 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.time_cpu_build = wasora_define_variable("time_cpu_build");
 
 ///va+time_cpu_solve+name time_cpu_solve
-///va+time_cpu_solve+desc CPU time insumed to solve the eigen-problem, in seconds.
+///va+time_cpu_solve+desc CPU time insumed to solve the problem, in seconds.
   fino.vars.time_cpu_solve = wasora_define_variable("time_cpu_solve");
 
+///va+time_cpu_stress+name time_cpu_stress
+///va+time_cpu_stress+desc CPU time insumed to compute the stresses from the displacements, in seconds.
+  fino.vars.time_cpu_stress = wasora_define_variable("time_cpu_stress");
+  
 ///va+time_wall_total+name time_cpu_total
 ///va+time_wall_total+desc CPU time insumed to initialize, build and solve, in seconds.
   fino.vars.time_cpu_total = wasora_define_variable("time_cpu_total");
@@ -280,6 +288,10 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+time_petsc_solve+desc CPU time insumed by PETSc to solve the eigen-problem, in seconds.
   fino.vars.time_petsc_solve = wasora_define_variable("time_petsc_solve");
 
+///va+time_petsc_stress+name time_petsc_solve
+///va+time_petsc_stress+desc CPU time insumed by PETSc to compute the stresses, in seconds.
+  fino.vars.time_petsc_stress = wasora_define_variable("time_petsc_stress");
+  
 ///va+time_wall_total+name time_wall_total
 ///va+time_wall_total+desc CPU time insumed by PETSc to initialize, build and solve, in seconds.
   fino.vars.time_petsc_total = wasora_define_variable("time_petsc_total");
@@ -598,9 +610,12 @@ int fino_problem_free(void) {
     }
   }
   
-  free(fino.dirichlet_row);
-  free(fino.dirichlet_rhs);
-  free(fino.dirichlet_indexes);
+  if (fino.n_dirichlet_rows != 0) {
+    free(fino.dirichlet_row);
+    free(fino.dirichlet_rhs);
+    free(fino.dirichlet_indexes);
+    fino.n_dirichlet_rows = 0;
+  }
   
      
   if (fino.phi != PETSC_NULL) {

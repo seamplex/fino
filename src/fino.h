@@ -20,7 +20,7 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
-#ifndef _FINO_H_
+#ifndef _FINO_H_t
 #define _FINO_H_
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -197,14 +197,17 @@ struct {
 
     var_t *time_wall_build;
     var_t *time_wall_solve;
+    var_t *time_wall_stress;
     var_t *time_wall_total;
 
     var_t *time_cpu_build;
     var_t *time_cpu_solve;
+    var_t *time_cpu_stress;
     var_t *time_cpu_total;
 
     var_t *time_petsc_build;
     var_t *time_petsc_solve;
+    var_t *time_petsc_stress;
     var_t *time_petsc_total;
 
     var_t *flops_petsc;
@@ -446,6 +449,8 @@ struct fino_times_t {
   PetscLogDouble init_end;
   PetscLogDouble build_begin;
   PetscLogDouble build_end;
+  PetscLogDouble stress_begin;
+  PetscLogDouble stress_end;
   PetscLogDouble solve_begin;
   PetscLogDouble solve_end;
 };
@@ -514,6 +519,7 @@ extern int fino_solve_linear_petsc(Mat, Vec);
 
 // eigen_slepc.c
 extern int fino_solve_eigen_slepc(Mat, Mat);
+extern int fino_eigen_nev(void);
 
 // bulk.c
 extern int fino_build_bulk(void);

@@ -46,8 +46,8 @@ int fino_instruction_step(void *arg) {
   fino_times_t wall;
   fino_times_t cpu;
   fino_times_t petsc;
-  double xi, fu;
-  int i, j, k, g;
+  double xi;
+  int i, k, g;
 
   PetscFunctionBegin;
   
@@ -89,68 +89,16 @@ int fino_instruction_step(void *arg) {
         wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
       } else if (fino.math_type == math_type_eigen) {
 #ifdef HAVE_SLEPC
-        int i;
-
         // si no nos pidieron que autovalor que quieren, pedimos el primero
         if (fino.nev == 0) {
           fino.nev = 1;
         }
-        
         wasora_call(fino_solve_eigen_slepc(fino.K, fino.M));
         wasora_var(fino.vars.lambda) = fino.lambda;        // leemos el autovalor
-        
+
         // vemos si nos pidieron varias frecuencias
-        if (fino.nev > 1) {
-          
-          Vec tmp;
-          Vec one;
-          PetscScalar norm, M, L;
-          
-          VecDuplicate(fino.phi, &tmp);
-          VecDuplicate(fino.phi, &one);
-          VecSet(one, 1.0);
-    
-          // masa total
-          MatMult(fino.M, one, tmp);
-          VecDot(one, tmp, &xi);
-          wasora_var_value(fino.vars.mass) = xi/(double)fino.degrees;
-          
-          
-          // la fiesta de la ineficiencia
-          for (i = 0; i < fino.nev; i++) {
-            // autovalor convertido a frequencia
-            fu = 4.0/1.0; // factor fumanchu
-            wasora_vector_set(fino.vectors.f, i, sqrt(fu*2*M_PI/fino.eigenvalue[i]));
-            wasora_vector_set(fino.vectors.omega, i, sqrt(fu/fino.eigenvalue[i]));
-            
-            // autovector i
-            fino.vectors.phi[i]->size = fino.problem_size;
-
-            // normalizado para que el maximo sea uno
-            VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
-//            VecNorm(fino.eigenvector[i], NORM_1, &norm);
-//            VecNorm(fino.eigenvector[i], NORM_2, &norm);            
-            VecScale(fino.eigenvector[i], 1.0/norm);
-            
-            for (j = 0; j < fino.problem_size; j++) {
-              petsc_call(VecGetValues(fino.eigenvector[i], 1, &j, &xi));
-              wasora_vector_set(fino.vectors.phi[i], j, xi);
-            }
-            
-            // masa modal
-            MatMult(fino.Morig, fino.eigenvector[i], tmp);
-            VecDot(fino.eigenvector[i], tmp, &M);
-            wasora_vector_set(fino.vectors.M, i, M);
-            
-            // excitacion
-            MatMult(fino.Morig, one, tmp);
-            VecDot(fino.eigenvector[i], tmp, &L);
-            wasora_vector_set(fino.vectors.L, i, L);
-
-            wasora_vector_set(fino.vectors.Gamma, i, L/M);
-            wasora_vector_set(fino.vectors.Me, i, gsl_pow_2(L)/(fino.degrees*M));
-            
-          }
+        if (fino.nev != 1) {
+          wasora_call(fino_eigen_nev()); 
         }
 #else 
         wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
@@ -164,6 +112,9 @@ int fino_instruction_step(void *arg) {
         wasora_call(fino_bake_step_transient());
       }
     }
+    
+    time_checkpoint(solve_end);
+    time_checkpoint(stress_begin);
     
     // fabricamos G funciones con la solucion
     for (k = 0; k < fino.spatial_unknowns; k++) {
@@ -195,7 +146,7 @@ int fino_instruction_step(void *arg) {
 //    } else if (fino.problem_family == problem_family_bake) {
 //      wasora_call(fino_bake_compute_fluxes());
     }
-    time_checkpoint(solve_end);
+    time_checkpoint(stress_end);
   }
   
   if (fino_step->do_not_build == 0) {
@@ -208,11 +159,16 @@ int fino_instruction_step(void *arg) {
     wasora_var(fino.vars.time_petsc_solve) = petsc.solve_end - petsc.solve_begin;
     wasora_var(fino.vars.time_wall_solve)  = wall.solve_end  - wall.solve_begin;
     wasora_var(fino.vars.time_cpu_solve)   = cpu.solve_end   - cpu.solve_begin;
+
+    wasora_var(fino.vars.time_petsc_stress) = petsc.stress_end - petsc.stress_begin;
+    wasora_var(fino.vars.time_wall_stress)  = wall.stress_end  - wall.stress_begin;
+    wasora_var(fino.vars.time_cpu_stress)   = cpu.stress_end   - cpu.stress_begin;
+
   }
   
-  wasora_var(fino.vars.time_petsc_total) = wasora_var(fino.vars.time_petsc_build) + wasora_var(fino.vars.time_petsc_solve);
-  wasora_var(fino.vars.time_wall_total)  = wasora_var(fino.vars.time_wall_build)  + wasora_var(fino.vars.time_wall_solve);
-  wasora_var(fino.vars.time_cpu_total)   = wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve);
+  wasora_var(fino.vars.time_petsc_total) = wasora_var(fino.vars.time_petsc_build) + wasora_var(fino.vars.time_petsc_solve) + wasora_var(fino.vars.time_petsc_stress);
+  wasora_var(fino.vars.time_wall_total)  = wasora_var(fino.vars.time_wall_build)  + wasora_var(fino.vars.time_wall_solve)  + wasora_var(fino.vars.time_wall_stress);
+  wasora_var(fino.vars.time_cpu_total)   = wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve)   + wasora_var(fino.vars.time_cpu_stress);
 
   getrusage(RUSAGE_SELF, &fino.resource_usage);
   wasora_value(fino.vars.memory_usage_global) = (double)(1024.0*fino.resource_usage.ru_maxrss);

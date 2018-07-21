@@ -14,7 +14,6 @@ If ( struct != 0 )
  Transfinite Volume "*";
 Else
  Mesh.CharacteristicLengthMax = lc;
- //Characteristic Length {1:8} = lc;
 EndIf
 
 //If ( hex != 0 ) 
@@ -24,10 +23,10 @@ EndIf
 //EndIf
 
 Mesh.Optimize = 1;
+Mesh.Algorithm = 6;
 
 
 Physical Volume ("bulk") = 1;
 
 Physical Surface("left") = {1};
 Physical Surface("right") = {2};
-

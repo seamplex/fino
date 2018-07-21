@@ -368,6 +368,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           associated_element->element->physical_entity != physical_entity_last &&
           associated_element->element->physical_entity->bc_type_math == bc_math_dirichlet) {
 
+//        printf("%d %p\n", j, fino.mesh->node[31].associated_elements->next);
         physical_entity = associated_element->element->physical_entity;
         
         if (fino.n_dirichlet_rows == 0 && k >= (current_size-16)) {
