@@ -1,12 +1,12 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.102-g640bd66
+This reference sheet is for [Fino](index.html) v0.5.190-g05b84d6
 . 
 
 ~~~
 $ fino
-fino v0.5.98-g882bf1e 
+fino v0.5.190-g05b84d6+Δ 
 a partial differential equation solver based on the finite element method
 $
 ~~~
@@ -20,26 +20,54 @@ Note that Fino works on top of [wasora](/wasora), so you should also check the [
 Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
 
 ~~~wasora
-FINO_DEBUG [ FILE <file_id> | [ FILE_PATH <file_path> ] [ MATRICES_ASCII ] [ MATRICES_ASCII_STRUCTURE ] [ MATRICES_PETSC_BINARY ] [ MATRICES_PETSC_COMPRESSED_BINARY ] [ MATRICES_PETSC_ASCII ] [ MATRICES_PETSC_OCTAVE ] [ MATRICES_PETSC_DENSE ] [ MATRICES_X ] [ MATRICES_SNG ] [ MATRICES_SNG_STRUCT ] [ MATRICES_SIZE <expr> ] [ MATRICES_STRIDE <expr> ] [ INCLUDE_INPUT ]
+FINO_DEBUG [ FILE <file_id> | FILE_PATH <file_path> ] [ MATRICES_ASCII ] [ MATRICES_ASCII_STRUCTURE ] [ MATRICES_PETSC_BINARY ] [ MATRICES_PETSC_COMPRESSED_BINARY ] [ MATRICES_PETSC_ASCII ] [ MATRICES_PETSC_OCTAVE ] [ MATRICES_PETSC_DENSE ] [ MATRICES_X ] [ MATRICES_SNG ] [ MATRICES_SNG_STRUCT ] [ MATRICES_SIZE <expr> ] [ MATRICES_STRIDE <expr> ] [ INCLUDE_INPUT ]
+~~~
+
+
+
+##  `FINO_LINEARIZE`
+
+Performs stress linearization according to ASME VII-Sec 5 over a
+Stress Classification Line given either as a one-dimensional physical entity in the
+mesh or as the (continuous) spatial coordinates of two end-points.
+If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+independently of the dimension of the problem.
+If the SCL is given with `START_POINT` and `END_POINT`, the number of coordinates given should
+match the problem dimension (i.e three coordinates for full\ 3D problems and two coordinates for
+axisymmetric or plane problems).
+Coordinates can be given algebraic expressions that will be evaluated at the time of the linearization.
+If either a `FILE` or a `FILE_PATH` is given, the total, membrane and membrane plus bending
+stresses are written as a function of a scalar $t \in [0,1]$.
+Moreover, the individual elements of the membrane and bending stress tensors are written
+within comments (i.e. lines starting with the hash symbol `#`).
+By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
+The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
+The membrane, bending and peak stress tensor elements are combined using the
+Von\  Mises criterion and stored as variables.
+If no name for any of the variables is given, they are stored in
+`M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
+Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
+
+~~~wasora
+FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> } [ FILE <file_id> | FILE_PATH <file_path> ] [ FILE <file_id> | [ M <variable_name> ] [ MB <variable_name> ] [ PEAK <variable_name> ]
 ~~~
 
 
 
 ##  `FINO_PROBLEM`
 
+Sets the problem type that Fino has to solve.      
+* `BAKE` (or `HEAT`) solves the heat conduction problem.
+* `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
+`BREAK` (or `ELASTIC`) solves the elastic problem.        
+`HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
+`PLANE_STRESS` solves the plane stress elastic problem. 
+`PLANE_STRAIN` solves the plane strain elastic problem.
+`ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
+The number of dimensions need to be given for the heat conduction problem.
 
 ~~~wasora
-FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC | [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
-~~~
-
-
-
-##  `FINO_REACTION`
-
-Asks Fino to compute the reactions at physical entities with Dirichlet boundary conditions.
-
-~~~wasora
-FINO_REACTION PHYSICAL_ENTITY <physical_entity> [ NAME_ROOT <name> ]
+FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
 ~~~
 
 
@@ -49,7 +77,7 @@ FINO_REACTION PHYSICAL_ENTITY <physical_entity> [ NAME_ROOT <name> ]
 Sets options related to the eigen-solver.
 
 ~~~wasora
-FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ] [ GRADIENT_EVALUATION { mass_matrix_consistent mass_matrix_row_sum mass_matrix_lobatto mass_matrix_diagonal node_average_all node_average_corner gauss_average none } ] [ GRADIENT_JACOBIAN_THRESHOLD <expr> ] [ SHMEM_PROGRESS_BUILD <shmobject> ] [ SHMEM_PROGRESS_SOLVE <shmobject> ] [ MEMORY_SHMEM <shmobject> ]
+FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ] [ GRADIENT_EVALUATION { mass_matrix_consistent | mass_matrix_row_sum | mass_matrix_lobatto | mass_matrix_diagonal | node_average_all | node_average_corner | gauss_average | none } ] [ GRADIENT_JACOBIAN_THRESHOLD <expr> ] [ PROGRESS_ASCII ] ///kw+FINO_SOLVER+usage [ PROGRESS_BUILD_SHM <shmobject> ] [ PROGRESS_SOLVE_SHMEM <shmobject> ] [ MEMORY_USAGE_SHMEM <shmobject> ] [ TOTAL {
 ~~~
 
 
@@ -64,7 +92,7 @@ List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/
 Solves the linear eigenvalue problem.
 
 ~~~wasora
-FINO_STEP [ JUST_BUILD | JUST_SOLVE ] [ DO_NOT_COMPUTE_GRADIENTS | COMPUTE_GRADIENTS ] [ DUMP_FILE_PATH <filepath> ]
+FINO_STEP [ JUST_BUILD | JUST_SOLVE ] [ DUMP_FILE_PATH <filepath> ]
 ~~~
 
 
@@ -152,6 +180,15 @@ Default `10000`.
 
 
 
+##  `fino_penalty_weight`
+
+The weight $w$ used when setting multi-freedom boundary conditions.
+Higher values mean better precision in the constrain but distort
+the matrix condition number. 
+Default is `1e7`.
+
+
+
 ##  `fino_reltol`
 
 Relative tolerance of the linear solver,
@@ -232,7 +269,13 @@ CPU time insumed to build the problem matrices, in seconds.
 
 ##  `time_cpu_solve`
 
-CPU time insumed to solve the eigen-problem, in seconds.
+CPU time insumed to solve the problem, in seconds.
+
+
+
+##  `time_cpu_stress`
+
+CPU time insumed to compute the stresses from the displacements, in seconds.
 
 
 
@@ -248,6 +291,12 @@ CPU time insumed by PETSc to solve the eigen-problem, in seconds.
 
 
 
+##  `time_petsc_stress`
+
+CPU time insumed by PETSc to compute the stresses, in seconds.
+
+
+
 ##  `time_wall_build`
 
 Wall time insumed to build the problem matrices, in seconds.
@@ -256,7 +305,13 @@ Wall time insumed to build the problem matrices, in seconds.
 
 ##  `time_wall_solve`
 
-Wall time insumed to solve the eigen-problem, in seconds.
+Wall time insumed to solve the problem, in seconds.
+
+
+
+##  `time_wall_stress`
+
+Wall time insumed to compute the stresses, in seconds.
 
 
 
