@@ -20,8 +20,8 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
-#ifndef _FINO_H_t
-#define _FINO_H_
+#ifndef _FINO_H
+#define _FINO_H
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -36,16 +36,11 @@
 
 
 #if defined(PETSC_USE_COMPLEX)
-#error "PETSc should be compiled with real scalars to be used with fino."
+ #error "PETSc should be compiled with real scalars to be used with fino."
 #endif
 
 PetscErrorCode petsc_err;
 #define petsc_call(s) {petsc_err = s; CHKERRQ(petsc_err);}
-
-// maxima cantidad de dimensiones espaciales
-#define M_MAX   3
-// maxima cantidad de nodos (para ponerle un tamanio al vector)
-#define J_MAX   8
 
 #define DEBUG_MATRICES_ASCII                       1
 #define DEBUG_MATRICES_ASCII_STRUCT                2
@@ -58,7 +53,7 @@ PetscErrorCode petsc_err;
 #define DEBUG_MATRICES_SNG                       256
 #define DEBUG_MATRICES_SNG_STRUCT                512
 
-#define DEFAULT_MATRICES_X_SIZE     640
+#define DEFAULT_MATRICES_X_SIZE                  640
 
 #define bc_math_undefined                              0
 #define bc_math_dirichlet                              1

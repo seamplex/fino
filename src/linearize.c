@@ -186,7 +186,7 @@ int fino_instruction_linearize(void *arg) {
       gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_m, &error);
     }
 
-    // membrane
+    // bending
     F.function = &fino_linearization_integrand_bending;
    
     params.function = fino.sigmax;

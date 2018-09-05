@@ -1,0 +1,14 @@
+MESH FILE_PATH beam-quads.msh DIMENSIONS 3
+FINO_SOLVER PROGRESS_ASCII
+
+PHYSICAL_ENTITY NAME fixed  BC fixed
+PHYSICAL_ENTITY NAME load   BC Tx=1000
+
+E = 200e3
+nu = 0.3
+
+FINO_STEP
+
+MESH_POST FILE_PATH beam-quads.vtk VECTOR u v w  dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx
+
+MESH_POST FILE_PATH beam-quads_out.msh u v w  dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx
