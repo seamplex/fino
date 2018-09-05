@@ -70,6 +70,7 @@ int fino_instruction_linearize(void *arg) {
 
     if (linearize->physical_entity->n_elements == 0 || linearize->physical_entity->element == NULL) {
       wasora_push_error_message("physical entity '%s' has no elements to act as a SCL", linearize->physical_entity->name);
+      return WASORA_PARSER_ERROR;
     }
 
     // el primer nodo del primer elemento de la SCL
