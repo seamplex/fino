@@ -474,7 +474,7 @@ int plugin_parse_line(char *line) {
         
         if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
-          if ((linearize->physical_entity = wasora_get_physical_entity_ptr(name)) == NULL) {
+          if ((linearize->physical_entity = wasora_get_physical_entity_ptr(name, fino.mesh)) == NULL) {
             linearize->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
           }
           free(name);

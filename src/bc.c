@@ -38,7 +38,7 @@ int fino_read_bcs(void) {
   bc_string_based_t *bc;
   
   // barremos los physical entities y mapeamos cadenas a valores enteros
-  LL_FOREACH(wasora_mesh.physical_entities, physical_entity) {
+  LL_FOREACH(fino.mesh->physical_entities, physical_entity) {
     if (physical_entity->bc_strings != NULL) {
       
       char *equal_sign = NULL;
@@ -95,7 +95,7 @@ int fino_read_bcs(void) {
             }
             *closing_bracket = '\0';
             
-            if ((bc->mimic_to = wasora_get_physical_entity_ptr(name+8)) == NULL) {
+            if ((bc->mimic_to = wasora_get_physical_entity_ptr(name+8, fino.mesh)) == NULL) {
               wasora_push_error_message("unknown phyisical entity '%s'", name+8);
               return WASORA_PARSER_ERROR;
             }
