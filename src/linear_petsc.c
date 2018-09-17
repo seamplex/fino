@@ -97,7 +97,7 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
 
         for (j = 0; j < fino.mesh->n_nodes; j++) {
           for (d = 0; d < fino.dimensions; d++) {
-            coords[fino.mesh->node[j].index[d]] = fino.mesh->node[j].x[d];
+            coords[fino.mesh->node[j].index_dof[d]] = fino.mesh->node[j].x[d];
           }
         }
 
@@ -116,19 +116,19 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
         }
         for (j = 0; j < fino.mesh->n_nodes; j++) {
           // traslaciones
-          VecSetValue(nullvec[0], fino.mesh->node[j].index[0], 1.0, INSERT_VALUES);
-          VecSetValue(nullvec[1], fino.mesh->node[j].index[1], 1.0, INSERT_VALUES);
-          VecSetValue(nullvec[2], fino.mesh->node[j].index[2], 1.0, INSERT_VALUES);
+          VecSetValue(nullvec[0], fino.mesh->node[j].index_dof[0], 1.0, INSERT_VALUES);
+          VecSetValue(nullvec[1], fino.mesh->node[j].index_dof[1], 1.0, INSERT_VALUES);
+          VecSetValue(nullvec[2], fino.mesh->node[j].index_dof[2], 1.0, INSERT_VALUES);
 
           // rotaciones
-          VecSetValue(nullvec[3], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
-          VecSetValue(nullvec[3], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
+          VecSetValue(nullvec[3], fino.mesh->node[j].index_dof[0], +fino.mesh->node[j].x[1], INSERT_VALUES);
+          VecSetValue(nullvec[3], fino.mesh->node[j].index_dof[1], -fino.mesh->node[j].x[0], INSERT_VALUES);
 
-          VecSetValue(nullvec[4], fino.mesh->node[j].index[1], -fino.mesh->node[j].x[2], INSERT_VALUES);
-          VecSetValue(nullvec[4], fino.mesh->node[j].index[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
+          VecSetValue(nullvec[4], fino.mesh->node[j].index_dof[1], -fino.mesh->node[j].x[2], INSERT_VALUES);
+          VecSetValue(nullvec[4], fino.mesh->node[j].index_dof[2], +fino.mesh->node[j].x[1], INSERT_VALUES);
 
-          VecSetValue(nullvec[5], fino.mesh->node[j].index[0], +fino.mesh->node[j].x[2], INSERT_VALUES);
-          VecSetValue(nullvec[5], fino.mesh->node[j].index[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
+          VecSetValue(nullvec[5], fino.mesh->node[j].index_dof[0], +fino.mesh->node[j].x[2], INSERT_VALUES);
+          VecSetValue(nullvec[5], fino.mesh->node[j].index_dof[2], -fino.mesh->node[j].x[0], INSERT_VALUES);
         }
 
         for (i = 0; i < 3; i++) {

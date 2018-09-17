@@ -394,7 +394,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           for (d = 0; d < fino.degrees; d++) {
             fino.dirichlet_row[k].physical_entity = physical_entity;
             fino.dirichlet_row[k].dof = d;
-            fino.dirichlet_indexes[k] = fino.mesh->node[j].index[d];
+            fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[d];
             fino.dirichlet_rhs[k] = 0;
             k++;
           }
@@ -414,13 +414,13 @@ int fino_set_essential_bc(Mat A, Vec b) {
           gsl_matrix_set(c, 0, 1, -1);
           
           dof = physical_entity->bc_strings->dof;
-
+          
           // lo que hay que mimicar
           target_index = -1;
           for (i = 0; i < fino.mesh->n_elements; i++) {
             if (fino.mesh->element[i].physical_entity != NULL &&
                 fino.mesh->element[i].physical_entity == physical_entity->bc_strings->mimic_to) {
-              target_index = fino.mesh->element[i].node[0]->index[dof];
+              target_index = fino.mesh->element[i].node[0]->index_dof[dof];
               break;
             }
           }
@@ -430,7 +430,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
             return WASORA_RUNTIME_ERROR;
           }
             
-          l[0] = fino.mesh->node[j].index[dof];
+          l[0] = fino.mesh->node[j].index_dof[dof];
           l[1] = target_index;
           
           if (l[0] != l[1]) {
@@ -453,7 +453,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
               fino.dirichlet_row[k].physical_entity = physical_entity;
               fino.dirichlet_row[k].dof = bc->dof;
 
-              fino.dirichlet_indexes[k] = fino.mesh->node[j].index[bc->dof];
+              fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
 
               if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
                 fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr);
@@ -477,7 +477,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
               wasora_var_value(fino.vars.U[2]) = 0;
               
               for (d = 0; d < fino.degrees; d++) {
-                l[d] = fino.mesh->node[j].index[d];
+                l[d] = fino.mesh->node[j].index_dof[d];
                 
                 // TODO: evaluar las derivadas con GSL
                 wasora_var_value(fino.vars.U[d]) = +h;
@@ -598,7 +598,7 @@ int fino_build_surface_objects(element_t *element, expr_t *bc_a, expr_t *bc_b) {
     cc = malloc(fino.degrees * sizeof(double));
     
     wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[0], fino.degrees, 1, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[0]->index, cc, INSERT_VALUES);
+    VecSetValues(fino.b, fino.degrees, element->node[0]->index_dof, cc, INSERT_VALUES);
     
     free(cc);
     
@@ -611,10 +611,10 @@ int fino_build_surface_objects(element_t *element, expr_t *bc_a, expr_t *bc_b) {
     cc = malloc(fino.degrees * sizeof(double));
 
     wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[0], fino.degrees, halflength, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[0]->index, cc, INSERT_VALUES);
+    VecSetValues(fino.b, fino.degrees, element->node[0]->index_dof, cc, INSERT_VALUES);
 
     wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[1], fino.degrees, halflength, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[1]->index, cc, INSERT_VALUES);
+    VecSetValues(fino.b, fino.degrees, element->node[1]->index_dof, cc, INSERT_VALUES);
     
     free(cc);
     
@@ -687,7 +687,7 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
     wasora_var(wasora_mesh.vars.y) = element->node[0]->x[1];
     wasora_var(wasora_mesh.vars.z) = element->node[0]->x[2];    
     cc = wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[0]->index[bc->dof], &cc, ADD_VALUES);
+    VecSetValues(fino.b, 1, &element->node[0]->index_dof[bc->dof], &cc, ADD_VALUES);
     
   } else if (element->type->dim == 1 && fino.dimensions == 3) {
     // las expresiones estan dadas en "lo que sea" por unidad de longitud, asi que le damos la mitad a cada nodo
@@ -700,13 +700,13 @@ int fino_add_single_surface_term_to_rhs(element_t *element, bc_string_based_t *b
     wasora_var(wasora_mesh.vars.y) = element->node[0]->x[1];
     wasora_var(wasora_mesh.vars.z) = element->node[0]->x[2];    
     cc = halflength * wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[0]->index[bc->dof], &cc, ADD_VALUES);
+    VecSetValues(fino.b, 1, &element->node[0]->index_dof[bc->dof], &cc, ADD_VALUES);
 
     wasora_var(wasora_mesh.vars.x) = element->node[1]->x[0];
     wasora_var(wasora_mesh.vars.y) = element->node[1]->x[1];
     wasora_var(wasora_mesh.vars.z) = element->node[1]->x[2];    
     cc = halflength * wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[1]->index[bc->dof], &cc, ADD_VALUES);
+    VecSetValues(fino.b, 1, &element->node[1]->index_dof[bc->dof], &cc, ADD_VALUES);
     
   } else {
     // sino hacemos la cuenta general

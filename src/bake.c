@@ -49,7 +49,7 @@ int fino_bake_step_initial(void) {
 
     for (j = 0; j < fino.mesh->n_nodes; j++) {
       xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-      VecSetValue(fino.phi, fino.mesh->node[j].index[0], xi, INSERT_VALUES);
+      VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES);
     }
 
   } else {
@@ -388,7 +388,7 @@ int fino_bake_compute_fluxes(void) {
         }
       }
       if (material == NULL) {
-        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].id);
+        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].tag);
         return WASORA_RUNTIME_ERROR;
       }
       k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);

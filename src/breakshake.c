@@ -252,7 +252,7 @@ int fino_break_build_element(element_t *element, int v) {
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
      if (material == NULL) {
-       wasora_push_error_message("element %d does not have an associated material", element->id);
+       wasora_push_error_message("element %d does not have an associated material", element->tag);
        PetscFunctionReturn(WASORA_RUNTIME_ERROR);
      }
 
@@ -557,11 +557,11 @@ int fino_break_compute_stresses(void) {
       
       for (j = 0; j < element->type->nodes; j++) {
       
-        j_global = element->node[j]->id-1;
+        j_global = element->node[j]->index_mesh;
         
         if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL) {
           LL_FOREACH(element->type->node_parents[j], parent) {
-            wasora_mesh_add_node_parent(&parent_global[j_global], element->node[parent->index]->id-1);
+            wasora_mesh_add_node_parent(&parent_global[j_global], element->node[parent->index]->index_mesh);
           }
         }
         
@@ -577,7 +577,7 @@ int fino_break_compute_stresses(void) {
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
-                j_global_prime = element->node[j_local_prime]->id - 1;
+                j_global_prime = element->node[j_local_prime]->index_mesh;
                 // el hardcoded 3 es para respetar los indices de los defines
                 data_element[i][j][3*g+m] += gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
               }
@@ -753,7 +753,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       
     N = 0;
     LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
-      if (data_element[associated_element->element->id-1] != NULL) {
+      if (data_element[associated_element->element->index] != NULL) {
         N++;
       }
     }
@@ -768,7 +768,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       n = 0;
       LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
         element = associated_element->element; 
-        i = element->id-1;
+        i = element->index;
         
         if (data_element[i] != NULL) {
           if (element->type->order == 1) {
@@ -779,7 +779,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           
           // buscamos el indice local del nodo
           j = 0;
-          while (j < element->type->nodes && j_global != element->node[j]->id-1) {
+          while (j < element->type->nodes && j_global != element->node[j]->index_mesh) {
             j++;
           }
 

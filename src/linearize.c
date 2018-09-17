@@ -104,7 +104,7 @@ int fino_instruction_linearize(void *arg) {
         integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
         for (j = 0; j < element->type->nodes; j++) {
           h = gsl_vector_get(fino.mesh->fem.h, j);
-          k = element->node[j]->id - 1;
+          k = element->node[j]->index_mesh;
           integrand_mx   += h * fino.sigmax->data_value[k];
           integrand_my   += h * fino.sigmay->data_value[k];
           integrand_mz   += h * fino.sigmaz->data_value[k];
