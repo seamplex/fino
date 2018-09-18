@@ -474,7 +474,7 @@ int fino_problem_init(void) {
     return WASORA_RUNTIME_ERROR;
   }
 
-  LL_FOREACH(fino.mesh->physical_entities, physical_entity) {
+  for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' has a BC but no associated elements", physical_entity->name);
       return WASORA_RUNTIME_ERROR;

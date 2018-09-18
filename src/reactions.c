@@ -31,7 +31,7 @@ int fino_break_compute_reactions(void) {
   PetscScalar xi;
   physical_entity_t *physical_entity;
   
-  LL_FOREACH(fino.mesh->physical_entities, physical_entity) {
+  for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     if (physical_entity->bc_type_math == bc_math_dirichlet) {
       physical_entity->F[0] = 0;
       physical_entity->F[1] = 0;

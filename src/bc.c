@@ -38,7 +38,7 @@ int fino_read_bcs(void) {
   bc_string_based_t *bc;
   
   // barremos los physical entities y mapeamos cadenas a valores enteros
-  LL_FOREACH(fino.mesh->physical_entities, physical_entity) {
+  for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     if (physical_entity->bc_strings != NULL) {
       
       char *equal_sign = NULL;
