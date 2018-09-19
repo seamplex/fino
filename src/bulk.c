@@ -78,7 +78,8 @@ int fino_build_bulk(void) {
 
   bc_t *bc;
   int i;
-  int step = (fino.mesh->n_elements > 99)?fino.mesh->n_elements/100:1;
+  int step = (fino.mesh->n_elements > 99)?ceil((double)fino.mesh->n_elements/100.0):1;
+  int ascii_progress_chars = 0;
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
 
@@ -94,11 +95,13 @@ int fino_build_bulk(void) {
       if (fino.progress_ascii) {
         printf(".");  
         fflush(stdout);
+        ascii_progress_chars++;
       }
     }
 // --------------------------------------------------------------    
 
     if (fino.mesh->element[i].type->dim == fino.dimensions) {
+      
       // solo los elementos que tengan la dimension del problema
       // son los que usamos para las matrices elementales
       wasora_call(fino_build_element_volumetric(&fino.mesh->element[i]));
@@ -107,10 +110,12 @@ int fino_build_bulk(void) {
                fino.mesh->element[i].type->dim < fino.dimensions &&
                fino.mesh->element[i].physical_entity != NULL) {
       LL_FOREACH(fino.mesh->element[i].physical_entity->bcs, bc) {
+        
         if (bc->type_math == bc_math_neumann || bc->type_math == bc_math_robin) {
           // las de dirichlet set ponen en set_essential despues de ensamblar
           wasora_call(fino_build_element_bc(&fino.mesh->element[i], bc));
         }
+        
       }
     }
   }
@@ -122,7 +127,11 @@ int fino_build_bulk(void) {
     *fino.shmem_progress_build = 1.0;
   }
   if (fino.progress_ascii) {
+    while (ascii_progress_chars++ < 100) {
+      printf(".");
+    }
     printf("\n");  
+    fflush(stdout);
   }
 
 //  wasora_call(fino_free_elemental_objects());
@@ -203,11 +212,13 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   double n[3];
   
   if (fino.problem_family == problem_family_break) {
+    // TODO: poner un flag si se necesita
     wasora_call(mesh_compute_outward_normal(element, n));
     wasora_var_value(fino.vars.nx) = n[0];
     wasora_var_value(fino.vars.ny) = n[1];
     wasora_var_value(fino.vars.nz) = n[2];
     
+    // TODO: unificar todos como break_neumann
     if (bc->type_phys == bc_phys_stress) {
       wasora_call(fino_break_set_stress(element, bc));
     } else if (bc->type_phys == bc_phys_force) {

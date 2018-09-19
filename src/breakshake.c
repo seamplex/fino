@@ -2,7 +2,7 @@
  *  fino's construction of linear elastic problem (break) with optional vibration (shake)
  *  and evaluation of the stress tensor out of the gradients of the displacements
  *
- *  Copyright (C) 2015--2019 jeremy theler
+ *  Copyright (C) 2015--2018 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -993,7 +993,7 @@ int fino_break_set_stress(element_t *element, bc_t *bc) {
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
     // ojo, lo hacemos de a uno por vez, capaz que se pueda hacer todo junto
-    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->args[bc->dof]));
+    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->expr));
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 

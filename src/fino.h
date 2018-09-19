@@ -456,12 +456,9 @@ extern int fino_assembly(void);
 extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy);
 
 // bc.c
-extern int fino_read_bcs(void);
-extern int fino_count_bc_expressions(expr_t *bc_args);
-extern int fino_evaluate_bc_expressions(physical_entity_t *, node_t *, int, double, double *);
+extern int fino_bc_string2parsed(void);
+void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_set_essential_bc(Mat, Vec);
-extern int fino_build_surface_objects(element_t *, expr_t *, expr_t *);
-extern int fino_add_single_surface_term_to_rhs(element_t *, bc_t *);
 
 // bulk.c
 extern int fino_allocate_elemental_objects(element_t *);

@@ -1,8 +1,8 @@
 # thermal conductivity in an engine piston as in
 # https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html
 
-SHELL "if [ ! -e engine-piston.msh ]; then gmsh -v 0 -3 engine-piston.geo > /dev/null; fi"
-MESH FILE_PATH engine-piston.msh  # the mesh is in m (since Gmsh 3.1)
+SHELL "if [ ! -e engine-piston.msh ]; then gmsh -v 0 -3 engine-piston.geo; fi"
+MESH FILE_PATH engine-piston.msh  # the mesh is in meters (since Gmsh 3.1)
 FINO_PROBLEM BAKE DIMENSIONS 3
 
 f = 1e-3   # factor to convert from m to mm

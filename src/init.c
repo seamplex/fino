@@ -339,7 +339,7 @@ int plugin_init_after_parser(void) {
 
   int m, g;
   
-  wasora_call(fino_read_bcs());  
+  wasora_call(fino_bc_string2parsed());  
   
   // desplazamientos (y derivadas) anteriores
   if (fino.problem_family == problem_family_break) {

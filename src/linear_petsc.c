@@ -200,7 +200,13 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 //  wasora_value(fino.vars.iterations) = (double)n;
 //  wasora_var_value(fino.vars.residual_norm) = rnorm;
   int i;
-  double current_progress = 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol)));
+  double current_progress;
+  
+  if (rnorm < 1e-20) {
+    current_progress = 1;
+  } else {
+    current_progress = 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol)));
+  } 
 
   if (fino.progress_ascii) {
     for (i = (int)(100*fino.last_progress); i < (int)(100*current_progress); i++) {
@@ -220,6 +226,5 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 //    printf("%d %g\n", n, 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol))));
   }
 
-  
   return 0;
 }

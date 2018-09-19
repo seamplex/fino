@@ -32,37 +32,23 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_read_bcs"
-int fino_read_bcs(void) {
+int fino_bc_string2parsed(void) {
 
   physical_entity_t *physical_entity;
   bc_t *bc;
+  bc_t *base_bc;
+  bc_t *tmp;
   char *equal_sign;
   char *name;
   char *expr;
+  int i;
   
   // barremos los physical entities y mapeamos cadenas a valores enteros
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
     LL_FOREACH(physical_entity->bcs, bc) {
-
-      equal_sign = NULL;
-      name = NULL;
-      expr = NULL;
       
-      // si creamos una bc dummy entonces tiene string NULL
-      // pero no importa porque ya la procesamos
-      if (bc->string == NULL) {
-        continue;
-      }
-
-      // si hay signo igual hay expresion, sino no
-      name = bc->string;
-      if ((equal_sign = strchr(bc->string, '=')) != NULL) {
-        *equal_sign = '\0';
-        expr = (equal_sign+1);
-      } else {
-        expr = NULL;
-      }
+      fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
 
       if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
         if (strcmp(name, "fixed") == 0) {
@@ -174,38 +160,23 @@ int fino_read_bcs(void) {
                    strcasecmp(name, "x0") == 0 ||
                    strcasecmp(name, "y0") == 0 ||
                    strcasecmp(name, "z0") == 0) {
-          bc_t *dummy;
-          int i;
           
           bc->type_math = bc_math_neumann;
           bc->type_phys = bc_phys_moment;
-
+          
           // M necesita seis expresiones asi que las alocamos: Mx My Mz x0 y0 z0
-          bc->args = calloc(6, sizeof(expr_t));
-          if (name[1] == 'x') i = 0;
-          if (name[1] == 'y') i = 1;
-          if (name[1] == 'z') i = 2;
-          if (name[0] == 'x') i = 3;
-          if (name[0] == 'y') i = 4;
-          if (name[0] == 'z') i = 5;
-          
-          // la primera es la expresion
-          wasora_call(wasora_parse_expression(expr, &bc->args[i]));
-          
+          // las alocamos en la primera de las BCs
+          base_bc = bc;
+          base_bc->args = calloc(6, sizeof(expr_t));
+
           // ahora el cuento es que barremos hasta el final de la linked list
-          // y vamos haciendo el mismo maneje, si alguna no aparece es cero
-          dummy = bc->next;
-          LL_FOREACH(bc->next, dummy) {
-            
-            // si hay signo igual hay expresion, sino no
-            name = dummy->string;
-            if ((equal_sign = strchr(bc->string, '=')) != NULL) {
-              *equal_sign = '\0';
-              expr = (equal_sign+1);
-            } else {
-              expr = NULL;
+          // y vamos parseando en args, si alguna no aparece es cero
+          do {
+            // volvemos a poner el equal sign
+            if (equal_sign != NULL) {
+              *equal_sign = '=';
             }
-            
+            fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
             i = -1;
             if (name[1] == 'x') i = 0;
             if (name[1] == 'y') i = 1;
@@ -214,12 +185,12 @@ int fino_read_bcs(void) {
             if (name[0] == 'y') i = 4;
             if (name[0] == 'z') i = 5;
             if (i == -1) {
-              wasora_push_error_message("expecting Mx, My, Mz, x0, y0 or z0 instead of '%s'", name);
+              wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
               return WASORA_PARSER_ERROR;
-            }             
-            wasora_call(wasora_parse_expression(dummy->string, &bc->args[i]));
-          }
-
+            }
+            wasora_call(wasora_parse_expression(expr, &base_bc->args[i]));
+          } while ((bc = bc->next) != NULL);
+          
         } else {
           wasora_push_error_message("unknown boundary condition type '%s'", name);
           PetscFunctionReturn(WASORA_PARSER_ERROR);
@@ -239,39 +210,37 @@ int fino_read_bcs(void) {
         } else if ((strcmp(name, "h") == 0) ||
                    (strcmp(name, "Tref") == 0) ||
                    (strcmp(name, "Tinf") == 0)) {
-          bc_t *dummy;
-          int i;
 
           bc->type_math = bc_math_robin;
           bc->type_phys = bc_phys_convection;
 
-          // conveccion necesita dos expresiones
-          bc->args = calloc(2, sizeof(expr_t));
-          if (name[0] == 'h') i = 0;
-          if (name[1] == 'T') i = 1;
+          // conveccion necesita dos expresione
+          // las alocamos en la primera de las BCs
+          base_bc = bc;
+          base_bc->args = calloc(2, sizeof(expr_t));
           
-          // la primera es la expresion que ya tenemos
-          wasora_call(wasora_parse_expression(expr, &bc->args[i]));
-
-          // la segunda          
-          dummy = bc->next;
-          // si hay signo igual hay expresion, sino no
-          name = dummy->string;
-          if ((equal_sign = strchr(bc->string, '=')) != NULL) {
-            *equal_sign = '\0';
-            expr = (equal_sign+1);
-          } else {
-            expr = NULL;
-          }
-   
-          i = -1;
-          if (name[0] == 'h') i = 0;
-          if (name[1] == 'T') i = 1;
-          if (i == -1) {
-            wasora_push_error_message("expecting h or Tref instead of '%s'", name);
-            return WASORA_PARSER_ERROR;
-          }             
-          wasora_call(wasora_parse_expression(dummy->string, &bc->args[i]));
+          do {
+            // volvemos a poner el equal sign, en la primera pasada
+            // es para volver a parser, en las siguientes para no romper
+            // la ultima se vuelve a arreglar fuera del loop grande
+            if (equal_sign != NULL) {
+              *equal_sign = '=';
+            }
+            fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
+            i = -1;
+            if (name[0] == 'h') i = 0;
+            if (name[0] == 'T') i = 1;
+            if (i == -1) {
+              wasora_push_error_message("expecting 'h' or 'Tref' instead of '%s'", name);
+              return WASORA_PARSER_ERROR;
+            }             
+            wasora_call(wasora_parse_expression(expr, &base_bc->args[i]));
+            tmp = bc; // esto es para "volver para atras"
+          } while ((bc = bc->next) != NULL);
+          
+          // ahora bc quedo apuntando a null, tenemos que volver para atras
+          // sino el FOREACH de arriba palma
+          bc = tmp;
 
         } else {
           wasora_push_error_message("unknown boundary condition type '%s'", name);
@@ -290,30 +259,22 @@ int fino_read_bcs(void) {
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
-/*
+
 #undef  __FUNCT__
-#define __FUNCT__ "fino_evaluate_bc_expressions"
-int fino_evaluate_bc_expressions(physical_entity_t *physical_entity, node_t *node, int degrees, double multiplier, double *result) {
+#define __FUNCT__ "fino_bc_read_name_expr"
+void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sign) {
 
-  int g;
-  expr_t *bc_arg = physical_entity->bc_args;
-
-  // las cc dependen de la posicion
-  mesh_update_coord_vars(node->x);
-
-  for (g = 0; g < degrees; g++) {
-    if (bc_arg == NULL) {
-      wasora_push_error_message("boundary condition '%s' needs %d expressions", physical_entity->name, degrees);
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-    }
-
-    result[g] = multiplier * wasora_evaluate_expression(bc_arg);
-    bc_arg = bc_arg->next;
+  // si hay signo igual hay expresion, sino no
+  *name = bc->string;
+  if ((*equal_sign = strchr(bc->string, '=')) != NULL) {
+    **equal_sign = '\0';
+    *expr = (*equal_sign+1);
+  } else {
+    *expr = NULL;
   }
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return;
 }
-*/
+
 #undef  __FUNCT__
 #define __FUNCT__ "fino_set_essential_bc"
 int fino_set_essential_bc(Mat A, Vec b) {
@@ -545,12 +506,12 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
-  petsc_call(VecSetValues(vec_rhs, k, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, k, fino.dirichlet_indexes, 1.0, vec_rhs, b));
+  petsc_call(VecSetValues(vec_rhs, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));
+  petsc_call(MatZeroRowsColumns(A, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, b));
   petsc_call(VecDestroy(&vec_rhs));
   
   if (fino.math_type == math_type_eigen) {
-    petsc_call(MatZeroRowsColumns(fino.M, k, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
+    petsc_call(MatZeroRowsColumns(fino.M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
     
   wasora_call(fino_assembly());
@@ -558,163 +519,3 @@ int fino_set_essential_bc(Mat A, Vec b) {
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 
 }
-
-/*
-#undef  __FUNCT__
-#define __FUNCT__ "fino_build_surface_objects"
-// las condiciones de contorno son
-// dphi/dn = a * phi + b
-// para neumann, a = 0
-
-
-int fino_build_surface_objects(element_t *element, expr_t *bc_a, expr_t *bc_b) {
-  int v, g;
-  double w_gauss;
-  expr_t *current_bc_a;
-  expr_t *current_bc_b;
-  gsl_vector *Nb;
-  gsl_matrix *Na;
-  gsl_matrix *NaH;
-  double *cc;
-
-  if (element->type->dim == 0) {
-
-    // si es un punto es un punto y chau
-    cc = malloc(fino.degrees * sizeof(double));
-    
-    wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[0], fino.degrees, 1, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[0]->index_dof, cc, INSERT_VALUES);
-    
-    free(cc);
-    
-  } else if (element->type->dim == 1 && fino.dimensions == 3) {
-    // las expresiones estan dadas en "lo que sea" por unidad de longitud, asi que le damos la mitad a cada nodo
-    double halflength = 0.5 * gsl_hypot3(element->node[1]->x[0] - element->node[0]->x[0],
-                                         element->node[1]->x[1] - element->node[0]->x[1],
-                                         element->node[1]->x[2] - element->node[0]->x[2]);
-    // si es una linea y el problema es 3 hacemos como si fuesen dos puntos
-    cc = malloc(fino.degrees * sizeof(double));
-
-    wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[0], fino.degrees, halflength, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[0]->index_dof, cc, INSERT_VALUES);
-
-    wasora_call(fino_evaluate_bc_expressions(element->physical_entity, element->node[1], fino.degrees, halflength, cc));
-    VecSetValues(fino.b, fino.degrees, element->node[1]->index_dof, cc, INSERT_VALUES);
-    
-    free(cc);
-    
-  } else {
-    // sino hacemos la cuenta general
-  
-    if (fino.n_local_nodes != element->type->nodes) {
-      wasora_call(fino_allocate_elemental_objects(element));
-    }
-  
-    Na = gsl_matrix_calloc(fino.degrees, fino.degrees);
-    NaH = gsl_matrix_calloc(fino.degrees, fino.n_local_nodes);
-    Nb = gsl_vector_calloc(fino.degrees);
-  
-    gsl_matrix_set_zero(fino.Ki);
-    gsl_vector_set_zero(fino.bi);
-
-    for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-      w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);    
-      current_bc_a = bc_a;
-      current_bc_b = bc_b;
-      for (g = 0; g < fino.degrees; g++) {
-        if (current_bc_a != NULL) {
-          gsl_matrix_set(Na, g, g, -wasora_evaluate_expression(current_bc_a));
-        }
-        gsl_vector_set(Nb, g, wasora_evaluate_expression(current_bc_b));
-
-        if (current_bc_a != NULL) {
-          current_bc_a = current_bc_a->next;
-        }
-        if (current_bc_b != NULL) {
-          current_bc_b = current_bc_b->next;
-        }
-      }
-
-      if (bc_a != NULL) {
-        gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, fino.mesh->fem.H, 0, NaH);
-        gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, fino.mesh->fem.H, NaH, 1, fino.Ki);
-      }
-    
-      gsl_blas_dgemv(CblasTrans, -w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
-    }
-    
-    MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
-    VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-    
-    gsl_vector_free(Nb);
-    gsl_matrix_free(Na);
-    gsl_matrix_free(NaH);
-  }
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_add_single_surface_term_to_rhs"
-int fino_add_single_surface_term_to_rhs(element_t *element, bc_t *bc) {
-  int v;
-  double w_gauss;
-  gsl_vector *Nb;
-  double cc;
-//  double n[3];
-    
-  if (element->type->dim == 0) {
-
-    // si es un punto es un punto y chau
-    // las cc dependen de la posicion
-    wasora_var(wasora_mesh.vars.x) = element->node[0]->x[0];
-    wasora_var(wasora_mesh.vars.y) = element->node[0]->x[1];
-    wasora_var(wasora_mesh.vars.z) = element->node[0]->x[2];    
-    cc = wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[0]->index_dof[bc->dof], &cc, ADD_VALUES);
-    
-  } else if (element->type->dim == 1 && fino.dimensions == 3) {
-    // las expresiones estan dadas en "lo que sea" por unidad de longitud, asi que le damos la mitad a cada nodo
-    double halflength = 0.5 * gsl_hypot3(element->node[1]->x[0] - element->node[0]->x[0],
-                                         element->node[1]->x[1] - element->node[0]->x[1],
-                                         element->node[1]->x[2] - element->node[0]->x[2]);
-    
-    // si es una linea y el problema es 3 hacemos como si fuesen dos puntos
-    wasora_var(wasora_mesh.vars.x) = element->node[0]->x[0];
-    wasora_var(wasora_mesh.vars.y) = element->node[0]->x[1];
-    wasora_var(wasora_mesh.vars.z) = element->node[0]->x[2];    
-    cc = halflength * wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[0]->index_dof[bc->dof], &cc, ADD_VALUES);
-
-    wasora_var(wasora_mesh.vars.x) = element->node[1]->x[0];
-    wasora_var(wasora_mesh.vars.y) = element->node[1]->x[1];
-    wasora_var(wasora_mesh.vars.z) = element->node[1]->x[2];    
-    cc = halflength * wasora_evaluate_expression(&bc->expr);
-    VecSetValues(fino.b, 1, &element->node[1]->index_dof[bc->dof], &cc, ADD_VALUES);
-    
-  } else {
-    // sino hacemos la cuenta general
-    
-    if (fino.n_local_nodes != element->type->nodes) {
-      wasora_call(fino_allocate_elemental_objects(element));
-    }
-  
-    Nb = gsl_vector_calloc(fino.degrees);
-    gsl_vector_set_zero(fino.bi);
-
-    for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-      w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);    
-      gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->expr));
-      gsl_blas_dgemv(CblasTrans, w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
-    }
-    
-    VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-    
-    gsl_vector_free(Nb);
-  }
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-}
-*/
-
