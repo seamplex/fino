@@ -475,10 +475,12 @@ int fino_problem_init(void) {
   }
 
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
+/*    
     if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' has a BC but no associated elements", physical_entity->name);
       return WASORA_RUNTIME_ERROR;
     }
+*/
     if (physical_entity->material != NULL && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' has a material but no associated elements", physical_entity->name);
       return WASORA_RUNTIME_ERROR;
@@ -587,6 +589,15 @@ int fino_problem_free(void) {
     }
     mesh_free(fino.mesh);
   }
+
+/*
+  if (fino.degrees != 0) {
+    for (g = 0; g < fino.degrees; g++) {
+      free(fino.unknown_name[g]);
+    }
+    free(fino.unknown_name);
+  }
+ */
   
   wasora_call(fino_free_elemental_objects());
   
@@ -615,8 +626,7 @@ int fino_problem_free(void) {
     free(fino.dirichlet_rhs);
     free(fino.dirichlet_indexes);
     fino.n_dirichlet_rows = 0;
-  }
-  
+  }  
      
   if (fino.phi != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.phi));

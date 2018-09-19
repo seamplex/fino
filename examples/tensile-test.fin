@@ -1,6 +1,6 @@
 MESH FILE_PATH tensile-test.msh  DIMENSIONS 3 # mesh file in Gmsh format
 
-FINO_SOLVER PROGRESS_ASCII
+FINO_SOLVER PROGRESS_ASCII    # show a feedback in the terminal while solving
 
 # uniform properties
 E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
@@ -17,8 +17,6 @@ PRINT TEXT "elements                    =" %g elements
 PRINT TEXT "nodes                       =" %g nodes
 
 FINO_STEP
-
-# FINO_DEBUG MATRICES_X
 
 # results
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w

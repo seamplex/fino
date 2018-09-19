@@ -967,8 +967,8 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_set_stress"
-int fino_break_set_stress(element_t *element) {
-  int v, g;
+int fino_break_set_stress(element_t *element, bc_t *bc) {
+  int v;
   double w_gauss;
   double r_for_axisymmetric;  
   gsl_vector *Nb;
@@ -992,9 +992,8 @@ int fino_break_set_stress(element_t *element) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
-    for (g = 0; g < fino.degrees; g++) {
-      gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g]));
-    }
+    // ojo, lo hacemos de a uno por vez, capaz que se pueda hacer todo junto
+    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->args[bc->dof]));
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
@@ -1008,7 +1007,7 @@ int fino_break_set_stress(element_t *element) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_set_moment"
-int fino_break_set_moment(element_t *element) {
+int fino_break_set_moment(element_t *element, bc_t *bc) {
   int v;
   double w_gauss;
   double theta, dx, dy, dz, M;
@@ -1041,28 +1040,24 @@ int fino_break_set_moment(element_t *element) {
     gsl_vector_set_zero(Nb);
 
     // los tres primeros tienen las componentes Mx My y Mz
-    if (element->physical_entity->bc_args[0].n_tokens != 0) {
-      M = wasora_evaluate_expression(&element->physical_entity->bc_args[0]);
-      theta = atan2(dy, dz);
-      // ty = cos(theta)*dz
-      gsl_vector_add_to_element(Nb, 1, -M*cos(theta));
-      // tz = -sin(theta)*dy
-      gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
-    }
+    M = wasora_evaluate_expression(&bc->args[0]);
+    theta = atan2(dy, dz);
+    // ty = cos(theta)*dz
+    gsl_vector_add_to_element(Nb, 1, -M*cos(theta));
+    // tz = -sin(theta)*dy
+    gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
     
-    if (element->physical_entity->bc_args[1].n_tokens != 0) {
-      M = wasora_evaluate_expression(&element->physical_entity->bc_args[1]);
-      theta = atan2(dx, dz);
-      gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
-      gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
-    }
+    M = wasora_evaluate_expression(&bc->args[1]);
+    theta = atan2(dx, dz);
+    gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
+    gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
     
-    if (element->physical_entity->bc_args[2].n_tokens != 0) {
-      M = wasora_evaluate_expression(&element->physical_entity->bc_args[2]);
-      theta = atan2(dx, dy);
-      gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
-      gsl_vector_add_to_element(Nb, 1, +M*sin(theta));
-    }
+    M = wasora_evaluate_expression(&bc->args[2]);
+    theta = atan2(dx, dy);
+    gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
+    gsl_vector_add_to_element(Nb, 1, +M*sin(theta));
+    
+    // TODO: el centro de rotacion
     
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
@@ -1077,8 +1072,8 @@ int fino_break_set_moment(element_t *element) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_set_force"
-int fino_break_set_force(element_t *element) {
-  int v, g;
+int fino_break_set_force(element_t *element, bc_t *bc) {
+  int v;
   double w_gauss;
   double r_for_axisymmetric;
   gsl_vector *Nb;
@@ -1097,10 +1092,8 @@ int fino_break_set_force(element_t *element) {
 
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
-
-    for (g = 0; g < fino.degrees; g++) {
-      gsl_vector_set(Nb, g, wasora_evaluate_expression(&element->physical_entity->bc_args[g])/element->physical_entity->volume);
-    }
+    
+    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->expr)/element->physical_entity->volume);
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
 
@@ -1114,7 +1107,7 @@ int fino_break_set_force(element_t *element) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_set_pressure"
-int fino_break_set_pressure(element_t *element) {
+int fino_break_set_pressure(element_t *element, bc_t *bc) {
   double w_gauss;
   double p;
   double r_for_axisymmetric;
@@ -1140,9 +1133,9 @@ int fino_break_set_pressure(element_t *element) {
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
     // la p chica es la proyeccion del vector tension sobre la normal, lo que uno espera en matematica
-    p = wasora_evaluate_expression(&  element->physical_entity->bc_args[0]);
+    p = wasora_evaluate_expression(&bc->expr);
     // la P grande es presion positiva cuando comprime, como lo que uno espera en ingenieria
-    if (element->physical_entity->bc_type_phys == bc_phys_pressure_real) {
+    if (bc->type_phys == bc_phys_pressure_real) {
       p = -p;
     }
     gsl_vector_set(Nb, 0, wasora_var_value(fino.vars.nx) * p);

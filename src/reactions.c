@@ -28,11 +28,20 @@ int fino_break_compute_reactions(void) {
   // TODO: hacer lo que dijo barry de traer matgetsubmatrix
 
   int g, i, j, k;
+  int dirichlet;
   PetscScalar xi;
   physical_entity_t *physical_entity;
+  bc_t *bc;
   
+
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
-    if (physical_entity->bc_type_math == bc_math_dirichlet) {
+    dirichlet = 0;
+    LL_FOREACH(physical_entity->bcs, bc) {
+      if (bc->type_math == bc_math_dirichlet) {
+        dirichlet = 1;
+      }
+    }
+    if (dirichlet) {
       physical_entity->F[0] = 0;
       physical_entity->F[1] = 0;
       physical_entity->F[2] = 0;
@@ -95,6 +104,6 @@ int fino_break_compute_reactions(void) {
       
     }
   }
-  
+
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

@@ -461,14 +461,14 @@ extern int fino_count_bc_expressions(expr_t *bc_args);
 extern int fino_evaluate_bc_expressions(physical_entity_t *, node_t *, int, double, double *);
 extern int fino_set_essential_bc(Mat, Vec);
 extern int fino_build_surface_objects(element_t *, expr_t *, expr_t *);
-extern int fino_add_single_surface_term_to_rhs(element_t *, bc_string_based_t *);
+extern int fino_add_single_surface_term_to_rhs(element_t *, bc_t *);
 
 // bulk.c
 extern int fino_allocate_elemental_objects(element_t *);
 extern int fino_free_elemental_objects(void);
 extern int fino_build_bulk(void);
 extern int fino_build_element_volumetric(element_t *);
-extern int fino_build_element_bc(element_t *);
+extern int fino_build_element_bc(element_t *, bc_t *);
 
 extern double fino_compute_r_for_axisymmetric(void);
 
@@ -516,11 +516,6 @@ extern int fino_solve_linear_petsc(Mat, Vec);
 extern int fino_solve_eigen_slepc(Mat, Mat);
 extern int fino_eigen_nev(void);
 
-// bulk.c
-extern int fino_build_bulk(void);
-extern int fino_build_element_volumetric(element_t *);
-extern int fino_build_element_bc(element_t *);
-
 // gradient.c
 extern int fino_compute_gradients(void);
 
@@ -535,10 +530,10 @@ extern int fino_break_build_element(element_t *, int);
 extern int fino_break_compute_C(gsl_matrix *, double, double);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
-extern int fino_break_set_stress(element_t *);
-extern int fino_break_set_force(element_t *);
-extern int fino_break_set_pressure(element_t *);
-extern int fino_break_set_moment(element_t *);
+extern int fino_break_set_stress(element_t *, bc_t *);
+extern int fino_break_set_force(element_t *, bc_t *);
+extern int fino_break_set_pressure(element_t *, bc_t *);
+extern int fino_break_set_moment(element_t *, bc_t *);
 extern int fino_compute_principal_stress(double, double, double, double, double, double, double *, double *, double *);
 extern double fino_compute_vonmises_from_principal(double, double, double);
 extern double fino_compute_vonmises_from_tensor(double, double, double, double, double, double);
@@ -550,8 +545,8 @@ extern double fino_compute_tresca_from_tensor(double, double, double, double, do
 extern int fino_bake_step_initial();
 extern int fino_bake_step_transient();
 extern int fino_build_bake(element_t *, int);
-extern int fino_bake_set_heat_flux(element_t *);
-extern int fino_bake_set_convection(element_t *element);
+extern int fino_bake_set_heat_flux(element_t *, bc_t *);
+extern int fino_bake_set_convection(element_t *, bc_t *);
 extern int fino_bake_compute_fluxes(void);
 
 extern const char *plugin_name(void);

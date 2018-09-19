@@ -76,6 +76,7 @@ int fino_free_elemental_objects(void) {
 #define __FUNCT__ "fino_build_bulk"
 int fino_build_bulk(void) {
 
+  bc_t *bc;
   int i;
   int step = (fino.mesh->n_elements > 99)?fino.mesh->n_elements/100:1;
   
@@ -104,13 +105,13 @@ int fino_build_bulk(void) {
       
     } else if (fino.math_type != math_type_eigen &&
                fino.mesh->element[i].type->dim < fino.dimensions &&
-               fino.mesh->element[i].physical_entity != NULL &&
-               (fino.mesh->element[i].physical_entity->bc_type_math == bc_math_neumann ||
-                fino.mesh->element[i].physical_entity->bc_type_math == bc_math_robin)) {
-
-      // los otros tienen (o pueden tener) condiciones de contorno de neumann
-      // las de dirichlet set ponen en set_essential despues de ensamblar
-      wasora_call(fino_build_element_bc(&fino.mesh->element[i]));
+               fino.mesh->element[i].physical_entity != NULL) {
+      LL_FOREACH(fino.mesh->element[i].physical_entity->bcs, bc) {
+        if (bc->type_math == bc_math_neumann || bc->type_math == bc_math_robin) {
+          // las de dirichlet set ponen en set_essential despues de ensamblar
+          wasora_call(fino_build_element_bc(&fino.mesh->element[i], bc));
+        }
+      }
     }
   }
 
@@ -197,7 +198,7 @@ int fino_build_element_volumetric(element_t *element) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_build_element_volumetric"
-int fino_build_element_bc(element_t *element) {
+int fino_build_element_bc(element_t *element, bc_t *bc) {
   
   double n[3];
   
@@ -207,23 +208,23 @@ int fino_build_element_bc(element_t *element) {
     wasora_var_value(fino.vars.ny) = n[1];
     wasora_var_value(fino.vars.nz) = n[2];
     
-    if (element->physical_entity->bc_type_phys == bc_phys_stress) {
-      wasora_call(fino_break_set_stress(element));
-    } else if (element->physical_entity->bc_type_phys == bc_phys_force) {
-      wasora_call(fino_break_set_force(element));
-    } else if (element->physical_entity->bc_type_phys == bc_phys_pressure_normal ||
-               element->physical_entity->bc_type_phys == bc_phys_pressure_real) {
-      wasora_call(fino_break_set_pressure(element));
-    } else if (element->physical_entity->bc_type_phys == bc_phys_moment) {
-      wasora_call(fino_break_set_moment(element));
+    if (bc->type_phys == bc_phys_stress) {
+      wasora_call(fino_break_set_stress(element, bc));
+    } else if (bc->type_phys == bc_phys_force) {
+      wasora_call(fino_break_set_force(element, bc));
+    } else if (bc->type_phys == bc_phys_pressure_normal ||
+               bc->type_phys == bc_phys_pressure_real) {
+      wasora_call(fino_break_set_pressure(element, bc));
+    } else if (bc->type_phys == bc_phys_moment) {
+      wasora_call(fino_break_set_moment(element, bc));
     }
   } else if (fino.problem_family == problem_family_bake) {
-    if (element->physical_entity->bc_type_phys == bc_phys_heat_flux) {
-      if (strcmp(element->physical_entity->bc_args->string, "0") != 0) {
-        wasora_call(fino_bake_set_heat_flux(element));
+    if (bc->type_phys == bc_phys_heat_flux) {
+      if (strcmp(bc->expr.string, "0") != 0) { // para no tener que hacer cuentas si es adiabatico
+        wasora_call(fino_bake_set_heat_flux(element, bc));
       }
-    } else if (element->physical_entity->bc_type_phys == bc_phys_convection) {
-      wasora_call(fino_bake_set_convection(element));
+    } else if (bc->type_phys == bc_phys_convection) {
+      wasora_call(fino_bake_set_convection(element, bc));
     }
   }
   
