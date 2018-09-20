@@ -207,9 +207,9 @@ struct {
 
     var_t *flops_petsc;
     
-    var_t *available_memory;
-    var_t *memory_usage_global;
-    var_t *memory_usage_petsc;
+    var_t *memory_available;
+    var_t *memory;
+    var_t *memory_petsc;
     
     var_t *mass;
     

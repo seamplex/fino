@@ -300,36 +300,19 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+petsc_flops+desc Number of floating point operations performed by PETSc/SLEPc.
   fino.vars.flops_petsc = wasora_define_variable("flops_petsc");
          
-///va+memory_use+name available_memory
-///va+memory_use+desc Total available memory, in bytes.
-  fino.vars.available_memory = wasora_define_variable("available_memory");
-  wasora_value(fino.vars.available_memory) = sysconf(_SC_PHYS_PAGES)*sysconf(_SC_PAGESIZE);
+///va+memory_available+name memory_available
+///va+memory_available+desc Total available memory, in bytes.
+  fino.vars.memory_available = wasora_define_variable("memory_available");
+  wasora_value(fino.vars.memory_available) = sysconf(_SC_PHYS_PAGES)*sysconf(_SC_PAGESIZE);
 
-///va+memory_usage_global+name global_memory_use
-///va+memory_usage_global+desc Maximum resident set size (global memory used), in bytes.
-  fino.vars.memory_usage_global = wasora_define_variable("memory_usage_global");
+///va+memory+name memory
+///va+memory+desc Maximum resident set size (global memory used), in bytes.
+  fino.vars.memory = wasora_define_variable("memory");
   
-///va+memory_usage_petsc+name petsc_memory_use
-///va+memory_usage_petsc+desc Maximum resident set size (memory used by PETSc), in bytes.
-  fino.vars.memory_usage_petsc = wasora_define_variable("memory_usage_petsc");
+///va+memory_petsc+name memory_petsc
+///va+memory_petsc+desc Maximum resident set size (memory used by PETSc), in bytes.
+  fino.vars.memory_petsc = wasora_define_variable("memory_petsc");
 
-/*
- * los sacamos por ahora habria que ver de definirlas solo si lo necesitamos  
-  // vector con las funciones de forma
-  fino.h = wasora_define_vector("h", 0, NULL, NULL);
-
-  // jacobianos
-  // eventualmente despues hacemos un free y lo definimos de nuevo
-  fino.dhdx = wasora_define_matrix("dhdx", 0, NULL, 0, NULL, NULL);
-
-  // nombres de objetos por default
-  // TODO: ponerlo en otro lado poque si no se necesitan se usan nombres copados
-  // que podrian estar disponibles para otra cosa (por ejemplo coef. de heat transfer)
-  fino.shape_name = strdup("h");
-  fino.lhs_matrix_name = strdup("A");
-  fino.rhs_matrix_name = strdup("B");
-  fino.rhs_vector_name = strdup("b");
-*/
   return WASORA_PARSER_OK;
 }
 

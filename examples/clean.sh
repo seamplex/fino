@@ -1,6 +1,2 @@
-rm -f *.pdf
-rm -f *.vtk
-rm -f *.dat
-rm -f veeder.msh
-rm -f cantilever-*.geo cantilever-*.msh
-grep examples ../.gitignore | sed s/examples/\./ | xargs rm -f
+# from https://stackoverflow.com/questions/13541615/how-to-remove-files-that-are-listed-in-the-gitignore-but-still-on-the-repositor
+cat .gitignore | sed '/^#.*/ d' | sed '/^\s*$/ d' | sed 's/^/rm -rf /' | bash

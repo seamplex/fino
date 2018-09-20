@@ -171,7 +171,7 @@ int fino_instruction_step(void *arg) {
   wasora_var(fino.vars.time_cpu_total)   = wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve)   + wasora_var(fino.vars.time_cpu_stress);
 
   getrusage(RUSAGE_SELF, &fino.resource_usage);
-  wasora_value(fino.vars.memory_usage_global) = (double)(1024.0*fino.resource_usage.ru_maxrss);
+  wasora_value(fino.vars.memory) = (double)(1024.0*fino.resource_usage.ru_maxrss);
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

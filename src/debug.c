@@ -131,7 +131,7 @@ int fino_instruction_debug(void *arg) {
   PetscViewer viewer, viewer2;
   char *filename;
 
-  petsc_call(PetscMemoryGetMaximumUsage(wasora_value_ptr(fino.vars.memory_usage_petsc)));
+  petsc_call(PetscMemoryGetMaximumUsage(wasora_value_ptr(fino.vars.memory_petsc)));
   petsc_call(PetscGetFlops(wasora_value_ptr(fino.vars.flops_petsc)));
 
   int size;

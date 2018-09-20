@@ -1,8 +1,6 @@
 *.trs
 *.log
-
 *.dat
-LloydInit.pos
 
 tensile-test.vtk
 
@@ -27,9 +25,9 @@ cantilever-*.vtk
 two-cubes.msh
 two-cubes.vtk
 
-engine-piston.msh
-engine-piston-out.msh
-engine-piston.vtk
+piston.msh
+piston-temp.msh
+piston-temp.vtk
 
 traction.vtk
 traction.msh

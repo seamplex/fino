@@ -3,13 +3,12 @@ Merge "engine-piston.stp";
 
 lc = 1.75;
 
-Characteristic Length { 1: 104 } = lc;
-Mesh.CharacteristicLengthMin = 0.9*lc;
-Mesh.CharacteristicLengthMax = 1.1*lc;
-Mesh.CharacteristicLengthExtendFromBoundary = 0;
+Mesh.CharacteristicLengthMin = lc;
+Mesh.CharacteristicLengthMax = lc;
+
 Mesh.ElementOrder = 1;
-Mesh.Algorithm = 2;
-Mesh.Algorithm3D = 2;
+Mesh.Algorithm = 6;
+Mesh.Algorithm3D = 1;
 
 Physical Surface("top", 1) = {70};
 Physical Surface("ring 1", 2) = {69};
