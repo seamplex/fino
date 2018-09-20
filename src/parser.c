@@ -528,11 +528,6 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
-
-///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
-        } else if (strcasecmp(token, "FILE") == 0) {
-          wasora_call(wasora_parser_file(&linearize->file));
-
 ///kw+FINO_LINEARIZE+desc By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
 ///kw+FINO_LINEARIZE+desc The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
 ///kw+FINO_SOLVER+usage [ TOTAL {
@@ -559,39 +554,30 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+desc `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
 ///kw+FINO_LINEARIZE+desc Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
             
-///kw+FINO_LINEARIZE+usage [ M <variable_name> ]
+///kw+FINO_LINEARIZE+usage [ M <variable> ]
         } else if (strcasecmp(token, "M") == 0) {
           wasora_call(wasora_parser_string(&name));
-
-          // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->M = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->M = wasora_define_variable(name)) == NULL) {
-              return WASORA_PARSER_ERROR;
-            }
+          if ((linearize->M = wasora_get_or_define_variable_ptr(name)) == NULL) {
+            return WASORA_PARSER_ERROR;
           }
           free(name);
           
-///kw+FINO_LINEARIZE+usage [ MB <variable_name> ]
+///kw+FINO_LINEARIZE+usage [ MB <variable> ]
         } else if (strcasecmp(token, "MB") == 0) {
           wasora_call(wasora_parser_string(&name));
-
-          // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->MB = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->MB = wasora_define_variable(name)) == NULL) {
-              return WASORA_PARSER_ERROR;
-            }
+          if ((linearize->MB = wasora_get_or_define_variable_ptr(name)) == NULL) {
+            return WASORA_PARSER_ERROR;
           }
+          free(name);
 
-///kw+FINO_LINEARIZE+usage [ PEAK <variable_name> ]
+///kw+FINO_LINEARIZE+usage [ PEAK <variable> ]
         } else if (strcasecmp(token, "PEAK") == 0) {
           wasora_call(wasora_parser_string(&name));
-
-          // puede ser que sea una variable que ya este definida o una nueva
-          if ((linearize->P = wasora_get_variable_ptr(name)) == NULL) {
-            if ((linearize->P = wasora_define_variable(name)) == NULL) {
-              return WASORA_PARSER_ERROR;
-            }
+          if ((linearize->P = wasora_get_or_define_variable_ptr(name)) == NULL) {
+            return WASORA_PARSER_ERROR;
           }
+          free(name);
+          
         } else {
           wasora_push_error_message("unknown keyword '%s'", token);
           return WASORA_PARSER_ERROR;

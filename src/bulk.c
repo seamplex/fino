@@ -231,7 +231,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
     }
   } else if (fino.problem_family == problem_family_bake) {
     if (bc->type_phys == bc_phys_heat_flux) {
-      if (strcmp(bc->expr.string, "0") != 0) { // para no tener que hacer cuentas si es adiabatico
+      if (strcmp(bc->expr[0].string, "0") != 0) { // para no tener que hacer cuentas si es adiabatico
         wasora_call(fino_bake_set_heat_flux(element, bc));
       }
     } else if (bc->type_phys == bc_phys_convection) {

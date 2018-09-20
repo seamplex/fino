@@ -1,3 +1,7 @@
 * test suite
+* README
+* unify neumann bc routines
+* progress for stresses
 * rewrite DEBUG
 * unify problem types
+* manual

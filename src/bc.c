@@ -97,8 +97,9 @@ int fino_bc_string2parsed(void) {
           if (name[0] == 'u') bc->dof = 0;
           if (name[0] == 'v') bc->dof = 1;
           if (name[0] == 'w') bc->dof = 2;
-
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if (strcmp(name, "0") == 0 || strcmp(name, "implicit") == 0) {
           char *dummy;
@@ -126,7 +127,8 @@ int fino_bc_string2parsed(void) {
             dummy++;
           }
 
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if (strcasecmp(name, "tx") == 0 ||
                    strcasecmp(name, "ty") == 0 ||
@@ -143,7 +145,8 @@ int fino_bc_string2parsed(void) {
           if (name[1] == 'y') bc->dof = 1;
           if (name[1] == 'z') bc->dof = 2;
 
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if (strcmp(name, "p") == 0 || strcmp(name, "P") == 0) {
           bc->type_math = bc_math_neumann;
@@ -152,7 +155,9 @@ int fino_bc_string2parsed(void) {
           } else if (strcmp(name, "P") == 0) {
               bc->type_phys = bc_phys_pressure_real;
           }
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if (strcasecmp(name, "Mx") == 0 ||
                    strcasecmp(name, "My") == 0 ||
@@ -167,10 +172,10 @@ int fino_bc_string2parsed(void) {
           // M necesita seis expresiones asi que las alocamos: Mx My Mz x0 y0 z0
           // las alocamos en la primera de las BCs
           base_bc = bc;
-          base_bc->args = calloc(6, sizeof(expr_t));
+          base_bc->expr = calloc(6, sizeof(expr_t));
 
           // ahora el cuento es que barremos hasta el final de la linked list
-          // y vamos parseando en args, si alguna no aparece es cero
+          // y vamos parseando en expr, si alguna no aparece es cero
           do {
             // volvemos a poner el equal sign
             if (equal_sign != NULL) {
@@ -188,7 +193,7 @@ int fino_bc_string2parsed(void) {
               wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
               return WASORA_PARSER_ERROR;
             }
-            wasora_call(wasora_parse_expression(expr, &base_bc->args[i]));
+            wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
           } while ((bc = bc->next) != NULL);
           
         } else {
@@ -200,12 +205,14 @@ int fino_bc_string2parsed(void) {
         if (strcmp(name, "T") == 0) {
           bc->type_math = bc_math_dirichlet;
           bc->type_phys = bc_phys_temperature;
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if (strcmp(name, "q") == 0) {
           bc->type_math = bc_math_neumann;
           bc->type_phys = bc_phys_heat_flux;
-          wasora_call(wasora_parse_expression(expr, &bc->expr));
+          bc->expr = calloc(1, sizeof(expr_t));
+          wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
         } else if ((strcmp(name, "h") == 0) ||
                    (strcmp(name, "Tref") == 0) ||
@@ -217,7 +224,7 @@ int fino_bc_string2parsed(void) {
           // conveccion necesita dos expresione
           // las alocamos en la primera de las BCs
           base_bc = bc;
-          base_bc->args = calloc(2, sizeof(expr_t));
+          base_bc->expr = calloc(2, sizeof(expr_t));
           
           do {
             // volvemos a poner el equal sign, en la primera pasada
@@ -234,7 +241,7 @@ int fino_bc_string2parsed(void) {
               wasora_push_error_message("expecting 'h' or 'Tref' instead of '%s'", name);
               return WASORA_PARSER_ERROR;
             }             
-            wasora_call(wasora_parse_expression(expr, &base_bc->args[i]));
+            wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
             tmp = bc; // esto es para "volver para atras"
           } while ((bc = bc->next) != NULL);
           
@@ -254,7 +261,7 @@ int fino_bc_string2parsed(void) {
         *equal_sign = '=';
       }
 
-      }
+    }
   }
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -402,8 +409,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
               fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
 
-              if (fino.math_type == math_type_linear && (strcmp(bc->expr.string, "0") != 0)) {
-                fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr);
+              if (fino.math_type == math_type_linear && (strcmp(bc->expr[0].string, "0") != 0)) {
+                fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr[0]);
               } else {
                 fino.dirichlet_rhs[k] = 0;
               }
@@ -428,9 +435,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
                 // TODO: evaluar las derivadas con GSL
                 wasora_var_value(fino.vars.U[d]) = +h;
-                y1 = wasora_evaluate_expression(&bc->expr);
+                y1 = wasora_evaluate_expression(&bc->expr[0]);
                 wasora_var_value(fino.vars.U[d]) = -h;
-                y2 = wasora_evaluate_expression(&bc->expr);
+                y2 = wasora_evaluate_expression(&bc->expr[0]);
                 wasora_var_value(fino.vars.U[d]) = 0;
 
                 gsl_matrix_set(c, 0, d, -(y1-y2)/(2.0*h));

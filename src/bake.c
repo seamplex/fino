@@ -281,7 +281,7 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
-    q = wasora_evaluate_expression(&bc->expr);
+    q = wasora_evaluate_expression(&bc->expr[0]);
     gsl_vector_set(Nb, 0, -q);
     
     gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
@@ -325,8 +325,8 @@ int fino_bake_set_convection(element_t *element, bc_t *bc) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
-    h = wasora_evaluate_expression(&bc->args[0]);
-    Tinf = wasora_evaluate_expression(&bc->args[1]);
+    h = wasora_evaluate_expression(&bc->expr[0]);
+    Tinf = wasora_evaluate_expression(&bc->expr[1]);
     
     gsl_matrix_set(Na, 0, 0, h);
     gsl_vector_set(Nb, 0, h*Tinf);
