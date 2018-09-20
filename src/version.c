@@ -31,7 +31,7 @@
 // so when the plugin_* functions return pointers to the strings there is
 // no need to free them afterward
 const char finoname[] = "fino";
-const char finodescription[] = "a partial differential equation solver based on the finite element method";
+const char finodescription[] = "a free finite-elements thermo-mechanical solver";
 char finoshortversion[128];
 char finolongversion[2048];
 const char finousage[] = "no commandline options needed";
