@@ -549,7 +549,7 @@ int fino_problem_init(void) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_problem_free"
 int fino_problem_free(void) {
-  int g, d;
+  int i, g, d;
 
   if (fino.mesh != NULL && fino.mesh->n_elements != 0) {
     for (d = 0; d < fino.dimensions; d++) {
@@ -573,6 +573,12 @@ int fino_problem_free(void) {
     mesh_free(fino.mesh);
   }
 
+  for (i = 0; i < fino.n_dirichlet_rows; i++) {
+    if (fino.dirichlet_row[i].ncols != 0) {
+      free(fino.dirichlet_row[i].cols);
+      free(fino.dirichlet_row[i].vals);
+    }
+  }
 /*
   if (fino.degrees != 0) {
     for (g = 0; g < fino.degrees; g++) {

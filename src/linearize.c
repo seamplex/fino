@@ -208,7 +208,8 @@ int fino_instruction_linearize(void *arg) {
       params.function = fino.tauzx;
       gsl_integration_qags (&F, 0, params.t, 0, DEFAULT_INTEGRATION_INTERVALS, DEFAULT_INTEGRATION_INTERVALS, w, &tauzx_b, &error);
     }
-        
+    
+    gsl_integration_workspace_free(w);
   }
   
 

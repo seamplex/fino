@@ -955,10 +955,41 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       if (fino.dimensions == 3) {
         wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j_global];
       }
-    }    
+    }
   }
   
+  for (i = 0; i < fino.mesh->n_elements; i++) {
+    if (data_element[i] != NULL) {
+      for (j = 0; j < fino.mesh->element[i].type->nodes; j++) {
+        free(data_element[i][j]);
+      }
+      free(data_element[i]);
+    }
+  }
+  free(data_element);
+  
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+    node_relative_t *node_relative, *tmp;
+    LL_FOREACH_SAFE(parent_global[j_global], node_relative, tmp) {
+      LL_DELETE(parent_global[j_global], node_relative);
+      free(node_relative);
+    }
+    
+    if (data_node[j_global] != NULL) {
+      for (k = 0; k < DATA_SIZE; k++) {
+        gsl_vector_free(data_node[j_global][k]);
+      }
+      free(data_node[j_global]);
+      
+      free(data_node_weight[j_global]);
+    }
+    free(avg[j_global]);
+  }
+  
+  free(parent_global);
+  free(avg);
   free(data_node);
+  free(data_node_weight);
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

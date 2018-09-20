@@ -475,9 +475,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   if (fino.problem_family == problem_family_break) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
-      
-//      fprintf(stderr, "i = %d\tncols = %d\n", i, fino.dirichlet_row[i].ncols);
-      
+            
       petsc_call(MatGetRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
       if (ncols != 0) {
         if (fino.dirichlet_row[i].ncols != ncols) {
