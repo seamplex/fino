@@ -568,8 +568,35 @@ int fino_problem_free(void) {
       }
       
       free(fino.solution[g]->data_value);
-      fino.solution[g]->data_value = NULL;
+      fino.solution[g]->data_value = NULL;      
     }
+    
+    if (fino.sigma != NULL) {
+      free(fino.sigmax->data_value);
+      free(fino.sigmay->data_value);
+      free(fino.sigmaz->data_value);
+      free(fino.tauxy->data_value);
+      free(fino.tauyz->data_value);
+      free(fino.tauzx->data_value);
+      free(fino.sigma1->data_value);
+      free(fino.sigma2->data_value);
+      free(fino.sigma3->data_value);
+      free(fino.sigma->data_value);
+      free(fino.tresca->data_value);
+      
+      fino.sigmax->data_value = NULL;
+      fino.sigmay->data_value = NULL;
+      fino.sigmaz->data_value = NULL;
+      fino.tauxy->data_value = NULL;
+      fino.tauyz->data_value = NULL;
+      fino.tauzx->data_value = NULL;
+      fino.sigma1->data_value = NULL;
+      fino.sigma2->data_value = NULL;
+      fino.sigma3->data_value = NULL;
+      fino.sigma->data_value = NULL;
+      fino.tresca->data_value = NULL;
+    }
+    
     mesh_free(fino.mesh);
   }
 

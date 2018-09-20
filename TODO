@@ -1,11 +1,12 @@
-* test suite
-* clean memory using valgrind with non-mpi PETSc
+* test suite, transient heat, shake, parametric
 * README
 * unify neumann bc routines
 * progress for stresses
 * rewrite DEBUG
-* rewrite --version output
+* rewrite --version output: compact, standard & extended
 * unify problem types
+* compute heat fluxes
 * re-think (rationally) the computation of stresses
 * cache shape functions and derivatives at gauss points
+* put mat2sng in a different code
 * manual
