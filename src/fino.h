@@ -42,6 +42,9 @@
 PetscErrorCode petsc_err;
 #define petsc_call(s) {petsc_err = s; CHKERRQ(petsc_err);}
 
+#define CHAR_PROGRESS_BUILD "."
+#define CHAR_PROGRESS_SOLVE "-"
+
 #define DEBUG_MATRICES_ASCII                       1
 #define DEBUG_MATRICES_ASCII_STRUCT                2
 #define DEBUG_MATRICES_PETSC_BINARY                4

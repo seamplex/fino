@@ -93,7 +93,7 @@ int fino_build_bulk(void) {
         *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
       }
       if (fino.progress_ascii) {
-        printf(".");  
+        printf(CHAR_PROGRESS_BUILD);  
         fflush(stdout);
         ascii_progress_chars++;
       }
@@ -128,13 +128,14 @@ int fino_build_bulk(void) {
   }
   if (fino.progress_ascii) {
     while (ascii_progress_chars++ < 100) {
-      printf(".");
+      printf(CHAR_PROGRESS_BUILD);
     }
     printf("\n");  
     fflush(stdout);
   }
 
-//  wasora_call(fino_free_elemental_objects());
+  // aca tambien perdemos a C y a et porque son static
+  wasora_call(fino_free_elemental_objects());
   
   return WASORA_RUNTIME_OK;
 
@@ -206,7 +207,7 @@ int fino_build_element_volumetric(element_t *element) {
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_build_element_volumetric"
+#define __FUNCT__ "fino_build_element_bc"
 int fino_build_element_bc(element_t *element, bc_t *bc) {
   
   double n[3];
