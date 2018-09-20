@@ -10,14 +10,15 @@ f = 1e-3   # factor to convert from m to mm
 k = 160*f
 
 # heat transfer coefficient in W/(m^2*K) converted to W/(mm^2*K)
-PHYSICAL_ENTITY NAME "top"                BC   h=450*f^2   Tref=1400
-PHYSICAL_ENTITY NAME "ring 1"             BC   h=150*f^2   Tref=450
-PHYSICAL_ENTITY NAME "ring 1 groove"      BC   h=1e3*f^2   Tref=450
-PHYSICAL_ENTITY NAME "ring 2"             BC   h=150*f^2   Tref=450
-PHYSICAL_ENTITY NAME "ring 2 groove"      BC   h=400*f^2   Tref=380
-PHYSICAL_ENTITY NAME "ring 3"             BC   h=150*f^2   Tref=380
-PHYSICAL_ENTITY NAME "ring 3 groove"      BC   h=400*f^2   Tref=380
-PHYSICAL_ENTITY NAME "interior and skirt" BC   h=650*f^2   Tref=380
+# note that the names contain spaces so they must be quoted
+PHYSICAL_ENTITY "top"                BC   h=450*f^2   Tref=1400
+PHYSICAL_ENTITY "ring 1"             BC   h=150*f^2   Tref=450
+PHYSICAL_ENTITY "ring 1 groove"      BC   h=1e3*f^2   Tref=450
+PHYSICAL_ENTITY "ring 2"             BC   h=150*f^2   Tref=450
+PHYSICAL_ENTITY "ring 2 groove"      BC   h=400*f^2   Tref=380
+PHYSICAL_ENTITY "ring 3"             BC   h=150*f^2   Tref=380
+PHYSICAL_ENTITY "ring 3 groove"      BC   h=400*f^2   Tref=380
+PHYSICAL_ENTITY "interior and skirt" BC   h=650*f^2   Tref=380
 
 FINO_STEP
 

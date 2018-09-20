@@ -1,4 +1,4 @@
-* test suite, transient heat, shake, parametric
+* test suite, transient heat, shake, thermo-mechanical, parametric (cantilever), multimaterial (two-cubes), multifreedom (radial, conic)
 * README
 * unify neumann bc routines
 * progress for stresses
