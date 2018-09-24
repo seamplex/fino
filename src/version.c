@@ -37,10 +37,10 @@ char finolongversion[2048];
 const char finousage[] = "no commandline options needed";
 
 const char finocopyright[] = "\
- fino is copyright (c) 2015--2018 jeremy theler\n\
- licensed under GNU GPL version 3 or later.\n\
- fino is free software: you are free to change and redistribute it.\n\
- There is NO WARRANTY, to the extent permitted by law.";
+fino is copyright (c) 2015--2018 jeremy theler\n\
+and licensed under GNU GPL version 3 or later.\n\
+fino is free software: you are free to change and redistribute it.\n\
+There is NO WARRANTY, to the extent permitted by law.";
 
 const char finohmd5[] = PLUGIN_HEADERMD5;
 
@@ -50,7 +50,6 @@ const char *plugin_name(void) {
 }
 
 const char *plugin_longversion(void) {
-#ifdef PLUGIN_VCS_BRANCH
   char slepcversion[BUFFER_SIZE];
   char petscversion[BUFFER_SIZE];
   char petscarch[BUFFER_SIZE];
@@ -60,24 +59,29 @@ const char *plugin_longversion(void) {
 #ifdef HAVE_SLEPC
   SlepcGetVersion(slepcversion, BUFFER_SIZE);  
 #else
-  snprintf(slepcversion, BUFFER_SIZE-1, "no SLEPc support");
+  snprintf(slepcversion, BUFFER_SIZE-1, "none");
 #endif  
-    
-  sprintf(finolongversion, "\n\
- last commit on %s\n\
- compiled on %s by %s@%s (%s)\n\
- with %s using %s linked against\n\
-  %s\n\
-  %s %s\n",
+
+  sprintf(finolongversion,"\
+Last commit date   : %s\n\
+Build date         : %s\n\
+Build architecture : %s\n\
+Builder            : %s@%s\n\
+Compiler           : %s\n\
+Compiler flags     : %s\n\
+PETSc version      : %s\n\
+PETSc arch         : %s\n\
+SLEPc version      : %s",
    PLUGIN_VCS_DATE,
    COMPILATION_DATE,
+   COMPILATION_ARCH,
    COMPILATION_USERNAME,
    COMPILATION_HOSTNAME,
-   COMPILATION_ARCH,
    CCOMPILER_VERSION,
    CCOMPILER_FLAGS,
-   slepcversion, petscversion, petscarch);
-#endif
+   petscversion,
+   petscarch,
+   slepcversion);
   
   return finolongversion;
 }

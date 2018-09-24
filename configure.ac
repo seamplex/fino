@@ -13,6 +13,7 @@ AC_INIT(pluginname,pluginversion,[jeremy@seamplex.com])
 AC_CONFIG_SRCDIR(src/pluginname.c)
 
 AC_CONFIG_MACRO_DIR([wasora/m4])
+AC_CANONICAL_HOST
 
 WASORA_PLUGIN_INIT_C
 WASORA_OPT_FLAGS_C
