@@ -30,6 +30,8 @@ cantilever-*.vtk
 two-cubes.msh
 two-cubes.vtk
 
+engine-piston.msh
+engine-piston-out.msh
 piston.msh
 piston-temp.msh
 piston-temp.vtk
