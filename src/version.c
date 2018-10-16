@@ -30,16 +30,16 @@
 // global static so the compiler locates these strings in the text section
 // so when the plugin_* functions return pointers to the strings there is
 // no need to free them afterward
-const char finoname[] = "fino";
+const char finoname[] = "Fino";
 const char finodescription[] = "a free finite-element thermo-mechanical solver";
 char finoshortversion[128];
 char finolongversion[2048];
 const char finousage[] = "no commandline options needed";
 
 const char finocopyright[] = "\
-fino is copyright (c) 2015--2018 jeremy theler\n\
+Fino is copyright (c) 2015--2018 jeremy theler\n\
 and licensed under GNU GPL version 3 or later.\n\
-fino is free software: you are free to change and redistribute it.\n\
+Fino is free software: you are free to change and redistribute it.\n\
 There is NO WARRANTY, to the extent permitted by law.";
 
 const char finohmd5[] = PLUGIN_HEADERMD5;
