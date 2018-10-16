@@ -18,6 +18,11 @@ two-material-beam.msh
 two-material-beam2.msh
 two-material-beam.vtk
 
+beam-quads*.msh
+beam-quads.vtk
+
+pure-traction.vtk
+
 cantilever-*.geo 
 cantilever-*.msh
 cantilever-*.vtk

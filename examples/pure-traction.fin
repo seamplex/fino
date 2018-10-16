@@ -1,0 +1,12 @@
+MESH FILE_PATH beam-quads.msh DIMENSIONS 3
+FINO_SOLVER PROGRESS_ASCII
+
+PHYSICAL_ENTITY NAME fixed  BC u=0 0=v*(z-0)-w*(y-0)
+PHYSICAL_ENTITY NAME load   BC Tx=1000
+
+E = 200e3
+nu = 0.3
+
+FINO_STEP
+
+MESH_POST FILE_PATH pure-traction.vtk VECTOR u v w  dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx
