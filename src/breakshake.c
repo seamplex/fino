@@ -467,6 +467,9 @@ int fino_break_compute_stresses(void) {
   int i, j, k, g, m, n, N;
   int j_global, j_global_prime;
   int j_local_prime;
+  int step = (fino.mesh->n_elements+fino.mesh->n_nodes > 99)?ceil((double)(fino.mesh->n_elements+fino.mesh->n_nodes)/100.0):1;
+  int ascii_progress_chars = 0;
+
   
   
   PetscFunctionBegin;
@@ -550,6 +553,21 @@ int fino_break_compute_stresses(void) {
   parent_global = calloc(fino.mesh->n_nodes, sizeof(node_relative_t *));
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
+    if (i % step == 0) {
+      if (fino.shmem_memory != NULL) {
+        getrusage(RUSAGE_SELF, &fino.resource_usage);
+        *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
+      }
+      if (fino.shmem_progress_gradient != NULL) {
+        *fino.shmem_progress_gradient = (double)(i)/(double)(fino.mesh->n_elements+fino.mesh->n_nodes);
+      }
+      if (fino.progress_ascii) {
+        printf(CHAR_PROGRESS_GRADIENT);  
+        fflush(stdout);
+        ascii_progress_chars++;
+      }
+    }
+    
     element = &fino.mesh->element[i];
     if (element->type->dim == fino.dimensions) {
       
@@ -747,7 +765,20 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
   avg = calloc(fino.mesh->n_nodes, sizeof(double *));
   
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-
+    if ((fino.mesh->n_elements+j_global) % step == 0) {
+      if (fino.shmem_memory != NULL) {
+        getrusage(RUSAGE_SELF, &fino.resource_usage);
+        *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
+      }
+      if (fino.shmem_progress_gradient != NULL) {
+        *fino.shmem_progress_gradient = (double)(fino.mesh->n_elements+j_global)/(double)(fino.mesh->n_elements+fino.mesh->n_nodes);
+      }
+      if (fino.progress_ascii) {
+        printf(CHAR_PROGRESS_GRADIENT);  
+        fflush(stdout);
+        ascii_progress_chars++;
+      }
+    }
     avg[j_global] = calloc(DATA_SIZE, sizeof(double));
     
       
@@ -839,7 +870,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
   // paso 3. volvemos a barrer nodos y calculamos los promedios descartando valores fuera de la desviacion estandar
   wasora_var(fino.vars.sigma_max) = 0;
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-    if (parent_global[j_global] != NULL) {
+   if (parent_global[j_global] != NULL) {
       for (k = 0; k < DATA_SIZE; k++) {
         den = 0;
         avg[j_global][k] = 0;
@@ -957,6 +988,19 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
       }
     }
   }
+  
+  
+  if (fino.shmem_progress_gradient != NULL) {
+    *fino.shmem_progress_gradient = 1.0;
+  }
+  if (fino.progress_ascii) {
+    while (ascii_progress_chars++ < 100) {
+      printf(CHAR_PROGRESS_GRADIENT);
+    }
+    printf("\n");  
+    fflush(stdout);
+  }
+  
   
   for (i = 0; i < fino.mesh->n_elements; i++) {
     if (data_element[i] != NULL) {

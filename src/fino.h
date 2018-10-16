@@ -42,8 +42,9 @@
 PetscErrorCode petsc_err;
 #define petsc_call(s) {petsc_err = s; CHKERRQ(petsc_err);}
 
-#define CHAR_PROGRESS_BUILD "."
-#define CHAR_PROGRESS_SOLVE "-"
+#define CHAR_PROGRESS_BUILD    "."
+#define CHAR_PROGRESS_SOLVE    "-"
+#define CHAR_PROGRESS_GRADIENT "="
 
 #define DEBUG_MATRICES_ASCII                       1
 #define DEBUG_MATRICES_ASCII_STRUCT                2
@@ -289,10 +290,12 @@ struct {
   
   char *progress_build_shname;  
   char *progress_solve_shname;
+  char *progress_gradient_shname;
   char *memory_shname;
   
   double *shmem_progress_build;
   double *shmem_progress_solve;
+  double *shmem_progress_gradient;
   double *shmem_memory;
   
   
