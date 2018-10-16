@@ -402,6 +402,7 @@ int plugin_init_before_run(void) {
 
   fino.problem_size = 0;
   fino.spatial_unknowns = 0;
+  fino.progress_r0 = 0;
 
   wasora_call(fino_problem_free());
   

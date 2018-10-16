@@ -178,7 +178,7 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
     *fino.shmem_progress_solve = 1.0;
   }
   if (fino.progress_ascii) {
-    for (i = (int)(100*fino.last_progress); i < 100; i++) {
+    for (i = (int)(100*fino.progress_last); i < 100; i++) {
       printf(CHAR_PROGRESS_SOLVE);
     }
     printf("\n");
@@ -202,18 +202,27 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
   int i;
   double current_progress;
   
+  if (fino.progress_r0 == 0) {
+    fino.progress_r0 = rnorm;
+  }
+  
   if (rnorm < 1e-20) {
     current_progress = 1;
   } else {
-    current_progress = 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol)));
+    current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
+    if (current_progress > 1) {
+      current_progress = 1;
+    }
   } 
 
+//  printf("%d %e %e\n", n, rnorm/r0, current_progress);
+  
   if (fino.progress_ascii) {
-    for (i = (int)(100*fino.last_progress); i < (int)(100*current_progress); i++) {
+    for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
       printf(CHAR_PROGRESS_SOLVE);
       fflush(stdout);
     }
-    fino.last_progress = current_progress;
+    fino.progress_last = current_progress;
   }
   
   if (fino.shmem_memory != NULL) {
@@ -223,7 +232,6 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 
   if (fino.shmem_progress_solve != NULL) {
     *fino.shmem_progress_solve = current_progress;
-//    printf("%d %g\n", n, 1 - 0.1*(log10(rnorm/wasora_var_value(fino.vars.reltol))));
   }
 
   return 0;

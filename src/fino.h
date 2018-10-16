@@ -284,7 +284,8 @@ struct {
   int do_not_set_block_size;
   
   int progress_ascii;
-  double last_progress;
+  double progress_r0;
+  double progress_last;
   
   char *progress_build_shname;  
   char *progress_solve_shname;
