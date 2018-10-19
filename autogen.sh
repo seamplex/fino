@@ -24,8 +24,13 @@ else
   WASORA_REPO=https://bitbucket.org/seamplex/wasora.git
 fi
 
-rm -rf wasora
-git clone ${WASORA_REPO} || exit 1
+if [ -e wasora ]; then
+  cd wasora
+  git pull || exit 1
+  cd ..
+else
+  git clone ${WASORA_REPO} || exit 1
+fi
 
 m4 wasora/m4/bootstrap.m4 - << EOF | sh -s $1 || exit 1
 plugin=${plugin}
