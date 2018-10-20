@@ -9,8 +9,8 @@ EXTRA_DIST = examples doc
 
 TESTS = examples/test-tensile.sh \
         examples/test-piston.sh \
-        examples/test-cantilever.sh
-
+        examples/test-cantilever.sh \
+        examples/test-wire.sh
 all-local:
 	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
 	if [ -e ${plugin} ]; then cd examples; ln -sf ../${plugin}; cd;  fi
