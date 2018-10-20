@@ -5,24 +5,29 @@ set axis x arrow nomirrored
 set axis y arrow nomirrored
 set key bottom left
 
-set xrange [0:3]
-set yrange [0:2.5]
+set xrange [1e-5:1e-1]
+set logscale x
+set yrange [0:0.3]
 
 #set xtics 0.1
-#set ytics 0.1
 #set mxtics 0.05
-#set mytics 0.05
+
+set ytics 0.1
+set mytics 0.025
 
 set grid
 
-set terminal png
+set terminal pdf
 
-set xlabel "inverse of the characteristic element size $1/\ell_c$"
-set ylabel "maximum displacement"
+set xlabel "Inverse of the number of elements~$1/n$"
+set ylabel "Maximum displacement~$w_\text{max}$"
 
-set output "cantilever.png"
+set output "cantilever.pdf"
 
-plot 'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 2  color red    ti "First order unstructured",\
-     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 3  color brown  ti "First order structured",\
-     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 16 color green  ti "Second order unstructured",\
-     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 17 color blue   ti "Second order structured"
+wc = 1000*50**3/(3*200e3*(10**4/12))
+
+plot wc                         w l  lw 4       color gray30      ti "Euler-Bernoulli reference solution~$w_\text{max}=\frac{P\ell^3}{3EI}$",\
+     'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 2  color brickred    ti "First order unstructured",\
+     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 3  color plum        ti "First order structured",\
+     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 16 color cyan        ti "Second order unstructured",\
+     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 17 color olivegreen  ti "Second order structured"

@@ -1,10 +1,11 @@
 DEFAULT_ARGUMENT_VALUE 1 1        # use first (1) or second (2) order elements
 DEFAULT_ARGUMENT_VALUE 2 0        # use structured (1) or unstructured (0) tets
+DEFAULT_ARGUMENT_VALUE 3 5        # maximum number of elements along h
 
-h = 10
-l = 50
+h = 10   # beam width and height
+l = 50   # beam length
 
-PARAMETRIC n MIN 2 MAX 5 STEP 1
+PARAMETRIC n MIN 2 MAX $3 STEP 1
 n = 2
 
 OUTPUT_FILE geo  cantilever-$1-$2-%g.geo n
@@ -23,28 +24,34 @@ SHELL "gmsh -v 0 -3 cantilever-$1-$2-%g.geo" n
 INPUT_FILE mesh cantilever-$1-$2-%g.msh n
 MESH FILE mesh DIMENSIONS 3
 
+P = 1000   # load in [ N ]
+E = 200e3  # Young modulus in [ MPa ]
+nu = 0.3   # Poisson’s ratio
+
 PHYSICAL_ENTITY NAME bulk
 PHYSICAL_ENTITY NAME left  BC fixed
 PHYSICAL_ENTITY NAME right BC Tz=-1000
 
-E = 200e3
-nu = 0.3
 
 FINO_STEP
 
-energy_density(x,y,z) := 0.5*{( 
- sigmax(x,y,z)*dudx(x,y,z) +
- sigmay(x,y,z)*dvdy(x,y,z) +
- sigmaz(x,y,z)*dwdz(x,y,z) +
- tauxy(x,y,z)*(dudy(x,y,z) + dvdx(x,y,z)) +
- tauyz(x,y,z)*(dvdz(x,y,z) + dwdy(x,y,z)) +
- tauzx(x,y,z)*(dwdx(x,y,z) + dudz(x,y,z))
-)}
+# this is fun but takes a lot of time for a test
+# energy_density(x,y,z) := 0.5*{( 
+#  sigmax(x,y,z)*dudx(x,y,z) +
+#  sigmay(x,y,z)*dvdy(x,y,z) +
+#  sigmaz(x,y,z)*dwdz(x,y,z) +
+#  tauxy(x,y,z)*(dudy(x,y,z) + dvdx(x,y,z)) +
+#  tauyz(x,y,z)*(dvdz(x,y,z) + dwdy(x,y,z)) +
+#  tauzx(x,y,z)*(dwdx(x,y,z) + dudz(x,y,z))
+# )}
+# 
+# MESH_INTEGRATE FUNCTION energy_density OVER bulk RESULT energy
 
-MESH_INTEGRATE FUNCTION energy_density OVER bulk RESULT energy
+# reference max deflection according to Euler-Bernoulli
+# https://en.wikipedia.org/wiki/Euler%E2%80%93Bernoulli_beam_theory#Cantilever_beams
+wc = P*l^3/(3*E*(h^4)/12)
 
-
-PRINT %.3f 1/n %g n nodes elements %.5g displ_max sigma_max energy %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6
+PRINT %.3e 1/nodes %g n nodes elements %.5g displ_max wc sigma_max %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6
 
 OUTPUT_FILE vtk cantilever-$1-$2-%g.vtk n
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma

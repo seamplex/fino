@@ -26,6 +26,7 @@ pure-traction.vtk
 cantilever-*.geo 
 cantilever-*.msh
 cantilever-*.vtk
+cantilever.pdf
 
 two-cubes.msh
 two-cubes.vtk
@@ -52,5 +53,7 @@ thermal.msh
 thermal.vtk
 thin-rotating-disk.msh
 thin-rotating-disk.vtk
+
+wire-*.msh
 
 meta*.msh
