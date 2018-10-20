@@ -32,6 +32,5 @@ PRINT TEXT "horizontal_displacement [mm]  =" u(80,0,0)
 PRINT TEXT "stress_at_the_origin    [MPa] =" sigma(0,0,0)
 # the reaction force is stored at "physical entity name underscore RF"
 PRINT TEXT "reaction_at_fixed_end   [N]   =" left_RF
-PRINT left_RM
 
 PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
