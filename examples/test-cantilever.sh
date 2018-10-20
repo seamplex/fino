@@ -9,7 +9,7 @@ checkm4
 if [ ! -z "$1" ]; then
   n_max=$1
 else
-  n_max=5
+  n_max=6
 fi
 
 

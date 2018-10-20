@@ -12,6 +12,8 @@ If ( struct != 0 )
  Transfinite Line {9:12} = l/lc;
  Transfinite Surface "*";
  Transfinite Volume "*";
+ Mesh.RecombineAll = 1;
+ Mesh.SecondOrderIncomplete = 0;
 Else
  Mesh.CharacteristicLengthMax = lc;
 EndIf
