@@ -55,5 +55,7 @@ thin-rotating-disk.msh
 thin-rotating-disk.vtk
 
 wire-*.msh
+wire-*.vtk
+
 
 meta*.msh

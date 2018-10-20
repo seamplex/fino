@@ -1,0 +1,70 @@
+# compute the first five natural modes of a cantilever wire
+# see https://www.seamplex.com/fino/doc/alambre.pdf (in spanish)
+# (note that there is a systematic error of a factor of two in the measured values)
+
+DEFAULT_ARGUMENT_VALUE 1 copper    # material, either copper or aluminum
+# DEFAULT_ARGUMENT_VALUE 2 general   # mesh, either general or axisymmetric
+
+MESH FILE_PATH wire-general.msh DIMENSIONS 3
+
+l = 150  # cantilever wire length [ mm ]
+d = 2    # wire diameter [ mm ]
+
+
+# material properties for copper
+m_copper = 0.5*8.02e-3  # total mass (half the measured because of the experimental disposition)
+E_copper = 2*66.2e3     # [ MPa ] Young modulus ~ (twice the measured value because of an error in the report)
+
+# material properties for aluminum
+m_aluminum = 0.5*2.67e-3
+E_aluminum = 2*40.2e3
+
+# problem’s properties
+E = E_$1                     # [ MPa ]
+rho = m_$1/(pi*(0.5*d)^2*l)  # [ kg / mm^3 ] density = mass (measured) / volume 
+nu = 0                       # Poisson’s ratio (does not appear in Euler-Bernoulli)
+
+# analytical solution
+VECTOR kl      SIZE 5
+VECTOR f_euler SIZE 5
+
+# first compute the first five roots ok cosh(kl)*cos(kl)+1 
+kl(i) = root(cosh(t)*cos(t)+1, t, 3*i-2,3*i+1)
+
+# then compute the frequencies according to Euler-Bernoulli
+# note that we need to use SI inside the square root
+A = pi * (1e-3*(d/2))^2
+I = pi/4 * (1e-3*(d/2))^4
+f_euler(i) = 1/(2*pi) * kl(i)^2 * sqrt((1e6*E * I)/(1e9*rho * A * (1e-3*l)^4))
+
+# now compute the modes numerically with FEM
+# note that each mode is duplicated as it is degenerated
+FINO_PROBLEM SHAKE N_EIGEN 10  
+PHYSICAL_ENTITY NAME fixed   BC fixed
+FINO_STEP
+
+# compare the frequencies
+PRINT "\# $1 wire, frequencies in Hz"
+PRINT "\# -------------------------------------------------"
+PRINT        "\# n"    "FEM"    "Euler"   "Relative difference [%]"
+PRINT_VECTOR i         f(2*i-1) f_euler   100*(f_euler(i)-f(2*i-1))/f_euler(i)
+
+# write the modes into a vtk file
+MESH_POST FILE_PATH wire-$1.vtk \
+ VECTOR u1 v1 w1 VECTOR u2 v2 w2 VECTOR u3 v3 w3 \
+ VECTOR u4 v4 w4 VECTOR u5 v5 w5 VECTOR u6 v6 w6 \
+ VECTOR u7 v7 w7 VECTOR u8 v8 w8 VECTOR u9 v9 w9 VECTOR u10 v10 w10
+
+# and into a msh file
+MESH_POST FILE_PATH wire-$1.msh {
+ u1 v1 w1
+ u2 v2 w2
+ u3 v3 w3
+ u4 v4 w4
+ u5 v5 w5
+ u6 v6 w6
+ u7 v7 w7
+ u8 v8 w8
+ u9 v9 w9
+ u10 v10 w10
+}
