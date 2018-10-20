@@ -1,7 +1,5 @@
-MESH FILE_PATH tensile-test-specimen2.msh  # mesh file in Gmsh format
-# the file tensile-test-specimen1.msh has the same grid but with first-order elements
-
-FINO_PROBLEM SHAKE N_EIGEN 10
+MESH FILE_PATH tensile-test.msh  DIMENSIONS 3
+FINO_PROBLEM MODAL N_EIGEN 6
 
 # uniform properties
 rho = 7800e-9  # [ kg / mm^3 ]
@@ -12,18 +10,15 @@ nu = 0.3       # Poisson ratio
 PHYSICAL_ENTITY NAME left   BC fixed
 # PHYSICAL_ENTITY NAME right  BC fixed
 
-# print some data
-PRINT TEXT "elements                    =" %g elements
-PRINT TEXT "nodes                       =" %g nodes
-
 FINO_STEP
 
 # results
-MESH_POST FILE_PATH shake.vtk VECTOR u v w VECTOR u1 v1 w1 VECTOR u2 v2 w2 VECTOR u3 v3 w3
+PRINT_VECTOR i f M(i)/mass Me(i)/mass L Gamma Me(i)/mass sum(Me(j)/mass,j,1,i)
 
-PRINT lambda
-PRINT_VECTOR omega
+MESH_POST FILE_PATH shake.vtk \
+ VECTOR u1 v1 w1 VECTOR u2 v2 w2 VECTOR u3 v3 w3 \
+ VECTOR u4 v4 w4 VECTOR u5 v5 w5 VECTOR u6 v6 w6
 
 PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
-PRINT "\# memory [Gb]    = "  %.2f memory_usage_global/1e9 TEXT "/" available_memory/1e9  SEP " "
+PRINT "\# memory [Gb]    = "  %.2f memory/1e9 TEXT "/" memory_availabe/1e9  SEP " "
 

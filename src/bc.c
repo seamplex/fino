@@ -43,6 +43,10 @@ int fino_bc_string2parsed(void) {
   char *expr;
   int i;
   
+  if (fino.mesh == NULL) {
+    return WASORA_RUNTIME_OK;
+  }
+  
   // barremos los physical entities y mapeamos cadenas a valores enteros
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300

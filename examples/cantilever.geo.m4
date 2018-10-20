@@ -1,30 +1,24 @@
 //
 SetFactory("OpenCASCADE");
-Geometry.OCCTargetUnit = "MM";
-a() = ShapeFromFile("square-beam.step");
 
-//lc = 1;
-//struct = 0;
-//hex = 0;
+// Geometry.OCCTargetUnit = "MM";
+// a() = ShapeFromFile("square-beam.step");
+
+Box(1) = {0, -h/2, -h/2, l, h, h};
+
 
 If ( struct != 0 )
- Transfinite Line {1,2,3,4,5,6,7,8} = 10/lc;
- Transfinite Line {9,10,11,12} = 100/lc;
+ Transfinite Line {1:8} = h/lc;
+ Transfinite Line {9:12} = l/lc;
  Transfinite Surface "*";
  Transfinite Volume "*";
 Else
  Mesh.CharacteristicLengthMax = lc;
 EndIf
 
-//If ( hex != 0 ) 
-// Mesh.RecombineAll = 1;
-// Mesh.Recombine3DAll = 1;
-// Mesh.Recombine3DLevel = 2;
-//EndIf
-
 Mesh.Optimize = 1;
 Mesh.Algorithm = 6;
-
+Mesh.ElementOrder = order;
 
 Physical Volume ("bulk") = 1;
 

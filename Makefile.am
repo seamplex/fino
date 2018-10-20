@@ -8,7 +8,8 @@ dist_doc_DATA = AUTHORS ChangeLog README TODO
 EXTRA_DIST = examples doc
 
 TESTS = examples/test-tensile.sh \
-        examples/test-piston.sh
+        examples/test-piston.sh \
+        examples/test-cantilever.sh
 
 all-local:
 	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
