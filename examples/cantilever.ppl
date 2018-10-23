@@ -27,7 +27,7 @@ set output "cantilever.pdf"
 wc = 1000*50**3/(3*200e3*(10**4/12))
 
 plot wc                         w l  lw 4       color gray30      ti "Euler-Bernoulli reference solution~$w_\text{max}=\frac{P\ell^3}{3EI}$",\
-     'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 2  color brickred    ti "First order unstructured tetrahedra",\
-     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 3  color plum        ti "First order structured hexahedra",\
-     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 16 color cyan        ti "Second order unstructured tetrahedra",\
-     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 17 color olivegreen  ti "Second order structured hexahedra"
+     'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 4  color brickred    ti "First order unstructured tetrahedra",\
+     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 2  color plum        ti "First order structured hexahedra",\
+     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 18 color cyan        ti "Second order unstructured tetrahedra",\
+     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 16 color olivegreen  ti "Second order structured hexahedra"
