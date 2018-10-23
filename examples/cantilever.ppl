@@ -19,8 +19,8 @@ set grid
 
 set terminal pdf
 
-set xlabel "Inverse of the number of elements~$1/n$"
-set ylabel "Maximum displacement~$w_\text{max}$"
+set xlabel "Inverse of the number of nodes~$1/n$"
+set ylabel "Maximum vertical displacement~$w_\text{max}$"
 
 set output "cantilever.pdf"
 

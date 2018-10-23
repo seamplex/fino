@@ -51,7 +51,7 @@ FINO_STEP
 # https://en.wikipedia.org/wiki/Euler%E2%80%93Bernoulli_beam_theory#Cantilever_beams
 wc = P*l^3/(3*E*(h^4)/12)
 
-PRINT %.3e 1/nodes %g n nodes elements %.5g displ_max wc sigma_max %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6
+PRINT %.3e 1/nodes %g n nodes elements %.5g -w(l,0,0) wc sigma_max %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6
 
 OUTPUT_FILE vtk cantilever-$1-$2-%g.vtk n
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
