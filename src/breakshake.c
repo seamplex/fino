@@ -404,6 +404,14 @@ c4(x,y,z) := 2.0/3.0 * c5(x,y,z)
 */
 
 #undef  __FUNCT__
+#define __FUNCT__ "fino_break_compute_stresses_row_sum"
+int fino_break_compute_stresses_row_sum(void) {
+  
+  //
+  return 0;
+}
+
+#undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
   
@@ -470,7 +478,7 @@ int fino_break_compute_stresses(void) {
   int step = (fino.mesh->n_elements+fino.mesh->n_nodes > 99)?ceil((double)(fino.mesh->n_elements+fino.mesh->n_nodes)/100.0):1;
   int ascii_progress_chars = 0;
 
-  
+ 
   
   PetscFunctionBegin;
   if (fino.gradient_jacobian_threshold == 0) {
@@ -577,6 +585,7 @@ int fino_break_compute_stresses(void) {
       
         j_global = element->node[j]->index_mesh;
         
+        // esto es para nodos de segundo orden (los que estan en el medio de un edge)
         if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL) {
           LL_FOREACH(element->type->node_parents[j], parent) {
             wasora_mesh_add_node_parent(&parent_global[j_global], element->node[parent->index]->index_mesh);
@@ -601,6 +610,36 @@ int fino_break_compute_stresses(void) {
               }
             }
           }
+ 
+/*
+          xi = 0;
+          for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+            w_gauss = mesh_integration_weight(fino.mesh, element, v);
+            mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+            mesh_inverse(fino.mesh->bulk_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
+            mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+
+            for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
+
+              j_global_prime = element->node[j_local_prime]->index_mesh;
+              
+              for (g = 0; g < fino.degrees; g++) {
+                for (m = 0; m <fino.dimensions; m++) {
+                  data_element[i][j][3*g+m] += w_gauss * gsl_vector_get(fino.mesh->fem.h, j) * gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime];
+                }
+              }
+
+              xi += w_gauss * gsl_vector_get(fino.mesh->fem.h, j) * gsl_vector_get(fino.mesh->fem.h, j_local_prime);
+            }
+            
+            for (g = 0; g < fino.degrees; g++) {
+              for (m = 0; m <fino.dimensions; m++) {
+                data_element[i][j][3*g+m] /= xi;
+              }
+            }
+            
+          }
+ */
         }
         
         dudx = data_element[i][j][DATA_DUDX];
@@ -617,7 +656,7 @@ int fino_break_compute_stresses(void) {
           dwdy = data_element[i][j][DATA_DWDY];
           dwdz = data_element[i][j][DATA_DWDZ];
         }
-        
+            
 /*  
 e_x(x,y,z) := du_dx(x,y,z)
 e_y(x,y,z) := dv_dy(x,y,z)
@@ -753,7 +792,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         data_element[i][j][DATA_TAUXY] = tauxy;
         data_element[i][j][DATA_TAUYZ] = tauyz;
         data_element[i][j][DATA_TAUZX] = tauzx;
-        
+
       }
     }
   }
@@ -779,9 +818,9 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         ascii_progress_chars++;
       }
     }
-    avg[j_global] = calloc(DATA_SIZE, sizeof(double));
+    avg[j_global] = calloc(DATA_SIZE, sizeof(double));    
     
-      
+    
     N = 0;
     LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
       if (data_element[associated_element->element->index] != NULL) {
@@ -839,7 +878,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         if (n > 1) {
           std = 0;
           for (n = 0; n < data_node[j_global][k]->size; n++) {
-            std += gsl_pow_2(data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n) - mu);
+            std += gsl_pow_2(gsl_vector_get(data_node[j_global][k], n) - mu);
           }
           std = sqrt(std/(n-1));
         } else {
@@ -850,7 +889,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         avg[j_global][k] = 0;
         den = 0;
         for (n = 0; n < data_node[j_global][k]->size; n++) {
-          if (fabs(gsl_vector_get(data_node[j_global][k], n) - mu) < 1.5*std) {
+          if (fabs(gsl_vector_get(data_node[j_global][k], n) - mu) < 3*std) {
             den += data_node_weight[j_global][n];
             avg[j_global][k] += data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n);
           } else {
@@ -870,7 +909,8 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
   // paso 3. volvemos a barrer nodos y calculamos los promedios descartando valores fuera de la desviacion estandar
   wasora_var(fino.vars.sigma_max) = 0;
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-   if (parent_global[j_global] != NULL) {
+    
+    if (parent_global[j_global] != NULL) {
       for (k = 0; k < DATA_SIZE; k++) {
         den = 0;
         avg[j_global][k] = 0;
