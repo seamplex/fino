@@ -324,7 +324,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     
-    physical_entity_last = NULL;
+//    physical_entity_last = NULL;
     
     LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
       if (associated_element->element != NULL &&
@@ -333,7 +333,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
           associated_element->element->physical_entity != physical_entity_last) {
         LL_FOREACH(associated_element->element->physical_entity->bcs, bc) {
           if (bc->type_math == bc_math_dirichlet) {
-            physical_entity_last = physical_entity; // esto es para no pasar varias veces por lo mismo
+//            physical_entity_last = physical_entity; // esto es para no pasar varias veces por lo mismo
             physical_entity = associated_element->element->physical_entity;
 
             if (fino.n_dirichlet_rows == 0 && k >= (current_size-16)) {
