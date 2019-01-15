@@ -3,7 +3,7 @@ SetFactory("OpenCASCADE");
 //+
 a = 1;
 n = 8;
-Box(1) = {-0.5*a, -0.5*a, -0.5*a, a, a, a};
+Box(1) = {0, 0, 0, a, a, a};
 
 Mesh.Algorithm = 6;
 Mesh.ElementOrder = 1;

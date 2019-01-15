@@ -59,7 +59,7 @@ cd fino
 ./configure
 make
 make check
-sudo make check
+sudo make install
 ~~~
 
 If these instructions are non-sense to you, go directly to the [mailing list](https://www.seamplex.com/lists.html).
