@@ -880,7 +880,10 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           for (n = 0; n < data_node[j_global][k]->size; n++) {
             std += gsl_pow_2(gsl_vector_get(data_node[j_global][k], n) - mu);
           }
-          std = sqrt(std/(n-1));
+          // si la desviacion estandar no es significativa entonces no hacemos nada
+          if ((std = sqrt(std/(n-1))) < 10) {
+            std = 1e6;
+          }
         } else {
           std = 1e6;
         }
@@ -893,7 +896,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
             den += data_node_weight[j_global][n];
             avg[j_global][k] += data_node_weight[j_global][n] * gsl_vector_get(data_node[j_global][k], n);
           } else {
-            ;
+//            ;
 //            printf("pistola %g %g %g\n", mu, gsl_vector_get(data_node[j_global][k], n), data_node_weight[j_global][n]);
           }
         }
