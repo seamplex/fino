@@ -1,12 +1,17 @@
-* test suite, transient heat, shake, thermo-mechanical, parametric (cantilever), multimaterial (two-cubes), multifreedom (radial, conic)
-* README
-* unify neumann bc routines
-* progress for stresses
-* rewrite DEBUG
-* rewrite --version output: compact, standard & extended
-* unify problem types
-* compute heat fluxes
-* re-think (rationally) the computation of stresses
-* cache shape functions and derivatives at gauss points
-* put mat2sng in a different code
-* manual
+ * derivatives at material interfaces
+ * test suite, transient heat, shake, thermo-mechanical, parametric (cantilever), multimaterial (two-cubes), multifreedom (radial, conic)
+ * manual
+ * unify neumann bc routines
+ * rewrite DEBUG
+ * rewrite --version output: compact, standard & extended
+ * unify problem types
+ * compute heat fluxes
+ * re-think (rationally) the computation of stresses
+ * cache shape functions and derivatives at gauss points
+ * put mat2sng in a different code
+ * DMplex
+ * parallelization
+ * realbook
+ * benchmarks
+    - ASME PTB-3
+    
