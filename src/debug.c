@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino debugging and benchmarking routines
  *
- *  Copyright (C) 2015--2016 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -448,6 +448,7 @@ int fino_debug_close(fino_debug_t *debug) {
     petsc_call(PetscViewerASCIIPrintf(debug->viewer, "[%s](https://www.seamplex.com/fino) %s\n\n", plugin_name(), plugin_version()));
 
     PetscViewerDestroy(&debug->viewer);
+    debug->file_opened = 0;
   }
 
   return WASORA_RUNTIME_OK;

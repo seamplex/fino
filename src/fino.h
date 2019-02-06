@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino main header
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -82,7 +82,7 @@ PetscErrorCode petsc_err;
 #define bc_dof_coordinates_offset        128
 
 
-#define BC_FACTOR 0.25
+#define BC_FACTOR 1.00  // TODO: esto da cosas raras con los reallocs, pensar mejor
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;

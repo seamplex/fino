@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's boundary conditions
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -481,14 +481,15 @@ int fino_set_essential_bc(Mat A, Vec b) {
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
             
       petsc_call(MatGetRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
+//       printf("%d %d %d\n", i, ncols, fino.dirichlet_row[i].ncols);
       if (ncols != 0) {
         if (fino.dirichlet_row[i].ncols != ncols) {
+          if (fino.dirichlet_row[i].ncols != 0) {
+            free(fino.dirichlet_row[i].cols);
+            free(fino.dirichlet_row[i].vals);
+          }
           fino.dirichlet_row[i].ncols = ncols;
-          
-          free(fino.dirichlet_row[i].cols);
           fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
-
-          free(fino.dirichlet_row[i].vals);
           fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
         }
         
