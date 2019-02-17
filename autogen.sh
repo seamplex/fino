@@ -45,7 +45,7 @@ am="src/Makefile.am"
 echo -n "building $am... "
 cat << EOF > $am
 include ../petscslepc.mak
-unexport DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install
+undefine DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install
 
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = \$(ACLOCAL_FLAGS)
