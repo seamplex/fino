@@ -12,8 +12,7 @@ fi
 rm -f *~ src/*~ src/thirdparty/*~
 rm -f src/*.o src/*.lo src/*~
 rm -rf src/.deps src/.libs src/.dirstamp src/stamp-h1 src/config.h.in src/config.h
-rm -f README INSTALL PLUGINS README.pdf INSTALL.pdf PLUGINS.pdf README.html INSTALL.html PLUGINS.html ChangeLog
-rm -f README doc/README.pdf doc/README.html INSTALL doc/INSTALL.pdf doc/INSTALL.html PLUGINS doc/PLUGINS doc/PLUGINS.pdf doc/PLUGINS.html ChangeLog
+rm -f README INSTALL
 rm -f aclocal.m4 configure config.log config.status compile depcomp install-sh missing ltmain.sh config.guess config.sub libtool libtool test-driver
 rm -f src/version.h src/version-vcs.h src/version-conf.h version.m4
 rm -rf autom4te.cache
