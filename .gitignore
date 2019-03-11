@@ -10,7 +10,6 @@ libtool
 ltmain.sh
 Makefile
 autom4te.cache/
-ChangeLog
 Makefile
 Makefile.in
 aclocal.m4
