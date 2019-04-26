@@ -4,7 +4,7 @@ a() = ShapeFromFile("tensile-test-specimen.step");
 
 Mesh.CharacteristicLengthMax = 3;
 Mesh.Algorithm = 6;
-Mesh.Algorithm3D = 10;
+Mesh.Algorithm3D = 1;
 Mesh.Optimize = 1;
 Mesh.OptimizeNetgen = 1;
 Mesh.HighOrderOptimize = 1;
