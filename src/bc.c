@@ -27,8 +27,15 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_deriv.h>
 
 #include "fino.h"
+
+typedef struct {
+  expr_t *expr;
+  int dof;
+} fino_gsl_function_of_uvw_params_t;
+
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_read_bcs"
@@ -118,7 +125,6 @@ int fino_bc_string2parsed(void) {
           // esta expresion
 
           // TODO: ver que haya un separador antes y despues
-          // TODO: derivadas            
           dummy = expr;
           while (*dummy != '\0') {
             if (*dummy == 'u') {
@@ -310,8 +316,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
 
   double n[3];
-  double y1, y2;
-  double h = 1e-3;
 
   if (fino.n_dirichlet_rows == 0) {
     n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
@@ -426,32 +430,36 @@ int fino_set_essential_bc(Mat A, Vec b) {
               gsl_matrix *c;
               gsl_matrix *K;
               int l[3];
+              
+              gsl_function F;
+              fino_gsl_function_of_uvw_params_t params;
+              double result, abserr;
+              double h = 1e-5;
+
+              params.expr = bc->expr;
+              
+              F.function = fino_gsl_function_of_uvw;
+              F.params = &params;
 
               c = gsl_matrix_calloc(1, fino.degrees);
               K = gsl_matrix_calloc(fino.degrees, fino.degrees);
-
+              
               wasora_var_value(fino.vars.U[0]) = 0;
               wasora_var_value(fino.vars.U[1]) = 0;
               wasora_var_value(fino.vars.U[2]) = 0;
+              
 
               for (d = 0; d < fino.degrees; d++) {
                 l[d] = fino.mesh->node[j].index_dof[d];
-
-                // TODO: evaluar las derivadas con GSL
-                wasora_var_value(fino.vars.U[d]) = +h;
-                y1 = wasora_evaluate_expression(&bc->expr[0]);
-                wasora_var_value(fino.vars.U[d]) = -h;
-                y2 = wasora_evaluate_expression(&bc->expr[0]);
-                wasora_var_value(fino.vars.U[d]) = 0;
-
-                gsl_matrix_set(c, 0, d, -(y1-y2)/(2.0*h));
+                params.dof = d;
+                gsl_deriv_central(&F, 0, h, &result, &abserr);
+                gsl_matrix_set(c, 0, d, -result);
               }
 
               wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
               MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
-              // TODO: RHS
-
+              // TODO: non-uniform RHS
               gsl_matrix_free(c);
               gsl_matrix_free(K);
             }
@@ -527,5 +535,29 @@ int fino_set_essential_bc(Mat A, Vec b) {
   wasora_call(fino_assembly());
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);
+
+}
+
+
+
+// esto sirve para calcular derivadas con GSL
+double fino_gsl_function_of_uvw(double x, void *params) {
+
+  double y;
+
+  fino_gsl_function_of_uvw_params_t *dummy = (fino_gsl_function_of_uvw_params_t *)params;
+
+  wasora_var_value(fino.vars.U[0]) = 0;
+  wasora_var_value(fino.vars.U[1]) = 0;
+  wasora_var_value(fino.vars.U[2]) = 0;
+  wasora_var_value(fino.vars.U[dummy->dof]) = x;
+  
+  y = wasora_evaluate_expression(dummy->expr);
+
+  if (gsl_isnan(y) || gsl_isinf(y)) {
+    wasora_nan_error();
+  }
+
+  return y;
 
 }

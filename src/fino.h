@@ -466,6 +466,7 @@ extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, voi
 extern int fino_bc_string2parsed(void);
 void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_set_essential_bc(Mat, Vec);
+extern double fino_gsl_function_of_uvw(double, void *);
 
 // bulk.c
 extern int fino_allocate_elemental_objects(element_t *);
