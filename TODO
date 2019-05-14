@@ -12,6 +12,14 @@
  * DMplex
  * parallelization
  * realbook
- * benchmarks
+ * benchmarks (real book)
     - ASME PTB-3
-    
+    - veeder
+    - parallelepiped
+    - cantilever vs euler
+    - cantilever natural frequencies
+    - rotating disk
+    - 3 single-part benchmarks
+    - pipe linearized
+    - algo de nafems
+    - algo de thermal

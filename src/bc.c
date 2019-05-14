@@ -58,7 +58,8 @@ int fino_bc_string2parsed(void) {
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
     LL_FOREACH(physical_entity->bcs, bc) {
-      
+
+      base_bc = NULL;      
       fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
 
       if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
@@ -179,32 +180,25 @@ int fino_bc_string2parsed(void) {
           bc->type_math = bc_math_neumann;
           bc->type_phys = bc_phys_moment;
           
-          // M necesita seis expresiones asi que las alocamos: Mx My Mz x0 y0 z0
-          // las alocamos en la primera de las BCs
-          base_bc = bc;
-          base_bc->expr = calloc(6, sizeof(expr_t));
+          // M necesita seis expresiones
+          // asi que las alocamos: Mx My Mz x0 y0 z0 en la primera de las BCs
+          if (base_bc == NULL) {
+            base_bc = bc;
+            base_bc->expr = calloc(6, sizeof(expr_t));
+          }
 
-          // ahora el cuento es que barremos hasta el final de la linked list
-          // y vamos parseando en expr, si alguna no aparece es cero
-          do {
-            // volvemos a poner el equal sign
-            if (equal_sign != NULL) {
-              *equal_sign = '=';
-            }
-            fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
-            i = -1;
-            if (name[1] == 'x') i = 0;
-            if (name[1] == 'y') i = 1;
-            if (name[1] == 'z') i = 2;
-            if (name[0] == 'x') i = 3;
-            if (name[0] == 'y') i = 4;
-            if (name[0] == 'z') i = 5;
-            if (i == -1) {
-              wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
-              return WASORA_PARSER_ERROR;
-            }
-            wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
-          } while ((bc = bc->next) != NULL);
+          i = -1;  // si alguna no aparece es cero
+          if (name[1] == 'x') i = 0;
+          if (name[1] == 'y') i = 1;
+          if (name[1] == 'z') i = 2;
+          if (name[0] == 'x') i = 3;
+          if (name[0] == 'y') i = 4;
+          if (name[0] == 'z') i = 5;
+          if (i == -1) {
+            wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
+            return WASORA_PARSER_ERROR;
+          }
+          wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
           
         } else {
           wasora_push_error_message("unknown boundary condition type '%s'", name);
