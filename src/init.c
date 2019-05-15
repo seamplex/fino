@@ -158,8 +158,8 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+fino_penalty_weight+desc Higher values mean better precision in the constrain but distort
 ///va+fino_penalty_weight+desc the matrix condition number. 
   fino.vars.penalty_weight = wasora_define_variable("fino_penalty_weight");
-///va+fino_penalty_weight+desc Default is `1e7`.
-  wasora_var(fino.vars.penalty_weight) = 1e7;  
+///va+fino_penalty_weight+desc Default is `1e8`.
+  wasora_var(fino.vars.penalty_weight) = 1e8;  
   
 ///va+fino_iterations+name fino_iterations
 ///va+fino_iterations+desc This variable contains the actual number of iterations used
