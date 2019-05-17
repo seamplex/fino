@@ -161,7 +161,9 @@ int fino_break_build_element(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
-      wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material,NULL), fino_distribution_evaluate(&distribution_nu, material,NULL)));
+      wasora_call(fino_break_compute_C(C,
+          fino_distribution_evaluate(&distribution_E, material,NULL),
+          fino_distribution_evaluate(&distribution_nu, material,NULL)));
     }
     
   }
@@ -251,12 +253,9 @@ int fino_break_build_element(element_t *element, int v) {
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
-     if (material == NULL) {
-       wasora_push_error_message("element %d does not have an associated material", element->tag);
-       PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-     }
-
-    wasora_call(fino_break_compute_C(C, fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)), fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
+    wasora_call(fino_break_compute_C(C,
+        fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)),
+        fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
   }
 
   // calculamos Bt*C*B
@@ -553,6 +552,28 @@ int fino_break_compute_stresses(void) {
     fino.tresca->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
   }
   
+  // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
+  if (distribution_nu.variable != NULL ) {
+    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
+    if (nu > 0.499) {
+      wasora_push_error_message("nu is greater than 1/2");
+      return WASORA_RUNTIME_ERROR;
+    } else if (nu < 0) {
+      wasora_push_error_message("nu is negative");
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+  if (distribution_E.variable != NULL) {
+    E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
+    if (E < 0) {
+      wasora_push_error_message("E is negative (%g)", E);
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+  if (distribution_alpha.variable != NULL) {
+    alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
+  }
+  
 
   // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   
@@ -700,33 +721,11 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j_global].x[0];
         wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
         wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
-        // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
-        if (distribution_nu.variable != NULL) {
-          nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
-          if (nu > 0.5) {
-            wasora_push_error_message("nu is greater than 1/2");
-            return WASORA_RUNTIME_ERROR;
-          } else if (nu < 0) {
-            wasora_push_error_message("nu is negative");
-            return WASORA_RUNTIME_ERROR;
-          }
-        }
-        if (distribution_E.variable != NULL) {
-          E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
-          if (E < 0) {
-            wasora_push_error_message("E is negative (%g)", E);
-            return WASORA_RUNTIME_ERROR;
-          }
-        }
-        if (distribution_alpha.variable != NULL) {
-          alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
-        }
         
-        if (distribution_nu.physical_property != NULL) {
-          
+        if (distribution_nu.variable == NULL) {
           nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
 
-          if (nu > 0.5) {
+          if (nu > 0.499) {
             wasora_push_error_message("nu is greater than 1/2 at node %d", j+1);
             return WASORA_RUNTIME_ERROR;
           } else if (nu < 0) {
@@ -735,8 +734,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           }      
         }
 
-        if (distribution_E.physical_property != NULL) {
-          
+        if (distribution_E.variable == NULL) {
           E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
 
           if (E < 0) {
@@ -744,7 +742,8 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
             return WASORA_RUNTIME_ERROR;
           }      
         }
-        if (distribution_alpha.physical_property != NULL) {
+        
+        if (distribution_alpha.variable == NULL) {
           
           alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, fino.mesh->node[j].x);
           
