@@ -216,12 +216,13 @@ int fino_bc_string2parsed(void) {
                       strcmp(name, "y0") == 0 ||
                       strcmp(name, "z0") == 0))) {
           
-          bc->type_math = bc_math_neumann;
-          bc->type_phys = bc_phys_moment;
-          
           // M necesita seis expresiones
           // asi que las alocamos: Mx My Mz x0 y0 z0 en la primera de las BCs
           if (base_bc == NULL) {
+            // solo ponemos el tipo a la base, las otras no hay que procesarlas en bulk
+            bc->type_math = bc_math_neumann;
+            bc->type_phys = bc_phys_moment;
+            
             base_bc = bc;
             base_bc->expr = calloc(6, sizeof(expr_t));
           }
