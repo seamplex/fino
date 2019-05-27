@@ -95,6 +95,7 @@ int fino_break_build_element(element_t *element, int v) {
   
   material_t *material;
 
+  double E, nu;
   double rho;
   double c;
   double alphaDT;
@@ -161,9 +162,20 @@ int fino_break_build_element(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
-      wasora_call(fino_break_compute_C(C,
-          fino_distribution_evaluate(&distribution_E, material,NULL),
-          fino_distribution_evaluate(&distribution_nu, material,NULL)));
+      if ((E = fino_distribution_evaluate(&distribution_E, material, NULL)) <= 0) {
+        wasora_push_error_message("E is not positive (%g)", E);
+        return WASORA_RUNTIME_ERROR;
+      }
+
+      nu = fino_distribution_evaluate(&distribution_nu, material, NULL);
+      if (nu > 0.499) {
+        wasora_push_error_message("nu is greater than 1/2");
+        return WASORA_RUNTIME_ERROR;
+      } else if (nu < 0) {
+        wasora_push_error_message("nu is negative");
+        return WASORA_RUNTIME_ERROR;
+      }
+      wasora_call(fino_break_compute_C(C, E, nu));
     }
     
   }
@@ -564,9 +576,8 @@ int fino_break_compute_stresses(void) {
     }
   }
   if (distribution_E.variable != NULL) {
-    E = fino_distribution_evaluate(&distribution_E, NULL, NULL);
-    if (E < 0) {
-      wasora_push_error_message("E is negative (%g)", E);
+    if ((E = fino_distribution_evaluate(&distribution_E, NULL, NULL)) <= 0) {
+      wasora_push_error_message("E is not positive (%g)", E);
       return WASORA_RUNTIME_ERROR;
     }
   }
@@ -722,6 +733,13 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j_global].x[1];
         wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j_global].x[2];
         
+        if (distribution_E.variable == NULL) {
+          if ((E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x)) <= 0) {
+            wasora_push_error_message("E is not positive (%g)", E);
+            return WASORA_RUNTIME_ERROR;
+          }      
+        }
+
         if (distribution_nu.variable == NULL) {
           nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
 
@@ -734,15 +752,6 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           }      
         }
 
-        if (distribution_E.variable == NULL) {
-          E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
-
-          if (E < 0) {
-            wasora_push_error_message("E is negative at node %d", j+1);
-            return WASORA_RUNTIME_ERROR;
-          }      
-        }
-        
         if (distribution_alpha.variable == NULL) {
           
           alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, fino.mesh->node[j].x);
