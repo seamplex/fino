@@ -1136,7 +1136,10 @@ int fino_break_set_stress(element_t *element, bc_t *bc) {
 int fino_break_set_moment(element_t *element, bc_t *bc) {
   int v;
   double w_gauss;
-  double theta, dx, dy, dz, M;
+  double theta;
+  double dx, dy, dz;
+  double x0, y0, z0;
+  double F, d;
   double r_for_axisymmetric;  
   gsl_vector *Nb;
     
@@ -1144,6 +1147,24 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
       (fino.dimensions == 2 && element->type->dim != 1)) {
     wasora_push_error_message("moment BCs can only be applied to surfaces");
     return WASORA_RUNTIME_ERROR;
+  }
+
+
+  // el centro
+  if (bc->expr[4].n_tokens != 0) {
+    x0 = wasora_evaluate_expression(&bc->expr[4]);
+  } else {
+    x0 = element->physical_entity->cog[0];
+  }
+  if (bc->expr[5].n_tokens != 0) {
+    y0 = wasora_evaluate_expression(&bc->expr[5]);
+  } else {
+    y0 = element->physical_entity->cog[1];
+  }
+  if (bc->expr[6].n_tokens != 0) {
+    z0 = wasora_evaluate_expression(&bc->expr[6]);
+  } else {
+    z0 = element->physical_entity->cog[2];
   }
 
   if (fino.n_local_nodes != element->type->nodes) {
@@ -1159,32 +1180,38 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
 
-    // TODO: evaluar centro
-    dx = gsl_vector_get(fino.mesh->fem.x, 0) - element->physical_entity->cog[0];
-    dy = gsl_vector_get(fino.mesh->fem.x, 1) - element->physical_entity->cog[1];
-    dz = gsl_vector_get(fino.mesh->fem.x, 2) - element->physical_entity->cog[2];
+    dx = gsl_vector_get(fino.mesh->fem.x, 0) - x0;
+    dy = gsl_vector_get(fino.mesh->fem.x, 1) - y0;
+    dz = gsl_vector_get(fino.mesh->fem.x, 2) - z0;
     
     gsl_vector_set_zero(Nb);
 
     // los tres primeros tienen las componentes Mx My y Mz
-    M = wasora_evaluate_expression(&bc->expr[0]);
-    theta = atan2(dy, dz);
-    // ty = cos(theta)*dz
-    gsl_vector_add_to_element(Nb, 1, -M*cos(theta));
-    // tz = -sin(theta)*dy
-    gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
+    if (bc->expr[0].n_tokens != 0) {
+      d = gsl_hypot(dy, dz);
+      theta = atan2(dy, dz);
+      F = wasora_evaluate_expression(&bc->expr[0]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      // ty = cos(theta)*dz
+      gsl_vector_add_to_element(Nb, 1, -F*cos(theta));
+      // tz = -sin(theta)*dy
+      gsl_vector_add_to_element(Nb, 2, +F*sin(theta));
+    }
     
-    M = wasora_evaluate_expression(&bc->expr[1]);
-    theta = atan2(dx, dz);
-    gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
-    gsl_vector_add_to_element(Nb, 2, +M*sin(theta));
+    if (bc->expr[1].n_tokens != 0) {
+      d = gsl_hypot(dx, dz);
+      theta = atan2(dx, dz);
+      F = wasora_evaluate_expression(&bc->expr[1]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
+      gsl_vector_add_to_element(Nb, 2, +F*sin(theta));
+    }
     
-    M = wasora_evaluate_expression(&bc->expr[2]);
-    theta = atan2(dx, dy);
-    gsl_vector_add_to_element(Nb, 0, -M*cos(theta));
-    gsl_vector_add_to_element(Nb, 1, +M*sin(theta));
-    
-    // TODO: el centro de rotacion
+    if (bc->expr[2].n_tokens != 0) {
+      d = gsl_hypot(dx, dy);
+      theta = atan2(dx, dy);
+      F = wasora_evaluate_expression(&bc->expr[2]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
+      gsl_vector_add_to_element(Nb, 1, +F*sin(theta));
+    }
     
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }

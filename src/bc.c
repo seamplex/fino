@@ -510,7 +510,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
               double x[3];
               double eps = 1e-2;
               
-              // TODO: x0, default cog
               for (d = 0; d < 3; d++) {
                 if (bc->expr[d].n_tokens != 0) {
                   x[d] = fino.mesh->node[j].x[d]-wasora_evaluate_expression(&bc->expr[d]);
