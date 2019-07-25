@@ -141,10 +141,30 @@ int fino_instruction_step(void *arg) {
     }
     
     if (fino.problem_family == problem_family_break) {
+        
       wasora_call(fino_break_compute_reactions());
       wasora_call(fino_break_compute_stresses());
-//    } else if (fino.problem_family == problem_family_bake) {
+      
+    } else if (fino.problem_family == problem_family_bake) {
+        
+      double T_max = -INFTY;
+      double T_min = +INFTY;
+      int j;
 //      wasora_call(fino_bake_compute_fluxes());
+        
+      for (j = 0; j < fino.mesh->n_nodes; j++) {
+        // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
+        if (fino.solution[0]->data_value[j] >= T_max) {
+          T_max = fino.solution[0]->data_value[j];
+        }
+        if (fino.solution[0]->data_value[j] <= T_min) {
+          T_min = fino.solution[0]->data_value[j];
+        }
+      }
+      
+      wasora_var(fino.vars.T_max) = T_max;
+      wasora_var(fino.vars.T_min) = T_min;
+        
     }
     time_checkpoint(stress_end);
   }
