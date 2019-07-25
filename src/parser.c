@@ -42,8 +42,9 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage [
 ///kw+FINO_PROBLEM+usage BAKE
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc * `BAKE` (or `HEAT`) solves the heat conduction problem.
-        if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0) {
+///kw+FINO_PROBLEM+desc 
+///kw+FINO_PROBLEM+desc  * `BAKE` (or `HEAT` or `THERMAL`) solves the heat conduction problem.
+        if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0 || strcasecmp(token, "THERMAL") == 0) {
           fino.problem_family = problem_family_bake;
           fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_type_linear;
@@ -53,7 +54,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage SHAKE
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
+///kw+FINO_PROBLEM+desc  * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
         } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "MODAL") == 0) {
 #ifndef HAVE_SLEPC
           wasora_push_error_message("MODAL needs a fino binary linked agains SLEPc.");
@@ -71,8 +72,8 @@ int plugin_parse_line(char *line) {
           
 ///kw+FINO_PROBLEM+usage BREAK
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc `BREAK` (or `ELASTIC`) solves the elastic problem.        
-        } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0) {
+///kw+FINO_PROBLEM+desc  * `BREAK` (or `ELASTIC` or `MECHANICAL`) solves the elastic problem.        
+        } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0 || strcasecmp(token, "MECHANICAL") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_full3d;
           fino.math_type = math_type_linear;
@@ -85,7 +86,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage HEAT_AXISYMMETRIC
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
+///kw+FINO_PROBLEM+desc  * `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
         } else if (strcasecmp(token, "HEAT_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_bake;
           fino.problem_kind = problem_kind_axisymmetric;
@@ -100,7 +101,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage PLANE_STRESS
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc `PLANE_STRESS` solves the plane stress elastic problem. 
+///kw+FINO_PROBLEM+desc  * `PLANE_STRESS` solves the plane stress elastic problem. 
         } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_stress;
@@ -116,7 +117,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_PROBLEM+usage PLANE_STRAIN
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+desc `PLANE_STRAIN` solves the plane strain elastic problem.
+///kw+FINO_PROBLEM+desc  * `PLANE_STRAIN` solves the plane strain elastic problem.
         } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
@@ -132,7 +133,8 @@ int plugin_parse_line(char *line) {
           
 ///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC
 ///kw+FINO_PROBLEM+usage ]
-///kw+FINO_PROBLEM+desc `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
+///kw+FINO_PROBLEM+desc  * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
+///kw+FINO_PROBLEM+desc 
         } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
           fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_axisymmetric;
@@ -147,7 +149,7 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
 
 ///kw+FINO_PROBLEM+usage [ DIMENSIONS <expr> ]
-///kw+FINO_PROBLEM+desc The number of dimensions need to be given for the heat conduction problem.
+///kw+FINO_PROBLEM+desc The number of dimensions needs to be given with `DIMENSIONS` for the heat conduction problem.
         } else if (strcasecmp(token, "DIMENSIONS") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
           fino.dimensions = (int)(xi);

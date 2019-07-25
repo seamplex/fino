@@ -1,21 +1,21 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.5.190-g05b84d6
+This reference sheet is for [Fino](index.html) v0.6.12-gca694fb
 . 
 
 ~~~
 $ fino
-fino v0.5.190-g05b84d6+Δ 
-a partial differential equation solver based on the finite element method
+Fino v0.6.12-gca694fb+Δ 
+a free finite-element thermo-mechanical solver
 $
 ~~~
 
-Note that Fino works on top of [wasora](/wasora), so you should also check the [wasora reference sheet](/wasora/reference.html) also---not to mention the [wasora RealBook](/wasora/realbook).
+Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 
 # Keywords
 
-##  `FINO_DEBUG`
+##  FINO_DEBUG
 
 Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
 
@@ -25,7 +25,7 @@ FINO_DEBUG [ FILE <file_id> | FILE_PATH <file_path> ] [ MATRICES_ASCII ] [ MATRI
 
 
 
-##  `FINO_LINEARIZE`
+##  FINO_LINEARIZE
 
 Performs stress linearization according to ASME VII-Sec 5 over a
 Stress Classification Line given either as a one-dimensional physical entity in the
@@ -49,22 +49,24 @@ If no name for any of the variables is given, they are stored in
 Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
 
 ~~~wasora
-FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> } [ FILE <file_id> | FILE_PATH <file_path> ] [ FILE <file_id> | [ M <variable_name> ] [ MB <variable_name> ] [ PEAK <variable_name> ]
+FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> } [ FILE <file_id> | FILE_PATH <file_path> ] [ M <variable> ] [ MB <variable> ] [ PEAK <variable> ]
 ~~~
 
 
 
-##  `FINO_PROBLEM`
+##  FINO_PROBLEM
 
 Sets the problem type that Fino has to solve.      
-* `BAKE` (or `HEAT`) solves the heat conduction problem.
-* `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
-`BREAK` (or `ELASTIC`) solves the elastic problem.        
-`HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
-`PLANE_STRESS` solves the plane stress elastic problem. 
-`PLANE_STRAIN` solves the plane strain elastic problem.
-`ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
-The number of dimensions need to be given for the heat conduction problem.
+
+ * `BAKE` (or `HEAT` or `THERMAL`) solves the heat conduction problem.
+ * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
+ * `BREAK` (or `ELASTIC` or `MECHANICAL`) solves the elastic problem.        
+ * `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
+ * `PLANE_STRESS` solves the plane stress elastic problem. 
+ * `PLANE_STRAIN` solves the plane strain elastic problem.
+ * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
+
+The number of dimensions needs to be given with `DIMENSIONS` for the heat conduction problem.
 
 ~~~wasora
 FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
@@ -72,7 +74,7 @@ FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_S
 
 
 
-##  `FINO_SOLVER`
+##  FINO_SOLVER
 
 Sets options related to the eigen-solver.
 
@@ -81,13 +83,10 @@ FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] 
 ~~~
 
 
+List of `KSP_TYPE`s <http:
+List of `PC_TYPE`s <http:
 
-List of `KSP_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>
-         
-List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>
-         
-
-##  `FINO_STEP`
+##  FINO_STEP
 
 Solves the linear eigenvalue problem.
 
@@ -102,31 +101,31 @@ FINO_STEP [ JUST_BUILD | JUST_SOLVE ] [ DUMP_FILE_PATH <filepath> ]
 
 # Variables
 
-##  `displ_max`
+##  displ_max
 
 The module of the maximum displacement of the elastic problem.
 
 
 
-##  `displ_max_x`
+##  displ_max_x
 
 The\ $x$ coordinate of the maximum displacement of the elastic problem.
 
 
 
-##  `displ_max_y`
+##  displ_max_y
 
 The\ $y$ coordinate of the maximum displacement of the elastic problem.
 
 
 
-##  `displ_max_z`
+##  displ_max_z
 
 The\ $z$ coordinate of the maximum displacement of the elastic problem.
 
 
 
-##  `fino_abstol`
+##  fino_abstol
 
 Absolute tolerance of the linear solver,
 as passed to PETSc’s
@@ -135,16 +134,7 @@ Default `1e-50`.
 
 
 
-##  `fino_dirichlet_diagonal`
-
-Value that is inserted in the diagonal of the rows
-that correspond to Dirichlet boundary conditions.
-Default is one, but PETSc internally scales it up
-automatically to keep a good condition number.
-
-
-
-##  `fino_divtol`
+##  fino_divtol
 
 Divergence tolerance,
 as passed to PETSc’s
@@ -153,7 +143,7 @@ Default `1e+4`.
 
 
 
-##  `fino_gamg_threshold`
+##  fino_gamg_threshold
 
 Relative threshold to use for dropping edges in aggregation graph for the
 [Geometric Algebraic Multigrid Preconditioner](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)
@@ -164,14 +154,14 @@ Default `0.01`.
 
 
 
-##  `fino_iterations`
+##  fino_iterations
 
 This variable contains the actual number of iterations used
 by the solver. It is set after `FINO_STEP`.
 
 
 
-##  `fino_max_iterations`
+##  fino_max_iterations
 
 Number of maximum iterations before diverging,
 as passed to PETSc’s
@@ -180,16 +170,16 @@ Default `10000`.
 
 
 
-##  `fino_penalty_weight`
+##  fino_penalty_weight
 
 The weight $w$ used when setting multi-freedom boundary conditions.
 Higher values mean better precision in the constrain but distort
 the matrix condition number. 
-Default is `1e7`.
+Default is `1e8`.
 
 
 
-##  `fino_reltol`
+##  fino_reltol
 
 Relative tolerance of the linear solver,
 as passed to PETSc’s
@@ -198,14 +188,14 @@ Default `1e-6`.
 
 
 
-##  `fino_residual_norm`
+##  fino_residual_norm
 
 This variable contains the residual obtained
 by the solver. It is set after `FINO_STEP`.
 
 
 
-##  `lambda`
+##  lambda
 
 
 Requested eigenvalue. It is equal to 1.0 until
@@ -213,109 +203,109 @@ Requested eigenvalue. It is equal to 1.0 until
 
 
 
-##  `memory_usage_global`
+##  memory
 
 Maximum resident set size (global memory used), in bytes.
 
 
 
-##  `memory_usage_petsc`
-
-Maximum resident set size (memory used by PETSc), in bytes.
-
-
-
-##  `memory_use`
+##  memory_available
 
 Total available memory, in bytes.
 
 
 
-##  `petsc_flops`
+##  memory_petsc
+
+Maximum resident set size (memory used by PETSc), in bytes.
+
+
+
+##  petsc_flops
 
 Number of floating point operations performed by PETSc/SLEPc.
 
 
 
-##  `sigma_max`
+##  sigma_max
 
 The maximum von Mises stress\ $\sigma$ of the elastic problem.
 
 
 
-##  `sigma_max_x`
+##  sigma_max_x
 
 The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
 
 
 
-##  `sigma_max_y`
+##  sigma_max_y
 
 The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
 
 
 
-##  `sigma_max_z`
+##  sigma_max_z
 
 The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
 
 
 
-##  `time_cpu_build`
+##  time_cpu_build
 
 CPU time insumed to build the problem matrices, in seconds.
 
 
 
-##  `time_cpu_solve`
+##  time_cpu_solve
 
 CPU time insumed to solve the problem, in seconds.
 
 
 
-##  `time_cpu_stress`
+##  time_cpu_stress
 
 CPU time insumed to compute the stresses from the displacements, in seconds.
 
 
 
-##  `time_petsc_build`
+##  time_petsc_build
 
 CPU time insumed by PETSc to build the problem matrices, in seconds.
 
 
 
-##  `time_petsc_solve`
+##  time_petsc_solve
 
 CPU time insumed by PETSc to solve the eigen-problem, in seconds.
 
 
 
-##  `time_petsc_stress`
+##  time_petsc_stress
 
 CPU time insumed by PETSc to compute the stresses, in seconds.
 
 
 
-##  `time_wall_build`
+##  time_wall_build
 
 Wall time insumed to build the problem matrices, in seconds.
 
 
 
-##  `time_wall_solve`
+##  time_wall_solve
 
 Wall time insumed to solve the problem, in seconds.
 
 
 
-##  `time_wall_stress`
+##  time_wall_stress
 
 Wall time insumed to compute the stresses, in seconds.
 
 
 
-##  `time_wall_total`
+##  time_wall_total
 
 Wall time insumed to initialize, build and solve, in seconds.
 CPU time insumed to initialize, build and solve, in seconds.
@@ -323,49 +313,49 @@ CPU time insumed by PETSc to initialize, build and solve, in seconds.
 
 
 
-##  `T_max`
+##  T_max
 
 The maximum temperature\ $T_\text{max}$ of the thermal problem.
 
 
 
-##  `T_min`
+##  T_min
 
 The minimum temperature\ $T_\text{min}$ of the thermal problem.
 
 
 
-##  `u_at_displ_max`
+##  u_at_displ_max
 
 The\ $x$ component\ $u$ of the maximum displacement of the elastic problem.
 
 
 
-##  `u_at_sigma_max`
+##  u_at_sigma_max
 
 The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
 
 
 
-##  `v_at_displ_max`
+##  v_at_displ_max
 
 The\ $y$ component\ $v$ of the maximum displacement of the elastic problem.
 
 
 
-##  `v_at_sigma_max`
+##  v_at_sigma_max
 
 The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
 
 
 
-##  `w_at_displ_max`
+##  w_at_displ_max
 
 The\ $z$ component\ $w$ of the maximum displacement of the elastic problem.
 
 
 
-##  `w_at_sigma_max`
+##  w_at_sigma_max
 
 The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
 
