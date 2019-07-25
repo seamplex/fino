@@ -1,16 +1,8 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.6.12-gca694fb
+This reference sheet is for [Fino](index.html) v0.6.13-gead0afa
 . 
-
-~~~
-$ fino
-Fino v0.6.12-gca694fb+Δ 
-a free finite-element thermo-mechanical solver
-$
-~~~
-
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 
 # Keywords
@@ -58,21 +50,22 @@ FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> 
 
 Sets the problem type that Fino has to solve.      
 
- * `BAKE` (or `HEAT` or `THERMAL`) solves the heat conduction problem.
- * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
- * `BREAK` (or `ELASTIC` or `MECHANICAL`) solves the elastic problem.        
- * `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
- * `PLANE_STRESS` solves the plane stress elastic problem. 
- * `PLANE_STRAIN` solves the plane strain elastic problem.
- * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
-
-The number of dimensions needs to be given with `DIMENSIONS` for the heat conduction problem.
-
 ~~~wasora
 FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
 ~~~
 
 
+
+ * `BAKE` (or `HEAT` or `THERMAL`) solves the heat conduction problem.
+ * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.
+ * `BREAK` (or `ELASTIC` or `MECHANICAL`) solves the elastic problem.
+ * `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.
+ * `PLANE_STRESS` solves the plane stress elastic problem.
+ * `PLANE_STRAIN` solves the plane strain elastic problem.
+ * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
+
+For the heat conduction problem the number of dimensions needs to be given either with the keyword `DIMENSIONS`
+or by defining a `MESH` (with an explicit `DIMENSIONS` keyword) before `FINO_PROBLEM`.
 
 ##  FINO_SOLVER
 
@@ -83,8 +76,8 @@ FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] 
 ~~~
 
 
-List of `KSP_TYPE`s <http:
-List of `PC_TYPE`s <http:
+List of `KSP_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>
+List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>
 
 ##  FINO_STEP
 
