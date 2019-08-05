@@ -333,6 +333,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   PetscScalar *local_b;
   const PetscInt *cols;
   const PetscScalar *vals;
+  PetscScalar diag;
   
   physical_entity_t *physical_entity = NULL;
   physical_entity_t *physical_entity_last = NULL;
@@ -444,7 +445,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
                 // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
                 petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-                MatSetValues(fino.K, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(A, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
                 petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
               }
 
@@ -498,7 +499,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 }
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
@@ -531,7 +532,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 gsl_matrix_set(c, 0, 1, -x[0]);
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
@@ -551,7 +552,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 gsl_matrix_set(c, 0, 2, -x[0]);
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
@@ -571,7 +572,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 gsl_matrix_set(c, 0, 2, -x[1]);
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
@@ -609,7 +610,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
               }
 
               wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-              MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+              MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
               // TODO: non-uniform RHS
               gsl_matrix_free(c);
@@ -632,10 +633,22 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
   // esto se necesita solo si hubo constrains
   wasora_call(fino_assembly());
-    
+  
+  // alguna veces hay nodos sueltos que no tienen nigun volumen asociado asi que le quedan
+  // ceros en la diagonal y el MatZeroRowsColumns se queja
+  for (k = 0; k < fino.problem_size; k++) {
+    petsc_call(MatGetValues(A, 1, &k, 1, &k, &diag));
+    if (diag == 0) {
+      petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+      petsc_call(MatSetValue(A, k, k, 1.0, INSERT_VALUES));
+      petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+      wasora_call(fino_assembly());
+    }
+  }
+
   // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
   // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
-  // TODO: hacer lo que dijo barry
+  // TODO: hacer lo que dijo barry, sea lo que haya dicho
   if (fino.problem_family == problem_family_break) {
     petsc_call(VecGetArray(b, &local_b));
     for (i = 0; i < fino.n_dirichlet_rows; i++) {
