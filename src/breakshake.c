@@ -1140,8 +1140,16 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
   double dx, dy, dz;
   double x0, y0, z0;
   double F, d;
-  double r_for_axisymmetric;  
+  double r_for_axisymmetric;
   gsl_vector *Nb;
+  
+  physical_entity_t *physical_entity = element->physical_entity;
+  element_t *tmp_element;
+  double w;
+  double xix, xiy, xiz;
+  double Ix, Iy, Iz;
+  int i, j;
+  
     
   if ((fino.dimensions == 3 && element->type->dim != 2) ||
       (fino.dimensions == 2 && element->type->dim != 1)) {
@@ -1152,21 +1160,46 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
 
   // el centro
   if (bc->expr[4].n_tokens != 0) {
-    x0 = wasora_evaluate_expression(&bc->expr[4]);
+    x0 = wasora_evaluate_expression(&bc->expr[3]);
   } else {
-    x0 = element->physical_entity->cog[0];
+    x0 = physical_entity->cog[0];
   }
   if (bc->expr[5].n_tokens != 0) {
-    y0 = wasora_evaluate_expression(&bc->expr[5]);
+    y0 = wasora_evaluate_expression(&bc->expr[4]);
   } else {
-    y0 = element->physical_entity->cog[1];
+    y0 = physical_entity->cog[1];
   }
   if (bc->expr[6].n_tokens != 0) {
-    z0 = wasora_evaluate_expression(&bc->expr[6]);
+    z0 = wasora_evaluate_expression(&bc->expr[5]);
   } else {
-    z0 = element->physical_entity->cog[2];
+    z0 = physical_entity->cog[2];
   }
 
+  // el momento polar de inercia
+  Ix = 0;
+  Iy = 0;
+  Iz = 0;
+  for (i = 0; i < physical_entity->n_elements; i++) {
+    tmp_element = &fino.mesh->element[physical_entity->element[i]];
+    for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+      w = mesh_integration_weight(fino.mesh, element, v);
+
+      xix = 0;
+      xiy = 0;
+      xiz = 0;
+      for (j = 0; j < element->type->nodes; j++) {
+        xix += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[0]);
+        xiy += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[1]);
+        xiz += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[2]);
+      }
+
+      Ix += w * xix;
+      Iy += w * xiy;
+      Iz += w * xiz;
+    }
+  }
+  
+  
   if (fino.n_local_nodes != element->type->nodes) {
     wasora_call(fino_allocate_elemental_objects(element));
   }
@@ -1190,7 +1223,7 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
     if (bc->expr[0].n_tokens != 0) {
       d = gsl_hypot(dy, dz);
       theta = atan2(dy, dz);
-      F = wasora_evaluate_expression(&bc->expr[0]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      F = wasora_evaluate_expression(&bc->expr[0]) * 0.5 * d / (Iy+Iz);
       // ty = cos(theta)*dz
       gsl_vector_add_to_element(Nb, 1, -F*cos(theta));
       // tz = -sin(theta)*dy
@@ -1200,7 +1233,7 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
     if (bc->expr[1].n_tokens != 0) {
       d = gsl_hypot(dx, dz);
       theta = atan2(dx, dz);
-      F = wasora_evaluate_expression(&bc->expr[1]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      F = wasora_evaluate_expression(&bc->expr[1]) * 0.5 * d / (Ix+Iz);
       gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
       gsl_vector_add_to_element(Nb, 2, +F*sin(theta));
     }
@@ -1208,7 +1241,7 @@ int fino_break_set_moment(element_t *element, bc_t *bc) {
     if (bc->expr[2].n_tokens != 0) {
       d = gsl_hypot(dx, dy);
       theta = atan2(dx, dy);
-      F = wasora_evaluate_expression(&bc->expr[2]) * d * M_PI/ gsl_pow_2(element->physical_entity->volume);
+      F = wasora_evaluate_expression(&bc->expr[2]) * 0.5 * d / (Ix+Iy);
       gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
       gsl_vector_add_to_element(Nb, 1, +F*sin(theta));
     }
