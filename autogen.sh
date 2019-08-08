@@ -24,7 +24,7 @@ echo -n "autogen: updating wasora, "
 if [ -e ../wasora/.git ]; then
   WASORA_REPO=../wasora/.git
 else 
-  WASORA_REPO=https://bitbucket.org/seamplex/wasora.git
+  WASORA_REPO=https://github.com/seamplex/wasora.git
 fi
 
 if [ ! -e wasora ]; then

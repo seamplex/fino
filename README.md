@@ -17,7 +17,9 @@ It is particularly designed to handle complex dependence of material properties 
 
 Fino follows, amongst [others](https://www.seamplex.com/principles.html), the [UNIX philosophy](https://en.wikipedia.org/wiki/Unix_philosophy). Fino is a [back-end](https://en.wikipedia.org/wiki/Front_and_back_ends) aimed at advanced users. For an easy-to-use web-based front-end with Fino running in the cloud, see [CAEplex](https://www.caeplex.com):
 
-[![A beam modeled with CAEplex](https://www.caeplex.com/img/viga.png){.img-fluid}](https://www.caeplex.com)
+::: {.embed-responsive .embed-responsive-16by9 .mb-3}
+ <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/uvzzPyRYk_c" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+:::
 
 # Quick start
 
@@ -39,7 +41,7 @@ If your distribution does not have a bundled version of [PETSc](http://www.mcs.a
 Clone the Fino repository, bootstrap (might take a while as it has to clone and bootstrap [wasora](https://www.seamplex.com/wasora/) first), configure, compile, check and install:
 
 ~~~
-git clone https://bitbucket.org/seamplex/fino/
+git clone https://github.com/seamplex/fino.git
 cd fino
 ./autogen.sh
 ./configure
@@ -300,20 +302,20 @@ Fino is distributed under the terms of the [GNU General Public License](http://w
 >
 > Also, for our own protection, we must make certain that everyone finds out that there is no warranty for Fino. If Fino is modified by someone else and passed on, we want their recipients to know that what they have is not what we distributed, so that any problems introduced by others will not reflect on our reputation.
 >
-> The precise conditions of the license for Fino are found in the [General Public License](https://bitbucket.org/seamplex/fino/src/master/COPYING) that accompanies the source code. Further information about this license is available from the GNU Project webpage <http://www.gnu.org/copyleft/gpl-faq.html>.
+> The precise conditions of the license for Fino are found in the [General Public License](https://github.com/seamplex/wasora/blob/master/COPYING) that accompanies the source code. Further information about this license is available from the GNU Project webpage <http://www.gnu.org/copyleft/gpl-faq.html>.
 
 
 # Further information
 
 Home page: <https://www.seamplex.com/fino>  
-Repository: <https://bitbucket.org/seamplex/fino>  
+Repository: <https://github.com/seamplex/fino.git>  
 Mailing list and bug reports: <wasora@seamplex.com>  (you need to subscribe first at <wasora+subscribe@seamplex.com>)  
 Web interface for mailing list: <https://www.seamplex.com/lists.html>  
-Follow us: [Twitter](https://twitter.com/seamplex/) [YouTube](https://www.youtube.com/channel/UCC6SzVLxO8h6j5rLlfCQPhA) [LinkedIn](https://www.linkedin.com/company/seamplex/) [Bitbucket](https://bitbucket.org/seamplex/)
+Follow us: [Twitter](https://twitter.com/seamplex/) [YouTube](https://www.youtube.com/channel/UCC6SzVLxO8h6j5rLlfCQPhA) [LinkedIn](https://www.linkedin.com/company/seamplex/) [Github](https://github.com/seamplex)
 
 ---------------------------
 
-Fino is copyright ©2014-2018 Jeremy Theler  
+Fino is copyright ©2014-2019 Jeremy Theler  
 Fino is licensed under [GNU GPL version 3](http://www.gnu.org/copyleft/gpl.html) or (at your option) any later version.  
 Fino is free software: you are free to change and redistribute it.  
 There is NO WARRANTY, to the extent permitted by law.  
