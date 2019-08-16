@@ -252,9 +252,13 @@ int fino_bc_string2parsed(void) {
           bc->expr = calloc(1, sizeof(expr_t));
           wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
-        } else if (strcmp(name, "q") == 0) {
+        } else if (strcmp(name, "q") == 0 || strcmp(name, "Q") == 0) {
           bc->type_math = bc_math_neumann;
-          bc->type_phys = bc_phys_heat_flux;
+          if (strcmp(name, "Q") == 0) {
+            bc->type_phys = bc_phys_heat_total;
+          } else {
+            bc->type_phys = bc_phys_heat_flux;
+          }
           bc->expr = calloc(1, sizeof(expr_t));
           wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 

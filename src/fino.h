@@ -81,7 +81,8 @@ PetscErrorCode petsc_err;
 
 #define bc_phys_temperature                           32
 #define bc_phys_heat_flux                             33
-#define bc_phys_convection                            34
+#define bc_phys_heat_total                            34
+#define bc_phys_convection                            35
 
 #define bc_dof_moment_offset              64
 #define bc_dof_coordinates_offset        128

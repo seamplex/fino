@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's construction of heat conduction problem (bake)
  *
- *  Copyright (C) 2015--2018 jeremy theler & ezequiel manavela chiapero
+ *  Copyright (C) 2015--2019 jeremy theler & ezequiel manavela chiapero
  *
  *  This file is part of fino.
  *
@@ -281,8 +281,12 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
     mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
     mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
     
-    q = wasora_evaluate_expression(&bc->expr[0]);
-    gsl_vector_set(Nb, 0, -q);
+    if (bc->type_phys == bc_phys_heat_total) {
+      q = wasora_evaluate_expression(&bc->expr[0])/element->physical_entity->volume;
+    } else {
+      q = wasora_evaluate_expression(&bc->expr[0]);
+    }
+    gsl_vector_set(Nb, 0, q);
     
     gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
   }
@@ -297,7 +301,7 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_set_heat_flux"
+#define __FUNCT__ "fino_bake_set_convection"
 int fino_bake_set_convection(element_t *element, bc_t *bc) {
   double w_gauss;
   double r_for_axisymmetric;
