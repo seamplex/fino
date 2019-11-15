@@ -57,5 +57,8 @@ thin-rotating-disk.vtk
 wire-*.msh
 wire-*.vtk
 
+cylinder.msh
+heat-cylinder.mpg
+heat-cylinder.msh
 
 meta*.msh
