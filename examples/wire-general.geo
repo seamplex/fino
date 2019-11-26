@@ -1,7 +1,7 @@
 //
 SetFactory("OpenCASCADE");
-l = 150;
-d = 2;
+l = 0.5*303e-3;
+d = 1.948e-3;
 Cylinder(1) = {0, 0, 0, 0, l, 0, d/2};
 
 Mesh.OptimizeNetgen = 1;

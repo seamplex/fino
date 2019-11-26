@@ -3,25 +3,24 @@
 # (note that there is a systematic error of a factor of two in the measured values)
 
 DEFAULT_ARGUMENT_VALUE 1 copper    # material, either copper or aluminum
-# DEFAULT_ARGUMENT_VALUE 2 general   # mesh, either general or axisymmetric
 
 MESH FILE_PATH wire-general.msh DIMENSIONS 3
 
-l = 150  # cantilever wire length [ mm ]
-d = 2    # wire diameter [ mm ]
+l = 0.5*303e-3   # cantilever wire length [ m ]
+d = 1.948e-3     # wire diameter [ m ]
 
 
 # material properties for copper
-m_copper = 0.5*8.02e-3  # total mass (half the measured because of the experimental disposition)
-E_copper = 2*66.2e3     # [ MPa ] Young modulus ~ (twice the measured value because of an error in the report)
+m_copper = 0.5*8.02e-3  # total mass (half the measured because of the experimental disposition) [ kg ]
+E_copper = 2*66.2e9     # [ Pa ] Young modulus (twice because the factor-two error)
 
 # material properties for aluminum
 m_aluminum = 0.5*2.67e-3
-E_aluminum = 2*40.2e3
+E_aluminum = 2*40.2e9
 
 # problem’s properties
 E = E_$1                     # [ MPa ]
-rho = m_$1/(pi*(0.5*d)^2*l)  # [ kg / mm^3 ] density = mass (measured) / volume 
+rho = m_$1/(pi*(0.5*d)^2*l)  # [ kg / m^3 ] density = mass (measured) / volume 
 nu = 0                       # Poisson’s ratio (does not appear in Euler-Bernoulli)
 
 # analytical solution
@@ -33,9 +32,9 @@ kl(i) = root(cosh(t)*cos(t)+1, t, 3*i-2,3*i+1)
 
 # then compute the frequencies according to Euler-Bernoulli
 # note that we need to use SI inside the square root
-A = pi * (1e-3*(d/2))^2
-I = pi/4 * (1e-3*(d/2))^4
-f_euler(i) = 1/(2*pi) * kl(i)^2 * sqrt((1e6*E * I)/(1e9*rho * A * (1e-3*l)^4))
+A = pi * (d/2)^2
+I = pi/4 * (d/2)^4
+f_euler(i) = 1/(2*pi) * kl(i)^2 * sqrt((E * I)/(rho * A * l^4))
 
 # now compute the modes numerically with FEM
 # note that each mode is duplicated as it is degenerated
