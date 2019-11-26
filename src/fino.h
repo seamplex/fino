@@ -262,9 +262,6 @@ struct {
   Mat dotM;
   Vec m;
   
-  Mat Morig;     // la matriz de masa sin las condiciones de contorno
-                 // (para calcular cosas de los modos como masa total = <1> M [1]
-  
   // contexto del solver de krylov
   KSP ksp;
   PC pc;
@@ -348,7 +345,7 @@ struct {
   // las derivadas de la solucion con respecto al espacio;
   function_t ***gradient;
   // los modos de vibracion
-  function_t ***vibration;
+  function_t ***mode;
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;

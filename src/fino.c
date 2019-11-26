@@ -67,11 +67,6 @@ int fino_instruction_step(void *arg) {
     time_checkpoint(build_begin);
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
 
-    // nos acordamos de la matriz de masa antes de ponerle las condiciones de contorno de Dirichlet
-    if (fino.has_mass) {
-      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.Morig);
-    }
-    
     wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
     time_checkpoint(build_end);
   }
@@ -97,7 +92,7 @@ int fino_instruction_step(void *arg) {
         wasora_var(fino.vars.lambda) = fino.lambda;        // leemos el autovalor
 
         // vemos si nos pidieron varias frecuencias
-        if (fino.nev != 1) {
+        if (fino.nev != 0) {
           wasora_call(fino_eigen_nev()); 
         }
 #else 
@@ -134,23 +129,24 @@ int fino_instruction_step(void *arg) {
           for (i = 0; i < fino.nev; i++) {
             // las funciones ya tienen el factor de excitacion
             petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[k].index_dof[g], &xi));
-            fino.vibration[g][i]->data_value[k] = gsl_vector_get(wasora_value_ptr(fino.vectors.Gamma), i) * xi;
+            fino.mode[g][i]->data_value[k] = gsl_vector_get(wasora_value_ptr(fino.vectors.Gamma), i) * xi;
           }
         }
       }
     }
     
     if (fino.problem_family == problem_family_break) {
-        
-      wasora_call(fino_break_compute_reactions());
+  
       wasora_call(fino_break_compute_stresses());
+// en el rewrite las reacciones hay que calcularlas despues de las tensiones
+//      wasora_call(fino_break_compute_reactions());
       
     } else if (fino.problem_family == problem_family_bake) {
         
       double T_max = -INFTY;
       double T_min = +INFTY;
       int j;
-//      wasora_call(fino_bake_compute_fluxes());
+      wasora_call(fino_bake_compute_fluxes());
         
       for (j = 0; j < fino.mesh->n_nodes; j++) {
         // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max

@@ -533,11 +533,11 @@ int fino_problem_init(void) {
     fino.solution[g]->data_argument = fino.mesh->nodes_argument;
     fino.solution[g]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
     
-    if (fino.nev > 1) {
+    if (fino.nev > 0) {
       for (i = 0; i < fino.nev; i++) {
-        fino.vibration[g][i]->data_argument = fino.gradient[0][0]->data_argument;
-        fino.vibration[g][i]->data_size = fino.mesh->n_nodes;
-        fino.vibration[g][i]->data_value = calloc(fino.mesh->n_nodes, sizeof(double));
+        fino.mode[g][i]->data_argument = fino.solution[0]->data_argument;
+        fino.mode[g][i]->data_size = fino.mesh->n_nodes;
+        fino.mode[g][i]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
       }
     }
   }

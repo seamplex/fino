@@ -334,9 +334,6 @@ void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sig
 #define __FUNCT__ "fino_set_essential_bc"
 int fino_set_essential_bc(Mat A, Vec b) {
 
-  PetscScalar *local_b;
-  const PetscInt *cols;
-  const PetscScalar *vals;
   PetscScalar diag;
   
   physical_entity_t *physical_entity = NULL;
@@ -349,10 +346,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
   size_t n_bcs = 0;
   size_t current_size = 0;
   
-  int i, j, d;
+  int j, d;
   int k = 0;
   
-  PetscInt ncols;
   Vec vec_rhs;
 
   
@@ -649,48 +645,6 @@ int fino_set_essential_bc(Mat A, Vec b) {
       wasora_call(fino_assembly());
     }
   }
-
-  // antes de romper las filas de dirichlet, nos las acordamos para calcular las reacciones  
-  // ojo! aca estamos contando varias veces el mismo nodo, porque un nodo pertenece a varios elementos
-  // TODO: hacer lo que dijo barry, sea lo que haya dicho
-  if (fino.problem_family == problem_family_break) {
-    petsc_call(VecGetArray(b, &local_b));
-    for (i = 0; i < fino.n_dirichlet_rows; i++) {
-            
-      petsc_call(MatGetRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
-//       printf("%d %d %d\n", i, ncols, fino.dirichlet_row[i].ncols);
-      if (ncols != 0) {
-        if (fino.dirichlet_row[i].ncols != ncols) {
-          if (fino.dirichlet_row[i].ncols != 0) {
-            free(fino.dirichlet_row[i].cols);
-            free(fino.dirichlet_row[i].vals);
-          }
-          fino.dirichlet_row[i].ncols = ncols;
-          fino.dirichlet_row[i].cols = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscInt *));
-          fino.dirichlet_row[i].vals = calloc(fino.dirichlet_row[i].ncols, sizeof(PetscScalar *));
-        }
-        
-        // por si acaso igualamos en lugar de hacer memcpy
-        for (j = 0; j < ncols; j++) {
-          fino.dirichlet_row[i].cols[j] = cols[j];
-          fino.dirichlet_row[i].vals[j] = vals[j];
-        }
-        
-        petsc_call(MatRestoreRow(A, fino.dirichlet_indexes[i], &ncols, &cols, &vals));
-        
-      } else {
-        wasora_push_error_message("topology error, please check the mesh connectivity in physical entity '%s' (do you have volumetric elements?)", fino.dirichlet_row->physical_entity->name);
-        PetscFunctionReturn(WASORA_RUNTIME_ERROR);
-      }
-    
-      // el cuento es asi: hay que poner un cero en b para romper las fuerzas volumetricas
-      // despues con rhs le ponemos lo que va
-//      printf("%d\n", fino.dirichlet_indexes[i]);
-      local_b[fino.dirichlet_indexes[i]] = 0;
-    }
-    petsc_call(VecRestoreArray(b, &local_b));
-  }
-  
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
   petsc_call(VecSetValues(vec_rhs, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));

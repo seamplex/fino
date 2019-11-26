@@ -9,6 +9,8 @@ nu = 0.3    # Poisson ratio
 # boundary conditions ("left" and "right" come from the names in the mesh)
 PHYSICAL_ENTITY left  BC fixed
 PHYSICAL_ENTITY right BC tx=0.002*E*(10/13)  # traction
+# PHYSICAL_ENTITY right BC Fx=40000
+
 
 # other possible conditions:
 # PHYSICAL_ENTITY right BC p=0.002*E*(10/13)   # pressure
@@ -30,7 +32,15 @@ PRINT TEXT "maximum_displacement    [mm]  =" displ_max
 PRINT TEXT "horizontal_displacement [mm]  =" u(80,0,0)
 # sigma(x,y,z) is the von mises stress
 PRINT TEXT "stress_at_the_origin    [MPa] =" sigma(0,0,0)
-# the reaction force is stored at "physical entity name underscore RF"
-PRINT TEXT "reaction_at_fixed_end   [N]   =" left_RF
+
+# reaction at fixed end
+MESH_INTEGRATE EXPRESSION nx*sigmax(x,y,z)+ny*tauxy(x,y,z)+nz*tauzx(x,y,z) OVER left RESULT reaction_left_x
+MESH_INTEGRATE EXPRESSION nx*tauxy(x,y,z)+ny*sigmay(x,y,z)+nz*tauyz(x,y,z) OVER left RESULT reaction_left_y
+MESH_INTEGRATE EXPRESSION nx*tauzx(x,y,z)+ny*tauyz(x,y,z)+nz*sigmaz(x,y,z) OVER left RESULT reaction_left_z
+
+PRINT TEXT "reaction_at_fixed_end   [N]   =" reaction_left_x reaction_left_y reaction_left_z
+
+
+PRINT rle rlf 0.002*E*10/13*right_vol rrf
 
 PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)

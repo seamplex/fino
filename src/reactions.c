@@ -26,7 +26,7 @@
 int fino_break_compute_reactions(void) {
 
   // TODO: hacer lo que dijo barry de traer matgetsubmatrix
-
+/*
   int g, i, j, k;
   int dirichlet;
   PetscScalar xi;
@@ -104,6 +104,6 @@ int fino_break_compute_reactions(void) {
       
     }
   }
-
+*/
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

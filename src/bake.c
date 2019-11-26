@@ -366,7 +366,7 @@ int fino_bake_compute_fluxes(void) {
   
   PetscFunctionBegin;
   
-  // evaluamos nu y E, si son uniformes esto ya nos sirve para siempre
+  // evaluamos k, si es uniformes esto ya nos sirve para siempre
   if (distribution_k.variable != NULL) {
     k = fino_distribution_evaluate(&distribution_k, NULL, NULL);
     if (k < 0) {
@@ -393,7 +393,10 @@ int fino_bake_compute_fluxes(void) {
         wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].tag);
         return WASORA_RUNTIME_ERROR;
       }
-      k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
+      
+      if (distribution_k.variable == NULL) {
+        k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
+      }  
       if (k < 0) {
         wasora_push_error_message("k is negative");
         return WASORA_RUNTIME_ERROR;

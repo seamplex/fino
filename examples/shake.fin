@@ -1,5 +1,5 @@
 MESH FILE_PATH tensile-test.msh  DIMENSIONS 3
-FINO_PROBLEM MODAL N_EIGEN 20
+FINO_PROBLEM MODAL N_MODES 20
 
 rho = 7800e-9  # [ kg / mm^3 ]
 E = 200e3      # [ MPa ] Young modulus ~ 200 GPa
@@ -10,7 +10,8 @@ PHYSICAL_ENTITY NAME left   BC fixed
 
 FINO_STEP
 
-PRINT_VECTOR i f M(i)/mass Me(i)/mass L Gamma Me(i)/mass sum(Me(j)/mass,j,1,i)
+PRINT_VECTOR i f M(i)/mass L Gamma Me(i)/mass sum(Me(j)/mass,j,1,i)
+
 
 MESH_POST FILE_PATH shake.vtk \
  VECTOR u1 v1 w1 VECTOR u2 v2 w2 VECTOR u3 v3 w3 \

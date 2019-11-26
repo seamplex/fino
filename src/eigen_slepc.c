@@ -23,6 +23,8 @@
 #include <slepceps.h>
 #include <petscksp.h>
 
+#include <math.h>
+
 #include "fino.h"
 
 
@@ -54,8 +56,8 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   
   // problema generalizado no hermitico (por las condiciones de contorno)
   // TODO: no romper simetria!
-  petsc_call(EPSSetProblemType(fino.eps, EPS_GNHEP));  
-//  petsc_call(EPSSetProblemType(fino.eps, EPS_GHEP));    
+//  petsc_call(EPSSetProblemType(fino.eps, EPS_GNHEP));  
+  petsc_call(EPSSetProblemType(fino.eps, EPS_GHEP));    
   
   // TODO: ver bien esto del guess inicial
   //petsc_call(EPSSetInitialSpace(fino.eps, 1, &fino.guess));
@@ -133,7 +135,7 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   // ya viene normalizado con alguna de las matrices
 //  VecNormalize(fino.phi, PETSC_NULL);
 
-  if (fino.nev != 1) {
+  if (fino.nev != 0) {
     free(fino.eigenvalue);
     free(fino.eigenvector);
     fino.eigenvalue = calloc(fino.nev, sizeof(PetscScalar));
@@ -169,7 +171,7 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
 #define __FUNCT__ "fino_eigen_nev"
 int fino_eigen_nev() {
   int i, j;
-  double xi, fu;
+  double xi, w;
 
   Vec tmp;
   Vec one;
@@ -188,17 +190,15 @@ int fino_eigen_nev() {
   // la fiesta de la ineficiencia
   for (i = 0; i < fino.nev; i++) {
     // autovalor convertido a frequencia
-    fu = 4.0/1.0; // factor fumanchu
-    wasora_vector_set(fino.vectors.f, i, sqrt(fu*2*M_PI/fino.eigenvalue[i]));
-    wasora_vector_set(fino.vectors.omega, i, sqrt(fu/fino.eigenvalue[i]));
+    w = 1.0/sqrt(fino.eigenvalue[i]);
+    wasora_vector_set(fino.vectors.omega, i, w);
+    wasora_vector_set(fino.vectors.f, i, w/(2*M_PI));
 
     // autovector i
     fino.vectors.phi[i]->size = fino.problem_size;
 
     // normalizado para que el maximo sea uno
     VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
-//            VecNorm(fino.eigenvector[i], NORM_1, &norm);
-//            VecNorm(fino.eigenvector[i], NORM_2, &norm);            
     VecScale(fino.eigenvector[i], 1.0/norm);
 
     for (j = 0; j < fino.problem_size; j++) {
@@ -207,12 +207,12 @@ int fino_eigen_nev() {
     }
 
     // masa modal
-    MatMult(fino.Morig, fino.eigenvector[i], tmp);
+    MatMult(fino.M, fino.eigenvector[i], tmp);
     VecDot(fino.eigenvector[i], tmp, &M);
     wasora_vector_set(fino.vectors.M, i, M);
 
     // excitacion
-    MatMult(fino.Morig, one, tmp);
+    MatMult(fino.M, one, tmp);
     VecDot(fino.eigenvector[i], tmp, &L);
     wasora_vector_set(fino.vectors.L, i, L);
 

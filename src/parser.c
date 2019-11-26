@@ -69,6 +69,10 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[0] = strdup("u");
           fino.unknown_name[1] = strdup("v");
           fino.unknown_name[2] = strdup("w");
+          // por default 10 modos
+          if (fino.nev == 0) {
+            fino.nev = 10;
+          }
           
 ///kw+FINO_PROBLEM+usage BREAK
 ///kw+FINO_PROBLEM+usage |
@@ -187,8 +191,8 @@ int plugin_parse_line(char *line) {
           free(mesh_name);
         
 #ifdef HAVE_SLEPC
-///kw+FINO_PROBLEM+usage [ N_EIGEN <expr> ]
-        } else if (strcasecmp(token, "N_EIGEN") == 0) {
+///kw+FINO_PROBLEM+usage [ N_MODES <expr> ]
+        } else if (strcasecmp(token, "N_MODES") == 0 || strcasecmp(token, "N_EIGEN") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
           fino.nev = (int)(xi);
           if (fino.nev < 1)  {
@@ -739,7 +743,7 @@ int fino_define_functions(void) {
   
   char *name;
   char *gradname;
-  char *vibname;
+  char *modename;
   int i, g, d;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
@@ -752,8 +756,8 @@ int fino_define_functions(void) {
 
   fino.solution = calloc(fino.degrees, sizeof(function_t *));
   fino.gradient = calloc(fino.degrees, sizeof(function_t *));
-  if (fino.nev > 1) {
-    fino.vibration = calloc(fino.degrees, sizeof(function_t *));
+  if (fino.nev > 0) {
+    fino.mode = calloc(fino.degrees, sizeof(function_t *));
   }
 
   for (g = 0; g < fino.degrees; g++) {
@@ -799,16 +803,20 @@ int fino_define_functions(void) {
       free(gradname);
     }
     
-    if (fino.nev > 1) {
+    if (fino.nev > 0) {
 
-      fino.vibration[g] = calloc(fino.nev, sizeof(function_t *));
+      fino.mode[g] = calloc(fino.nev, sizeof(function_t *));
       for (i = 0; i < fino.nev; i++) {
-        if (asprintf(&vibname, "%s%d", name, i+1) == -1) {
+        if (asprintf(&modename, "%s%d", name, i+1) == -1) {
           wasora_push_error_message("cannot asprintf");
           return WASORA_RUNTIME_ERROR;
         }
-        wasora_call(fino_define_result_function(vibname, &fino.vibration[g][i]));
-        free(vibname);
+        wasora_call(fino_define_result_function(modename, &fino.mode[g][i]));
+        free(modename);
+        
+        fino.mode[g][i]->mesh = fino.solution[g]->mesh;
+        fino.mode[g][i]->var_argument = fino.solution[g]->var_argument;
+        fino.mode[g][i]->type = fino.solution[g]->type;
       }
     }
     
@@ -835,7 +843,7 @@ int fino_define_functions(void) {
         
   }
     
-  if (fino.nev > 1) {
+  if (fino.nev > 0) {
 ///va+mass+name mass
 ///va+mass+desc Total mass\ $m$ computed from the mass matrix\ $M$ as
 ///va+mass+desc 
@@ -892,16 +900,16 @@ int fino_define_functions(void) {
     
     fino.vectors.phi = malloc(fino.nev * sizeof(vector_t *));
     for (i = 0; i < fino.nev; i++) {
-      if (asprintf(&vibname, "phi%d", i+1) == -1) {
+      if (asprintf(&modename, "phi%d", i+1) == -1) {
         wasora_push_error_message("cannot asprintf");
         return WASORA_RUNTIME_ERROR;
       }
       
-      if ((fino.vectors.phi[i] = wasora_define_vector(vibname, 0, NULL, NULL)) == NULL) {
-        wasora_push_error_message("cannot define vector %s", vibname);
+      if ((fino.vectors.phi[i] = wasora_define_vector(modename, 0, NULL, NULL)) == NULL) {
+        wasora_push_error_message("cannot define vector %s", modename);
         return WASORA_RUNTIME_ERROR;
       }
-      free(vibname);
+      free(modename);
       
     }
     
