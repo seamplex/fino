@@ -1,16 +1,34 @@
-MESH FILE_PATH tensile-test.msh  DIMENSIONS 3
-FINO_PROBLEM MODAL N_MODES 20
+MESH FILE_PATH beam.msh  DIMENSIONS 3
+FINO_PROBLEM MODAL N_MODES 10   
 
 rho = 7800e-9  # [ kg / mm^3 ]
 E = 200e3      # [ MPa ] Young modulus ~ 200 GPa
 nu = 0.3       # Poisson ratio
 
-PHYSICAL_ENTITY NAME left   BC fixed
-# PHYSICAL_ENTITY NAME right  BC fixed
+
+# rho = 7800
+# E = 2e11
+# nu = 0
+
+
+PHYSICAL_ENTITY NAME fixed   BC fixed
+
+# PHYSICAL_ENTITY NAME left   BC fixed
+# PHYSICAL_ENTITY NAME front  BC v=0
+# PHYSICAL_ENTITY NAME bottom BC w=0
+
+PHYSICAL_ENTITY NAME bulk
 
 FINO_STEP
 
-PRINT_VECTOR i f M(i)/mass L Gamma Me(i)/mass sum(Me(j)/mass,j,1,i)
+PRINT bulk_vol*rho
+
+PRINT M_T
+PRINT_VECTOR i f m m(i)/M_T L Gamma mu Mu
+
+# PRINT mass
+# PRINT_VECTOR i f M M(i)/mass L Gamma Me(i)/mass sum(Me(j)/mass,j,1,i)
+
 
 
 MESH_POST FILE_PATH shake.vtk \

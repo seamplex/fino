@@ -844,13 +844,14 @@ int fino_define_functions(void) {
   }
     
   if (fino.nev > 0) {
-///va+mass+name mass
-///va+mass+desc Total mass\ $m$ computed from the mass matrix\ $M$ as
-///va+mass+desc 
-///va+mass+desc \[ m = \frac{1}{n_\text{DOFs}} \cdot [1]^T \cdot M \cdot [1] \]
-///va+mass+desc 
-///va+mass+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
-    fino.vars.mass = wasora_define_variable("mass");
+///va+M_T+name M_T
+///va+M_T+desc Total mass\ $m$ computed from the mass matrix\ $M$ as
+///va+M_T+desc 
+///va+M_T+desc \[ M_T = \frac{1}{n_\text{DOFs}} \cdot \vec{1}^T \cdot M \cdot \vec{1} \]
+///va+M_T+desc 
+///va+M_T+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+///va+M_T+desc Note that this is only approximately equal to the actual mass, i.e. the integral of the density $\rho(x,y,z)$ over the problem domain.
+    fino.vars.M_T = wasora_define_variable("M_T");
     
 ///ve+f+name f
 ///ve+f+desc _Size:_ number of requested eigen-pairs.
@@ -863,40 +864,51 @@ int fino_define_functions(void) {
     fino.vectors.omega = wasora_define_vector("omega", fino.nev, NULL, NULL);    
 
     
-///ve+M+name M
-///ve+M+desc _Size:_ number of requested eigen-pairs.
-///ve+M+desc _Elements:_ The generalized modal mass $M_i$ of the $i$-th mode computed as
-///ve+M+desc
-///ve+M+desc \[ M_i = \frac{1}{n_\text{DOFs}} \cdot \vec{\phi}_i^T \cdot M \cdot \vec{\phi}_i \]
-///va+M+desc 
-///va+M+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+///ve+m+name m
+///ve+m+desc _Size:_ number of requested eigen-pairs.
+///ve+m+desc _Elements:_ The generalized modal mass $M_i$ of the $i$-th mode computed as
+///ve+m+desc
+///ve+m+desc \[ \text{m}_i = \frac{1}{n_\text{DOFs}} \vec{\phi}_i^T \cdot M \cdot \vec{\phi}_i \]
+///va+m+desc 
+///va+m+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node, $M$ is the mass matrix
+///va+m+desc and $\vec{\phi}_i$ is the $i$-th eigenvector normalized such that the largest element is equal to one.
 
-    fino.vectors.M = wasora_define_vector("M", fino.nev, NULL, NULL);    
+    fino.vectors.m = wasora_define_vector("m", fino.nev, NULL, NULL);    
 
 ///ve+L+name L
 ///ve+L+desc _Size:_ number of requested eigen-pairs.
 ///ve+L+desc _Elements:_ The excitation factor $L_i$ of the $i$-th mode computed as
 ///ve+L+desc
-///ve+L+desc \[ L_i = \frac{1}{n_\text{DOFs}} \cdot \vec{\phi}_i^T \cdot M \cdot [\vec{1}] \]
+///ve+L+desc \[ L_i = \frac{1}{n_\text{DOFs}} \cdot \vec{\phi}_i^T \cdot M \cdot \vec{1} \]
 ///va+L+desc 
-///va+K+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node.
+///va+L+desc where $n_\text{DOFs}$ is the number of degrees of freedoms per node, $M$ is the mass matrix
+///va+L+desc and $\vec{\phi}_i$ is the $i$-th eigenvector normalized such that the largest element is equal to one.
     fino.vectors.L = wasora_define_vector("L", fino.nev, NULL, NULL);    
 
 ///ve+Gamma+name Gamma
 ///ve+Gamma+desc _Size:_ number of requested eigen-pairs.
 ///ve+Gamma+desc _Elements:_ The participation factor $\Gamma_i$ of the $i$-th mode computed as
 ///ve+Gamma+desc
-///ve+Gamma+desc \[ \Gamma_i = \frac{L_i}{M_i} \]
+///ve+Gamma+desc \[ \Gamma_i = \frac{ \vec{\phi}_i^T \cdot M \cdot \vec{1} }{ \vec{\phi}_i^T \cdot M \cdot \vec{\phi}} \]
     fino.vectors.Gamma = wasora_define_vector("Gamma", fino.nev, NULL, NULL);    
     
-///ve+Me+name Me
-///ve+Me+desc _Size:_ number of requested eigen-pairs.
-///ve+Me+desc _Elements:_ The effective modal mass factor $M^e_i$ of the $i$-th mode computed as
-///ve+Me+desc
-///ve+Me+desc \[ M^e_i = \frac{L_i^2}{n_\text{DOFs} \cdot M_i} \]
-///ve+Me+desc
-///ve+Me+desc Note that $\sum_{i=1}^N M^e_i = m$, where $N$ is number of nodes.
-    fino.vectors.Me = wasora_define_vector("Me", fino.nev, NULL, NULL);    
+///ve+mu+name mu
+///ve+mu+desc _Size:_ number of requested eigen-pairs.
+///ve+mu+desc _Elements:_ The relatve effective modal mass $\mu_i$ of the $i$-th mode computed as
+///ve+mu+desc
+///ve+mu+desc \[ \mu_i = \frac{L_i^2}{M_t \cdot n_\text{DOFs} \cdot m_i} \]
+///ve+mu+desc
+///ve+mu+desc Note that $\sum_{i=1}^N m_i = 1$, where $N$ is total number of degrees of freedom ($n_\text{DOFs}$ times the number of nodes).
+    fino.vectors.mu = wasora_define_vector("mu", fino.nev, NULL, NULL);    
+    
+///ve+Mu+name Mu
+///ve+Mu+desc _Size:_ number of requested eigen-pairs.
+///ve+Mu+desc _Elements:_ The accumulated relative effective modal mass $\Mu_i$ up to the $i$-th mode computed as
+///ve+Mu+desc
+///ve+Mu+desc \[ \Mu_i = \sum_{j=1}^i \mu_i \]
+///ve+Mu+desc
+///ve+Mu+desc Note that $\Mu_N = 1$, where $N$ is total number of degrees of freedom ($n_\text{DOFs}$ times the number of nodes).
+    fino.vectors.Mu = wasora_define_vector("Mu", fino.nev, NULL, NULL);    
     
     fino.vectors.phi = malloc(fino.nev * sizeof(vector_t *));
     for (i = 0; i < fino.nev; i++) {

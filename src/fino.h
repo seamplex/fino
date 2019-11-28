@@ -162,7 +162,6 @@ struct {
     var_t *iterations;
     var_t *residual_norm;
     
-//    var_t *dirichlet_diagonal;
     var_t *penalty_weight;
   
     var_t *unknowns;
@@ -221,7 +220,7 @@ struct {
     var_t *memory;
     var_t *memory_petsc;
     
-    var_t *mass;
+    var_t *M_T;
     
   } vars;
 
@@ -229,10 +228,11 @@ struct {
   struct {
     vector_t *f;
     vector_t *omega;
-    vector_t *M;
+    vector_t *m;
     vector_t *L;
     vector_t *Gamma;
-    vector_t *Me;
+    vector_t *mu;
+    vector_t *Mu;
     
     vector_t **phi;
   } vectors;

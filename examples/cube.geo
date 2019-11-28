@@ -6,7 +6,7 @@ n = 8;
 Box(1) = {0, 0, 0, a, a, a};
 
 Mesh.Algorithm = 6;
-Mesh.ElementOrder = 1;
+Mesh.ElementOrder = 2;
 
 Physical Surface("left") = {1};
 Physical Surface("right") = {2};

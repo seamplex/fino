@@ -170,54 +170,93 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_eigen_nev"
 int fino_eigen_nev() {
-  int i, j;
-  double xi, w;
+  int i, j, g;
 
-  Vec tmp;
   Vec one;
-  PetscScalar norm, M, L;
+  Vec Mphi;
+  Vec Mone;
+  
+  PetscScalar xi, chi, norm;
+  PetscScalar phiMphi, phiMone, oneMone;
+  PetscScalar omega, M_T, m, L, Gamma, mu, Mu;
 
-  VecDuplicate(fino.phi, &tmp);
   VecDuplicate(fino.phi, &one);
   VecSet(one, 1.0);
 
+  VecDuplicate(fino.phi, &Mone);
+  MatMult(fino.M, one, Mone);
+
+  // este lo dejamos para despues, phi depende de i
+  VecDuplicate(fino.phi, &Mphi);
+
   // masa total
-  MatMult(fino.M, one, tmp);
-  VecDot(one, tmp, &xi);
-  wasora_var_value(fino.vars.mass) = xi/(double)fino.degrees;
-
-
+  VecDot(one, Mone, &oneMone);
+  M_T = oneMone/(double)fino.degrees;
+  wasora_var_value(fino.vars.M_T) = M_T;
+  
+  // acumulador
+  Mu = 0;
+  
   // la fiesta de la ineficiencia
   for (i = 0; i < fino.nev; i++) {
-    // autovalor convertido a frequencia
-    w = 1.0/sqrt(fino.eigenvalue[i]);
-    wasora_vector_set(fino.vectors.omega, i, w);
-    wasora_vector_set(fino.vectors.f, i, w/(2*M_PI));
+    // el autovalor es la inversa de la frecuencia angular
+    omega = 1.0/sqrt(fino.eigenvalue[i]);
+    wasora_vector_set(fino.vectors.omega, i, omega);
+    // lo pasamos a ciclos por unidad de tiempo
+    wasora_vector_set(fino.vectors.f, i, omega/(2*M_PI));
 
-    // autovector i
-    fino.vectors.phi[i]->size = fino.problem_size;
-
-    // normalizado para que el maximo sea uno
+    // primero normalizamos para que el maximo sea uno y podamos comparar
+    // los productos escalar usando la matriz de masa como norma contra oneMone
     VecNorm(fino.eigenvector[i], NORM_INFINITY, &norm);
     VecScale(fino.eigenvector[i], 1.0/norm);
 
-    for (j = 0; j < fino.problem_size; j++) {
-      petsc_call(VecGetValues(fino.eigenvector[i], 1, &j, &xi));
-      wasora_vector_set(fino.vectors.phi[i], j, xi);
-    }
-
+    // calculamos el producto Mphi que lo vamos a usar despues en oneMphi y en phiMphi
+    MatMult(fino.M, fino.eigenvector[i], Mphi);
+    
     // masa modal
-    MatMult(fino.M, fino.eigenvector[i], tmp);
-    VecDot(fino.eigenvector[i], tmp, &M);
-    wasora_vector_set(fino.vectors.M, i, M);
+    VecDot(fino.eigenvector[i], Mphi, &phiMphi);
+//    m = phiMphi/(double)fino.degrees;
+    m = phiMphi;    
+    wasora_vector_set(fino.vectors.m, i, m);
 
     // excitacion
-    MatMult(fino.M, one, tmp);
-    VecDot(fino.eigenvector[i], tmp, &L);
+    VecDot(fino.eigenvector[i], Mone, &phiMone);
+//    L = phiMone/(double)fino.degrees;
+    L = phiMone;    
     wasora_vector_set(fino.vectors.L, i, L);
 
-    wasora_vector_set(fino.vectors.Gamma, i, L/M);
-    wasora_vector_set(fino.vectors.Me, i, gsl_pow_2(L)/(fino.degrees*M));
+    // participacion
+    Gamma = L/(fino.degrees*m);
+    wasora_vector_set(fino.vectors.Gamma, i, Gamma);
+    
+    // masa efectiva
+    mu = gsl_pow_2(L)/(M_T*fino.degrees*m);
+//    mu = gsl_pow_2(L)/(fino.degrees*m);
+    wasora_vector_set(fino.vectors.mu, i, mu);
+    
+    // masa acumulada
+    Mu += mu;
+    wasora_vector_set(fino.vectors.Mu, i, Mu);
+    
+    // ahora bien, tenemos que renormalizar los autovectores de forma tal que
+    // el maximo desplazamiento sqrt(u^2+v^2+w^2) sea igual a uno, y despues
+    // multiplicamos por el factor de excitacion Gamma
+    norm = -1;
+    for (j = 0; j < fino.spatial_unknowns; j++) {
+      chi = 0;
+      for (g = 0; g < fino.degrees; g++) {
+        VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi);
+        chi += gsl_pow_2(xi);
+      }
+      
+      if (chi > norm) {
+        norm = chi;
+      }
+    }  
+    VecScale(fino.eigenvector[i], Gamma/sqrt(norm));
+    
+    // aca ponemos el tamanio, despues los rellenamos junto con las funciones
+    fino.vectors.phi[i]->size = fino.problem_size;
   }
   
   return WASORA_RUNTIME_OK;

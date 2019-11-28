@@ -47,7 +47,7 @@ int fino_instruction_step(void *arg) {
   fino_times_t cpu;
   fino_times_t petsc;
   double xi;
-  int i, k, g;
+  int i, j, g;
 
   PetscFunctionBegin;
   
@@ -112,24 +112,25 @@ int fino_instruction_step(void *arg) {
     time_checkpoint(stress_begin);
     
     // fabricamos G funciones con la solucion
-    for (k = 0; k < fino.spatial_unknowns; k++) {
+    for (j = 0; j < fino.spatial_unknowns; j++) {
       for (g = 0; g < fino.degrees; g++) {
-        petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[k].index_dof[g], &fino.solution[g]->data_value[k]));
+        petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[j].index_dof[g], &fino.solution[g]->data_value[j]));
         // si tenemos una solucion base hay que sumarla
         if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
           // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
           if (fino.base_solution[g]->data_size == fino.spatial_unknowns) {
-            fino.solution[g]->data_value[k] += fino.base_solution[g]->data_value[k];
+            fino.solution[g]->data_value[j] += fino.base_solution[g]->data_value[j];
           } else {
-            fino.solution[g]->data_value[k] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[k].x);
+            fino.solution[g]->data_value[j] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
           }
         }
         
         if (fino.nev > 1) {
           for (i = 0; i < fino.nev; i++) {
-            // las funciones ya tienen el factor de excitacion
-            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[k].index_dof[g], &xi));
-            fino.mode[g][i]->data_value[k] = gsl_vector_get(wasora_value_ptr(fino.vectors.Gamma), i) * xi;
+            // las funciones ya vienen con el factor de excitacion
+            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
+            fino.mode[g][i]->data_value[j] = xi;
+            wasora_vector_set(fino.vectors.phi[i], j, xi);
           }
         }
       }
