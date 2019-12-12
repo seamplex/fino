@@ -77,7 +77,7 @@ Output is 100% defined in the input file. If no explicit output instruction is p
 
 # Examples
 
-See the directory `examples` for further cases.
+See the directory [examples](https://github.com/seamplex/fino/tree/master/examplesexamples) for further cases.
 
 
 ## Tensile test 
