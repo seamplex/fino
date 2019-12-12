@@ -33,7 +33,7 @@ Open a terminal in a GNU/Linux box (may be a VirtualBox box) and install the fol
 
 ~~~
 sudo apt-get install m4 make autoconf automake gcc g++ git findutils
-sudo apt-get install libgsl-dev libsundials-serial-dev libreadline-dev petsc-dev slepc-dev
+sudo apt-get install libgsl-dev petsc-dev slepc-dev
 ~~~
 
 If your distribution does not have a bundled version of [PETSc](http://www.mcs.anl.gov/petsc/) or [SLEPc](http://www.grycap.upv.es/slepc/), then you might need to compile them yourself (SLEPc is optional for Fino). Ask for help in the [mailing list](https://www.seamplex.com/lists.html).
