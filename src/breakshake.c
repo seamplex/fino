@@ -309,12 +309,18 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   // tabla 4.3 pag 194 Bathe
 
   if (fino.problem_kind == problem_kind_full3d) {
-  
+
     c1 = E/((1+nu)*(1-2*nu));
     c2 = c1 * nu;
     c3 = c1 * (1-nu);
     c4 = c1 * (1-2*nu)/2;
-    
+
+/*    
+    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
+    c2 = c1*nu/(1-nu);
+    c3 = c1*1;
+    c4 = c1*(1-2*nu)/(2*(1-nu));
+*/
     gsl_matrix_set(C, 0, 0, c3);
     gsl_matrix_set(C, 0, 1, c2);
     gsl_matrix_set(C, 0, 2, c2);
@@ -413,7 +419,7 @@ c4(x,y,z) := 2.0/3.0 * c5(x,y,z)
 # sigma2(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 2.0*pi/3.0)
 # sigma3(x,y,z) := c3(x,y,z) + c4(x,y,z) * cos(phi(x,y,z) - 4.0*pi/3.0)
 */
-
+/*
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_stresses_row_sum"
 int fino_break_compute_stresses_row_sum(void) {
@@ -421,7 +427,7 @@ int fino_break_compute_stresses_row_sum(void) {
   //
   return 0;
 }
-
+*/
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
@@ -1325,10 +1331,10 @@ int fino_break_set_pressure(element_t *element, bc_t *bc) {
     if (bc->type_phys == bc_phys_pressure_real) {
       p = -p;
     }
-    gsl_vector_set(Nb, 0, wasora_var_value(fino.vars.nx) * p);
-    gsl_vector_set(Nb, 1, wasora_var_value(fino.vars.ny) * p);
+    gsl_vector_set(Nb, 0, wasora_var_value(wasora_mesh.vars.nx) * p);
+    gsl_vector_set(Nb, 1, wasora_var_value(wasora_mesh.vars.ny) * p);
     if (fino.dimensions == 3) {
-      gsl_vector_set(Nb, 2, wasora_var_value(fino.vars.nz) * p);
+      gsl_vector_set(Nb, 2, wasora_var_value(wasora_mesh.vars.nz) * p);
     }
     
     gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 

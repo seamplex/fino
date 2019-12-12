@@ -385,10 +385,10 @@ int fino_set_essential_bc(Mat A, Vec b) {
             }
 
             if (associated_element->element->type->dim == 2) {
-              wasora_call(mesh_compute_outward_normal(associated_element->element, n));
-              wasora_var_value(fino.vars.nx) = n[0];
-              wasora_var_value(fino.vars.ny) = n[1];
-              wasora_var_value(fino.vars.nz) = n[2];
+              mesh_compute_normal(associated_element->element);
+              n[0] = wasora_var_value(wasora_mesh.vars.nx) = n[0];
+              n[1] = wasora_var_value(wasora_mesh.vars.ny) = n[1];
+              n[2] = wasora_var_value(wasora_mesh.vars.nz) = n[2];
             } else {
               n[0] = 0;
               n[1] = 0;

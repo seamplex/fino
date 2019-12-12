@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's initialization routines
  *
- *  Copyright (C) 2015-2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -178,11 +178,6 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.U[1]= wasora_define_variable("V");
   fino.vars.U[2]= wasora_define_variable("W");
 
-  // estas se las dejamos para las condiciones de contorno
-  fino.vars.nx= wasora_define_variable("nx");
-  fino.vars.ny= wasora_define_variable("ny");
-  fino.vars.nz= wasora_define_variable("nz");
-  
 ///va+displ_max+name displ_max
 ///va+displ_max+desc The module of the maximum displacement of the elastic problem.
   fino.vars.displ_max = wasora_define_variable("displ_max");

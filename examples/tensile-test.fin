@@ -38,9 +38,13 @@ MESH_INTEGRATE EXPRESSION nx*sigmax(x,y,z)+ny*tauxy(x,y,z)+nz*tauzx(x,y,z) OVER 
 MESH_INTEGRATE EXPRESSION nx*tauxy(x,y,z)+ny*sigmay(x,y,z)+nz*tauyz(x,y,z) OVER left RESULT reaction_left_y
 MESH_INTEGRATE EXPRESSION nx*tauzx(x,y,z)+ny*tauyz(x,y,z)+nz*sigmaz(x,y,z) OVER left RESULT reaction_left_z
 
+FINO_REACTION PHYSICAL_ENTITY left RESULT R
+
 PRINT TEXT "reaction_at_fixed_end   [N]   =" reaction_left_x reaction_left_y reaction_left_z
 
+PRINT R
 
-PRINT rle rlf 0.002*E*10/13*right_vol rrf
+PRINT nx ny nz
+
 
 PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)

@@ -2,8 +2,8 @@
 SetFactory("OpenCASCADE");
 
 a = 1;
-l = 10;
-lc = a/6;
+l = 1;
+lc = a/10;
 Box(1) = {0, -0.5*a, -0.5*a, l,  a, a};
 
 Mesh.Algorithm = 6;

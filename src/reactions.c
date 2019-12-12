@@ -19,7 +19,57 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+//#include "wasora.h"
 #include "fino.h"
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_instruction_reaction"
+int fino_instruction_reaction(void *arg) {
+  
+  var_t result;
+  mesh_integrate_t mesh_integrate;
+  fino_reaction_t *reaction = (fino_reaction_t *)arg;
+
+  result.initialized = 1;
+  result.value = malloc(sizeof(double));
+  
+  mesh_integrate.mesh = fino.mesh;
+  mesh_integrate.function = NULL;
+  mesh_integrate.expr.n_tokens = 0;
+  mesh_integrate.physical_entity = reaction->physical_entity;
+  mesh_integrate.centering = centering_nodes;
+  mesh_integrate.gauss_points = 2;
+  mesh_integrate.result = &result;
+  
+  if (fino.problem_family == problem_family_break) {
+    
+    if (reaction->vector->initialized == 0) {
+      wasora_vector_init(reaction->vector);
+    }
+    
+    // Rx
+    wasora_call(wasora_parse_expression("nx*sigmax(x,y,z)+ny*tauxy(x,y,z)+nz*tauzx(x,y,z)", &mesh_integrate.expr));
+    wasora_call(wasora_instruction_mesh_integrate(&mesh_integrate));
+    gsl_vector_set(reaction->vector->value, 0, *(result.value));
+    
+    // Ry
+    wasora_call(wasora_parse_expression("nx*tauxy(x,y,z)+ny*sigmay(x,y,z)+nz*tauyz(x,y,z)", &mesh_integrate.expr));
+    wasora_call(wasora_instruction_mesh_integrate(&mesh_integrate));
+    gsl_vector_set(reaction->vector->value, 1, *(result.value));
+    
+    // Rz
+    wasora_call(wasora_parse_expression("nx*tauzx(x,y,z)+ny*tauyz(x,y,z)+nz*sigmaz(x,y,z)", &mesh_integrate.expr));
+    wasora_call(wasora_instruction_mesh_integrate(&mesh_integrate));
+    gsl_vector_set(reaction->vector->value, 2, *(result.value));
+    
+  }
+  
+  free(result.value);
+  
+  return WASORA_RUNTIME_OK;
+}
+
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_reactions"

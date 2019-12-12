@@ -88,12 +88,13 @@ PetscErrorCode petsc_err;
 #define bc_dof_coordinates_offset        128
 
 
-#define BC_FACTOR 1.00  // TODO: esto da cosas raras con los reallocs, pensar mejor
+#define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;
 typedef struct fino_step_t fino_step_t;
 typedef struct fino_times_t fino_times_t;
+typedef struct fino_reaction_t fino_reaction_t;
 typedef struct fino_linearize_t fino_linearize_t;
 typedef struct fino_debug_t fino_debug_t;
 
@@ -149,7 +150,10 @@ struct {
   int problem_size;
   
   mesh_t *mesh;
+  
+  fino_reaction_t *reactions;
   fino_linearize_t *linearizes;
+  
   fino_debug_t *debugs;
   
   // variables internas
@@ -168,11 +172,12 @@ struct {
     
 //    var_t *error_estimate;
 //    var_t *rel_error;
-    
+
+/*    
     var_t *nx;
     var_t *ny;
     var_t *nz;
-    
+*/  
     var_t *U[3];
 
     var_t *displ_max;
@@ -404,6 +409,14 @@ struct fino_step_t {
   int do_not_solve;
 };
 
+struct fino_reaction_t {
+  physical_entity_t *physical_entity;
+  var_t *scalar;
+  vector_t *vector;
+  
+  fino_reaction_t *next;
+};
+
 struct fino_linearize_t {
   physical_entity_t *physical_entity;
   expr_t x1;
@@ -511,6 +524,10 @@ extern double fino_linearization_integrand_bending(double, void *);
 // parser.c
 extern int fino_parse_line(char *);
 extern int fino_define_functions(void);
+
+// reaction.c
+extern int fino_instruction_reaction(void *);
+
 
 // version.c
 extern void fino_usage(char *);

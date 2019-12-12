@@ -210,15 +210,10 @@ int fino_build_element_volumetric(element_t *element) {
 #define __FUNCT__ "fino_build_element_bc"
 int fino_build_element_bc(element_t *element, bc_t *bc) {
   
-  double n[3];
-  
   if (fino.problem_family == problem_family_break) {
     // TODO: poner un flag si se necesita
     if (element->type->dim == 2) {
-      wasora_call(mesh_compute_outward_normal(element, n));
-      wasora_var_value(fino.vars.nx) = n[0];
-      wasora_var_value(fino.vars.ny) = n[1];
-      wasora_var_value(fino.vars.nz) = n[2];
+      mesh_compute_normal(element);
     }  
     
     // TODO: unificar todos como break_neumann

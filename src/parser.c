@@ -453,6 +453,76 @@ int plugin_parse_line(char *line) {
       return WASORA_PARSER_OK;
 
 // ---------------------------------------------------------------------
+///kw+FINO_REACTION+usage FINO_REACTION
+///kw+FINO_REACTION+desc Compute the reaction at the selected physical entity and store the result in the variable
+///kw+FINO_REACTION+desc or vector provided, depending on the number of degrees of freedoms of the problem. 
+///kw+FINO_REACTION+desc If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
+///kw+FINO_REACTION+desc For the elastic problem, the components of the total reaction force are stored in the result vector.
+///kw+FINO_REACTION+desc For the thermal problem, the total power passing through the entity is computed as an scalar.
+      
+    } else if ((strcasecmp(token, "FINO_REACTION") == 0)) {
+
+      char *name;
+      fino_reaction_t *reaction;
+      
+      if (fino.problem_family != problem_family_break) {
+        wasora_push_error_message("FINO_REACTION makes sense only in elastic problems");
+        return WASORA_PARSER_ERROR;
+      }
+      
+      reaction = calloc(1, sizeof(fino_reaction_t));
+      LL_APPEND(fino.reactions, reaction);
+
+      while ((token = wasora_get_next_token(NULL)) != NULL) {
+///kw+FINO_REACTION+usage {
+///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity_name>
+///kw+FINO_REACTION+desc If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+///kw+FINO_REACTION+desc independently of the dimension of the problem.
+        
+        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
+          wasora_call(wasora_parser_string(&name));
+          if ((reaction->physical_entity = wasora_get_physical_entity_ptr(name, fino.mesh)) == NULL) {
+            reaction->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
+          }
+          free(name);
+///kw+FINO_REACTION+usage [ RESULT { <variable> | <vector> } ]
+        } else if (strcasecmp(token, "RESULT") == 0) {
+          wasora_call(wasora_parser_string(&name));
+          
+          reaction->scalar = wasora_get_variable_ptr(name);
+          reaction->vector = wasora_get_vector_ptr(name);
+          
+          if (reaction->scalar == NULL && reaction->vector == NULL) {
+            // nos dieron algo que no existe, hay que crearlo
+            if (fino.degrees == 1) {
+              if ((reaction->scalar = wasora_define_variable(name)) == NULL) {
+                return WASORA_PARSER_ERROR;
+              }
+            } else {
+              if ((reaction->vector = wasora_define_vector(name, fino.degrees, NULL, NULL)) == NULL) {
+                return WASORA_PARSER_ERROR;
+              }
+            }
+          } else if (reaction->scalar != NULL && fino.degrees != 1) {
+            wasora_push_error_message("RESULT should pass a vector of size %d not a variable", fino.degrees);
+            return WASORA_PARSER_ERROR;
+          } else if (reaction->vector != NULL && fino.degrees == 1) {
+            wasora_push_error_message("RESULT should pass a variable not a vector");
+            return WASORA_PARSER_ERROR;
+          } else if (reaction->vector != NULL && fino.degrees != reaction->vector->size) {
+            wasora_push_error_message("RESULT should pass a vecetor of size %d not of size %d", fino.degrees, reaction->vector->size);
+            return WASORA_PARSER_ERROR;
+          }
+          
+          free(name);
+          
+        }
+      }
+      
+      wasora_define_instruction(fino_instruction_reaction, reaction);
+      return WASORA_PARSER_OK;
+      
+// ---------------------------------------------------------------------
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
 ///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
 ///kw+FINO_LINEARIZE+desc Stress Classification Line given either as a one-dimensional physical entity in the
@@ -537,20 +607,20 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_LINEARIZE+desc By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
 ///kw+FINO_LINEARIZE+desc The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
-///kw+FINO_SOLVER+usage [ TOTAL {
+///kw+FINO_LINEARIZE+usage [ TOTAL {
         } else if (strcasecmp(token, "TOTAL") == 0) {
           char *keywords[] = {
-///kw+FINO_SOLVER+usage   vonmises",
+///kw+FINO_LINEARIZE+usage   vonmises",
                          "vonmises",
-///kw+FINO_SOLVER+usage   tresca |
+///kw+FINO_LINEARIZE+usage   tresca |
                          "tresca",
-///kw+FINO_SOLVER+usage   tresca |
+///kw+FINO_LINEARIZE+usage   tresca |
                          "principal1",
-///kw+FINO_SOLVER+usage   principal1 |
+///kw+FINO_LINEARIZE+usage   principal1 |
                          "principal2",
-///kw+FINO_SOLVER+usage   principal2 |
+///kw+FINO_LINEARIZE+usage   principal2 |
                          "principal3",
-///kw+FINO_SOLVER+usage   principal3 |
+///kw+FINO_LINEARIZE+usage   principal3 |
                          ""};
           int values[] = {linearize_vonmises, linearize_tresca, linearize_principal1, linearize_principal2, linearize_principal3, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&linearize->total));
