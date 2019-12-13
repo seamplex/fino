@@ -1,50 +1,21 @@
-MESH FILE_PATH tensile-test.msh  DIMENSIONS 3 # mesh file in Gmsh format
+# tensile test example for Fino, see https://caeplex.com/p/41dd1
+MESH FILE_PATH tensile-test.msh  DIMENSIONS 3 # mesh file in Gmsh format (either version 2.2 or 4)
 
-FINO_SOLVER PROGRESS_ASCII    # show a feedback in the terminal while solving
-
-# uniform properties
-E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
-nu = 0.3    # Poisson ratio
+# uniform properties given as scalar variables
+E = 200e3   # [ MPa ] Young modulus = 200 GPa
+nu = 0.3    # Poisson’s ratio
 
 # boundary conditions ("left" and "right" come from the names in the mesh)
-PHYSICAL_ENTITY left  BC fixed
-PHYSICAL_ENTITY right BC tx=0.002*E*(10/13)  # traction
-# PHYSICAL_ENTITY right BC Fx=40000
+PHYSICAL_ENTITY left  BC fixed       # fixed end
+PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
 
+FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+FINO_STEP                   # solve
 
-# other possible conditions:
-# PHYSICAL_ENTITY right BC p=0.002*E*(10/13)   # pressure
-# PHYSICAL_ENTITY right BC u=0.3               # displacement
-# PHYSICAL_ENTITY right BC Mx=1                # moment
-
-# print some data
-PRINT TEXT "elements                    =" %g elements
-PRINT TEXT "nodes                       =" %g nodes
-
-FINO_STEP
-
-# results
+# write results (Von Mises, principal and displacements) in a VTK file
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+# print the maxium Von Mises and displacement (otherwise output will be null)
+PRINT "displ_max = " %.3f displ_max "mm"
+PRINT "sigma_max = " %.1f sigma_max "MPa"
+PRINT "principal1 at center = " %.8f sigma1(0,0,0) "MPa"
 
-# displ_max gets the norm of the maximum displacement
-PRINT TEXT "maximum_displacement    [mm]  =" displ_max
-# u(x,y,z) (and v(x,y,z) and z(x,y,y) are the individual displacements
-PRINT TEXT "horizontal_displacement [mm]  =" u(80,0,0)
-# sigma(x,y,z) is the von mises stress
-PRINT TEXT "stress_at_the_origin    [MPa] =" sigma(0,0,0)
-
-# reaction at fixed end
-MESH_INTEGRATE EXPRESSION nx*sigmax(x,y,z)+ny*tauxy(x,y,z)+nz*tauzx(x,y,z) OVER left RESULT reaction_left_x
-MESH_INTEGRATE EXPRESSION nx*tauxy(x,y,z)+ny*sigmay(x,y,z)+nz*tauyz(x,y,z) OVER left RESULT reaction_left_y
-MESH_INTEGRATE EXPRESSION nx*tauzx(x,y,z)+ny*tauyz(x,y,z)+nz*sigmaz(x,y,z) OVER left RESULT reaction_left_z
-
-FINO_REACTION PHYSICAL_ENTITY left RESULT R
-
-PRINT TEXT "reaction_at_fixed_end   [N]   =" reaction_left_x reaction_left_y reaction_left_z
-
-PRINT R
-
-PRINT nx ny nz
-
-
-PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
