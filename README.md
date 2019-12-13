@@ -87,12 +87,11 @@ See the directory [examples](https://github.com/seamplex/fino/tree/master/exampl
 Let us consider a tensile test specimen like [this one](https://caeplex.com/p/41dd1)
 
 
-![CAD file for a tensile test specimen <https://caeplex.com/p/41dd1>](examples/tensile-test-cad.png){.img-fluid}
+![](examples/tensile-test-cad.png){.img-fluid}\ 
 
 
 One end of the specimen is fixed and the other one has a tension load of 10 kN.
 We would like to obtain the displacements and stresses distribution within the geometry.
-
 Given that the problem is relatively simple, the input file [`examples/tensile-test.fin`](examples/tensile-test.fin) should also be rather simple:
 
 ```fino
@@ -135,7 +134,8 @@ $
  * There is no need to have a node at the origin, Fino (actually [wasora](https://www.seamplex.com/wasora)) can evaluate functions at any arbitrary point
  * Almost any location in the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions)).
  * If the `MESH_POST` and `PRINT` instructions were not included, there would not be any default output of the execution.
- * The output is 100% controlled by the user, including the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was 100 MPa (the load is 10$^4$ N and the cross-sectional area is 100 mm²).
+ * The output is 100% controlled by the user, including the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was 100 MPa (the load is 10⁴ N and the cross-sectional area is 100 mm²).
+ * The generation of the mesh `tensile-test.msh` is not covered in this example. See [`tensile-test.geo`](https://github.com/seamplex/fino/blob/master/examples/tensile-test.geo)
  * The `VTK` output can be post-processed with the free tool [ParaView](http://www.paraview.org/):
 
 ![Tensile test results obtained by Fino and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid}
