@@ -131,19 +131,20 @@ $
 ```
 
  * The three lines with the dots, dashes and double dashes are ASCII progress bars for the assembly of the stiffness matrix, the solution of the linear system and the computation of stresses, respectively.
- * There is no need to have a node at the origin, Fino (actually [wasora](https://www.seamplex.com/wasora)) can evaluate functions at any arbitrary point
- * Almost any location in the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions)).
- * If the `MESH_POST` and `PRINT` instructions were not included, there would not be any default output of the execution.
- * The output is 100% controlled by the user, including the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was 100 MPa (the load is 10⁴ N and the cross-sectional area is 100 mm²).
- * The generation of the mesh `tensile-test.msh` is not covered in this example. See [`tensile-test.geo`](https://github.com/seamplex/fino/blob/master/examples/tensile-test.geo)
+ * There is no need to have a node at the origin to know what the stress is at $\vec{x}=(0,0,0)$. Fino (actually [wasora](https://www.seamplex.com/wasora)) can evaluate functions at any arbitrary point.
+ * Almost any location in the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions).
+ * If the `MESH_POST` and `PRINT` instructions were not included, there would not be any default output of the execution ([UNIX rule of silence](http://www.linfo.org/rule_of_silence.html)).
+ * The output is 100% controlled by the user, including the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was $100~\text{MPa}$ (the load is $F_x=10^4~\text{N}$ and the cross-sectional area is $100~\text{mm}^2$).
+ * The generation of the mesh `tensile-test.msh` is not covered in this example. See [`tensile-test.geo`](https://github.com/seamplex/fino/blob/master/examples/tensile-test.geo).
  * The `VTK` output can be post-processed with the free tool [ParaView](http://www.paraview.org/):
 
-![Tensile test results obtained by Fino and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid}
+![Tensile test results obtained by [Fino](https://www.seamplex.com/fino) and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid}
 
 
 ## Cantilever beam with first & second order elements
 
-This example is far more complex, so the input also is far more complex. 
+This example is far more complex as it studies the shear-locking effect of first order elements under bending loads, how displacements compares to second-order elements and how they depend on mesh size.
+Hence, the input file is also more complex. 
 
 ```fino
 DEFAULT_ARGUMENT_VALUE 1 1        # use first (1) or second (2) order elements
