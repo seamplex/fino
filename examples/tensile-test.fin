@@ -1,5 +1,5 @@
 # tensile test example for Fino, see https://caeplex.com/p/41dd1
-MESH FILE_PATH tensile-test.msh  DIMENSIONS 3 # mesh file in Gmsh format (either version 2.2 or 4)
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4)
 
 # uniform properties given as scalar variables
 E = 200e3   # [ MPa ] Young modulus = 200 GPa
