@@ -569,11 +569,15 @@ int fino_problem_free(void) {
     
     if (fino.sigma != NULL) {
       free(fino.sigmax->data_value);
-      free(fino.sigmay->data_value);
-      free(fino.sigmaz->data_value);
-      free(fino.tauxy->data_value);
-      free(fino.tauyz->data_value);
-      free(fino.tauzx->data_value);
+      if (fino.dimensions > 1) {
+        free(fino.sigmay->data_value);
+        free(fino.sigmaz->data_value);
+        free(fino.tauxy->data_value);
+        if (fino.dimensions > 2) {
+          free(fino.tauyz->data_value);
+          free(fino.tauzx->data_value);
+        }  
+      }
       free(fino.sigma1->data_value);
       free(fino.sigma2->data_value);
       free(fino.sigma3->data_value);
@@ -581,11 +585,15 @@ int fino_problem_free(void) {
       free(fino.tresca->data_value);
       
       fino.sigmax->data_value = NULL;
-      fino.sigmay->data_value = NULL;
-      fino.sigmaz->data_value = NULL;
-      fino.tauxy->data_value = NULL;
-      fino.tauyz->data_value = NULL;
-      fino.tauzx->data_value = NULL;
+      if (fino.dimensions > 1) {
+        fino.sigmay->data_value = NULL;
+        fino.sigmaz->data_value = NULL;
+        fino.tauxy->data_value = NULL;
+        if (fino.dimensions > 2) {
+          fino.tauyz->data_value = NULL;
+          fino.tauzx->data_value = NULL;
+        }
+      }
       fino.sigma1->data_value = NULL;
       fino.sigma2->data_value = NULL;
       fino.sigma3->data_value = NULL;
