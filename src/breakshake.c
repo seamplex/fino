@@ -616,7 +616,7 @@ int fino_break_compute_stresses(void) {
     
     element = &fino.mesh->element[i];
     if (element->type->dim == fino.dimensions) {
-      
+
       data_element[i] = calloc(element->type->nodes, sizeof(double *));
       
       for (j = 0; j < element->type->nodes; j++) {
@@ -632,7 +632,7 @@ int fino_break_compute_stresses(void) {
         
         data_element[i][j] = calloc(DATA_SIZE, sizeof(double));
         
-        if (element->type->order == 1 || mesh_compute_quality(fino.mesh, element) > fino.gradient_jacobian_threshold) {
+        if (fino.dimensions < 3 || element->type->order == 1 || mesh_compute_quality(fino.mesh, element) > fino.gradient_jacobian_threshold) {
           wasora_call(mesh_compute_r_at_node(element, j, fino.mesh->fem.r));
           mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
           mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
