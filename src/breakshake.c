@@ -2,7 +2,7 @@
  *  fino's construction of linear elastic problem (break) with optional vibration (shake)
  *  and evaluation of the stress tensor out of the gradients of the displacements
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -302,42 +302,36 @@ int fino_break_build_element(element_t *element, int v) {
 #define __FUNCT__ "fino_break_compute_C"
 int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   
-  double c1, c2, c3, c4;
+  double lambda, mu, lambda2mu;
   
   PetscFunctionBegin;
   
-  // tabla 4.3 pag 194 Bathe
+  // esto es mas elegante pero la referencia es tabla 4.3 pag 194 Bathe
+  lambda = E*nu/((1+nu)*(1-2*nu));
+  mu = 0.5*E/(1+nu);
+  lambda2mu = lambda + 2*mu;
 
   if (fino.problem_kind == problem_kind_full3d) {
 
-    c1 = E/((1+nu)*(1-2*nu));
-    c2 = c1 * nu;
-    c3 = c1 * (1-nu);
-    c4 = c1 * (1-2*nu)/2;
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
+    gsl_matrix_set(C, 0, 2, lambda);
 
-/*    
-    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
-    c2 = c1*nu/(1-nu);
-    c3 = c1*1;
-    c4 = c1*(1-2*nu)/(2*(1-nu));
-*/
-    gsl_matrix_set(C, 0, 0, c3);
-    gsl_matrix_set(C, 0, 1, c2);
-    gsl_matrix_set(C, 0, 2, c2);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
+    gsl_matrix_set(C, 1, 2, lambda);
 
-    gsl_matrix_set(C, 1, 0, c2);
-    gsl_matrix_set(C, 1, 1, c3);
-    gsl_matrix_set(C, 1, 2, c2);
-
-    gsl_matrix_set(C, 2, 0, c2);
-    gsl_matrix_set(C, 2, 1, c2);
-    gsl_matrix_set(C, 2, 2, c3);
+    gsl_matrix_set(C, 2, 0, lambda);
+    gsl_matrix_set(C, 2, 1, lambda);
+    gsl_matrix_set(C, 2, 2, lambda2mu);
   
-    gsl_matrix_set(C, 3, 3, c4);
-    gsl_matrix_set(C, 4, 4, c4);
-    gsl_matrix_set(C, 5, 5, c4);
+    gsl_matrix_set(C, 3, 3, mu);
+    gsl_matrix_set(C, 4, 4, mu);
+    gsl_matrix_set(C, 5, 5, mu);
     
   } else if (fino.problem_kind == problem_kind_plane_stress) {
+    
+    double c1, c2;
     
     c1 = E/(1-nu*nu);
     c2 = nu * c1;
@@ -351,33 +345,29 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
     
   } else if (fino.problem_kind == problem_kind_plane_strain) {
     
-    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
-    c2 = nu/(1-nu) * c1;
-    gsl_matrix_set(C, 0, 0, c1);
-    gsl_matrix_set(C, 0, 1, c2);
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
     
-    gsl_matrix_set(C, 1, 0, c2);
-    gsl_matrix_set(C, 1, 1, c1);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
 
-    gsl_matrix_set(C, 2, 2, c1*0.5*(1-2*nu)/(1-nu));
+    gsl_matrix_set(C, 2, 2, mu);
     
   } else if (fino.problem_kind == problem_kind_axisymmetric) {
     
-    c1 = E*(1-nu)/((1+nu)*(1-2*nu));
-    c2 = nu/(1-nu) * c1;
-    gsl_matrix_set(C, 0, 0, c1);
-    gsl_matrix_set(C, 0, 1, c2);
-    gsl_matrix_set(C, 0, 2, c2);
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
+    gsl_matrix_set(C, 0, 2, lambda);
     
-    gsl_matrix_set(C, 1, 0, c2);
-    gsl_matrix_set(C, 1, 1, c1);
-    gsl_matrix_set(C, 1, 2, c2);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
+    gsl_matrix_set(C, 1, 2, lambda);
 
-    gsl_matrix_set(C, 2, 0, c2);
-    gsl_matrix_set(C, 2, 1, c2);
-    gsl_matrix_set(C, 2, 2, c1);
+    gsl_matrix_set(C, 2, 0, lambda);
+    gsl_matrix_set(C, 2, 1, lambda);
+    gsl_matrix_set(C, 2, 2, lambda2mu);
 
-    gsl_matrix_set(C, 3, 3, c1*0.5*(1-2*nu)/(1-nu));
+    gsl_matrix_set(C, 3, 3, mu);
     
   }
 
@@ -458,9 +448,7 @@ int fino_break_compute_stresses(void) {
   double tauyz = 0;
   double tauzx = 0;
   
-  double c1 = 1.0;
-  double c1c2 = 1.0;
-  double c3 = 0;
+  double lambda, mu, xi;
   
   double sigma = 0;
   double sigma1 = 0;
@@ -483,7 +471,6 @@ int fino_break_compute_stresses(void) {
   node_relative_t **parent_global;
   node_relative_t *parent;
 
-  double mu;
   double std;
   double den = 0;
 
@@ -591,7 +578,12 @@ int fino_break_compute_stresses(void) {
     alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
   }
   
-
+  if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+    // esto ya sirve para toda la cosecha  
+    lambda = E*nu/((1+nu)*(1-2*nu));
+    mu = 0.5*E/(1+nu);
+  }  
+  
   // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   
   // es calloc porque los de superficie van a quedar en null
@@ -758,37 +750,39 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
           }      
         }
 
-        if (distribution_alpha.variable == NULL) {
-          
+        if (distribution_alpha.variable == NULL && (distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL)) {
           alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, fino.mesh->node[j].x);
-          
         }
         
-        // constantes para convertir de strain a stress
-        c1 = E/((1+nu)*(1-2*nu));
-        c1c2 = c1 * 0.5*(1-2*nu);
+        // relaciones constitutivas
+
+        if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+          // si E o nu no son uniformes hay que calcular todo otra vez de nuevo nuevamente
+          lambda = E*nu/((1+nu)*(1-2*nu));
+          mu = 0.5*E/(1+nu);
+        }  
 
         // tensiones normales
-        sigmax = c1 * ((1-nu)*ex + nu*(ey+ez));
-        sigmay = c1 * ((1-nu)*ey + nu*(ex+ez));
-        sigmaz = c1 * ((1-nu)*ez + nu*(ex+ey));  // esta es sigmatheta en axi
+        xi = ex + ey + ez;
+        sigmax = lambda * xi + 2*mu * ex;
+        sigmay = lambda * xi + 2*mu * ey;
+        sigmaz = lambda * xi + 2*mu * ez;  // esta es sigmatheta en axi
         
         // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
         if (alpha != 0) {
-          c3 = E/(1-2*nu);
-          
           DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
+          xi = -E/(1-2*nu) * alpha * DT;
           
-          sigmax -= c3*alpha*DT;
-          sigmay -= c3*alpha*DT;
-          sigmaz -= c3*alpha*DT;
+          sigmax += xi;
+          sigmay += xi;
+          sigmaz += xi;
         }
     
         // esfuerzos de corte
-        tauxy =  c1c2 * gammaxy;
+        tauxy =  mu * gammaxy;
         if (fino.dimensions == 3) {
-          tauyz =  c1c2 * gammayz;
-          tauzx =  c1c2 * gammazx;
+          tauyz =  mu * gammayz;
+          tauzx =  mu * gammazx;
         } else {
           tauyz = 0;
           tauzx = 0;
@@ -855,7 +849,7 @@ gamma_zx(x,y,z) := dw_dx(x,y,z) + du_dz(x,y,z)
         i = element->index;
         
         if (data_element[i] != NULL) {
-          if (element->type->order == 1) {
+          if (fino.dimensions < 3 || element->type->order == 1) {
             data_node_weight[j_global][n] = element->type->element_volume(element);
           } else {
             data_node_weight[j_global][n] = element->type->element_volume(element)*GSL_MAX(mesh_compute_quality(fino.mesh, element), 1);
