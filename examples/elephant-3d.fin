@@ -1,0 +1,19 @@
+# illustration of the “elephant foot(ish)” effect when
+# compressing a clamped solid cylinder with full 3d
+
+MESH FILE_PATH elephant-3d.msh  # 3D cylinder, mesh in mm
+FINO_PROBLEM ELASTIC
+FINO_SOLVER PROGRESS_ASCII
+
+E = 100e3  # [ MPa ]
+nu = 0.3  
+
+#PHYSICAL_ENTITY NAME bottom  BC v=0 radial
+PHYSICAL_ENTITY NAME bottom  BC fixed
+PHYSICAL_ENTITY NAME top     BC ty=-100
+
+FINO_STEP
+
+MESH_POST FILE_PATH elephant-3d-fino.msh VECTOR u v w u
+MESH_POST FILE_PATH elephant-3d-fino.vtk VECTOR u v w sigma1 sigma2 sigma3 sigmax sigmay sigmaz tauxy tauyz tauzx
+

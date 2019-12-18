@@ -62,3 +62,7 @@ heat-cylinder.mpg
 heat-cylinder.msh
 
 meta*.msh
+
+elephant-*.msh
+elephant-*.vtk
+elephant-*.png
