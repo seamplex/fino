@@ -185,16 +185,32 @@ nu = 0.3   # Poisson’s ratio
 
 PHYSICAL_ENTITY NAME bulk
 PHYSICAL_ENTITY NAME left  BC fixed
-PHYSICAL_ENTITY NAME right BC Tz=-1000
+PHYSICAL_ENTITY NAME right BC Fz=-1000
 
 
 FINO_STEP
+
+# this is fun but takes a lot of time for a test
+# energy_density(x,y,z) := 0.5*{( 
+#  sigmax(x,y,z)*dudx(x,y,z) +
+#  sigmay(x,y,z)*dvdy(x,y,z) +
+#  sigmaz(x,y,z)*dwdz(x,y,z) +
+#  tauxy(x,y,z)*(dudy(x,y,z) + dvdx(x,y,z)) +
+#  tauyz(x,y,z)*(dvdz(x,y,z) + dwdy(x,y,z)) +
+#  tauzx(x,y,z)*(dwdx(x,y,z) + dudz(x,y,z))
+# )}
+# MESH_INTEGRATE FUNCTION energy_density OVER bulk RESULT integrated_energy
+
+FINO_REACTION PHYSICAL_ENTITY left RESULT R
 
 # reference max deflection according to Euler-Bernoulli
 # https://en.wikipedia.org/wiki/Euler%E2%80%93Bernoulli_beam_theory#Cantilever_beams
 wc = P*l^3/(3*E*(h^4)/12)
 
-PRINT %.3e 1/nodes %g n nodes elements %.5g displ_max wc sigma_max %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6
+PRINT %.3e 1/nodes %g n nodes elements \
+      %.5g -w(l,0,0) wc sigma_max \
+      %.3f time_cpu_build time_cpu_solve time_cpu_stress %.0f memory/1e6 \
+      %g R(3) strain_energy #integrated_energy
 
 OUTPUT_FILE vtk cantilever-$1-$2-%g.vtk n
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
@@ -202,6 +218,7 @@ MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
 
 ![Cantilever beam displacement for different grids and element order.](examples/cantilever.svg){width=100%}
 
+![Cantilever beam strain energy for different grids and element order.](examples/cantilever-energy.svg){width=100%}
 
 
 ## Thermal conduction in a piston engine

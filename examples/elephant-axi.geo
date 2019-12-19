@@ -5,16 +5,15 @@ l = 2;
 lc = 1e-2;
 
 SetFactory("OpenCASCADE");
-Point(1) = {0, 0, 0};
-Extrude {r, 0, 0} {
-  Point{1}; Layers{1+(r/lc)}; Recombine;
-}
-Extrude {0, l, 0} {
-  Curve{1}; Layers{1+(l/lc)}; Recombine;
-}
+Rectangle(1) = {0, 0, 0, r, l};
 
 Physical Curve("bottom", 1) = {1};
-Physical Curve("top", 2) = {4};
+Physical Curve("top", 2) = {3};
 Physical Surface("bulk", 3)  = {1};
 
+Transfinite Line {1,3} = 1+r/lc;
+Transfinite Line {2,4} = 1+l/lc;
+Transfinite Surface "*";
+
+Mesh.RecombineAll = 1;
 Mesh.ElementOrder = 2;

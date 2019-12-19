@@ -23,5 +23,3 @@ Transfinite Volume "*";
 Mesh.RecombineAll = 1;
 Mesh.Recombine3DAll = 1;
 Mesh.Recombine3DLevel = 2;
-
-Mesh.Optimize = 1;
