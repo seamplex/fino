@@ -122,6 +122,9 @@ int fino_build_bulk(void) {
 
   // ver si esto chupa memoria
   wasora_call(fino_assembly());
+
+  // nos copiamos la matrizota asi como esta sin las condiciones de contorno de dirichlet
+  petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.K_nobc));
   
   if (fino.shmem_progress_build != NULL) {
     *fino.shmem_progress_build = 1.0;
@@ -133,7 +136,7 @@ int fino_build_bulk(void) {
     printf("\n");  
     fflush(stdout);
   }
-
+  
   // aca tambien perdemos a C y a et porque son static
   wasora_call(fino_free_elemental_objects());
   

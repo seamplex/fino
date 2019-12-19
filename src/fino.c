@@ -140,8 +140,6 @@ int fino_instruction_step(void *arg) {
   
       wasora_call(fino_compute_strain_energy());
       wasora_call(fino_break_compute_stresses());
-// en el rewrite las reacciones hay que calcularlas despues de las tensiones
-//      wasora_call(fino_break_compute_reactions());
       
     } else if (fino.problem_family == problem_family_bake) {
         
