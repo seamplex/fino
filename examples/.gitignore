@@ -3,6 +3,11 @@
 *.dat
 
 tensile-test.vtk
+tensile-test.inp
+tensile-test.cvg
+tensile-test.frd
+tensile-test.sta
+spooles.out
 
 veeder.geo
 veeder*.msh

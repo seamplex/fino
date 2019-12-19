@@ -5,7 +5,6 @@ MESH FILE_PATH elephant-axi.msh  # 2D rectangle, mesh in mm
 FINO_PROBLEM ELASTIC_AXISYMMETRIC SYMMETRY_AXIS y
 FINO_SOLVER PROGRESS_ASCII
 
-
 E = 100e3  # [ MPa ]
 nu = 0.3  
 
@@ -14,6 +13,9 @@ PHYSICAL_ENTITY NAME bottom  BC fixed
 PHYSICAL_ENTITY NAME top     BC ty=-100
 
 FINO_STEP
+
+FINO_REACTION PHYSICAL_ENTITY bottom RESULT R
+PRINT strain_energy R(2)
 
 MESH_POST FILE_PATH elephant-axi-fino.msh VECTOR u v 0
 MESH_POST FILE_PATH elephant-axi-fino.vtk VECTOR u v 0 sigmax sigmay tauxy sigma1 sigma2 sigma3

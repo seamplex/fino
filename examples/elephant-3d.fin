@@ -14,6 +14,9 @@ PHYSICAL_ENTITY NAME top     BC ty=-100
 
 FINO_STEP
 
+FINO_REACTION PHYSICAL_ENTITY bottom RESULT R
+PRINT strain_energy R(2)
+
 MESH_POST FILE_PATH elephant-3d-fino.msh VECTOR u v w u
 MESH_POST FILE_PATH elephant-3d-fino.vtk VECTOR u v w sigma1 sigma2 sigma3 sigmax sigmay sigmaz tauxy tauyz tauzx
 

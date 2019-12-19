@@ -19,7 +19,6 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
-//#include "wasora.h"
 #include "fino.h"
 
 
@@ -46,7 +45,6 @@ int fino_instruction_reaction(void *arg) {
   
   petsc_call(VecGetArray(fino.phi, &u));
 
-  
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     add = 0;
     for (i = 0; add == 0 && i < reaction->physical_entity->n_elements; i++) {
@@ -73,9 +71,23 @@ int fino_instruction_reaction(void *arg) {
 
   petsc_call(VecRestoreArray(fino.phi, &u));
   
-  gsl_vector_set(reaction->vector->value, 0, R[0]);
-  gsl_vector_set(reaction->vector->value, 1, R[1]);
-  gsl_vector_set(reaction->vector->value, 2, R[2]);
+  if (fino.problem_kind == problem_kind_axisymmetric) {
+    if (fino.symmetry_axis == symmetry_axis_y) {
+      gsl_vector_set(reaction->vector->value, 0, 0);
+      gsl_vector_set(reaction->vector->value, 1, 2*M_PI*R[1]);
+    } else if (fino.symmetry_axis == symmetry_axis_x) {
+      gsl_vector_set(reaction->vector->value, 0, 2*M_PI*R[0]);
+      gsl_vector_set(reaction->vector->value, 1, 0);
+    }
+  } else {  
+    gsl_vector_set(reaction->vector->value, 0, R[0]);
+    if (fino.dimensions > 1) {
+      gsl_vector_set(reaction->vector->value, 1, R[1]);
+      if (fino.dimensions > 2) {
+        gsl_vector_set(reaction->vector->value, 2, R[2]);
+      }
+    }
+  }
   
 
   return WASORA_RUNTIME_OK;

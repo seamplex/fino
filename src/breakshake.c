@@ -1441,5 +1441,9 @@ int fino_compute_strain_energy(void) {
   VecDot(fino.phi, Kphi, &e);
   wasora_var(fino.vars.strain_energy) = 0.5*e;
   
+  if (fino.problem_kind == problem_kind_axisymmetric) {
+    wasora_var(fino.vars.strain_energy) *= 2*M_PI;
+  }
+  
   return WASORA_RUNTIME_OK;
 }
