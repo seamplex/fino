@@ -27,6 +27,7 @@ cantilever-*.geo
 cantilever-*.msh
 cantilever-*.vtk
 cantilever.pdf
+cantilever-energy.pdf
 
 two-cubes.msh
 two-cubes.vtk

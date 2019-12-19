@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino plugin for wasora
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2019 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -138,6 +138,7 @@ int fino_instruction_step(void *arg) {
     
     if (fino.problem_family == problem_family_break) {
   
+      wasora_call(fino_compute_strain_energy());
       wasora_call(fino_break_compute_stresses());
 // en el rewrite las reacciones hay que calcularlas despues de las tensiones
 //      wasora_call(fino_break_compute_reactions());

@@ -1429,3 +1429,17 @@ double fino_compute_tresca_from_tensor(double sigmax, double sigmay, double sigm
 }
 
 
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_strain_energy"
+int fino_compute_strain_energy(void) {
+
+  PetscScalar e;
+  Vec Kphi;
+  
+  VecDuplicate(fino.phi, &Kphi);
+  MatMult(fino.K, fino.phi, Kphi);
+  VecDot(fino.phi, Kphi, &e);
+  wasora_var(fino.vars.strain_energy) = 0.5*e;
+  
+  return WASORA_RUNTIME_OK;
+}

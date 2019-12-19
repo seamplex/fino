@@ -180,6 +180,8 @@ struct {
 */  
     var_t *U[3];
 
+    var_t *strain_energy;
+    
     var_t *displ_max;
     var_t *displ_max_x;
     var_t *displ_max_y;
@@ -564,7 +566,7 @@ extern double fino_compute_vonmises_from_principal(double, double, double);
 extern double fino_compute_vonmises_from_tensor(double, double, double, double, double, double);
 extern double fino_compute_tresca_from_principal(double, double, double);
 extern double fino_compute_tresca_from_tensor(double, double, double, double, double, double);
-
+extern int fino_compute_strain_energy(void);
 
 // bake.c
 extern int fino_bake_step_initial();

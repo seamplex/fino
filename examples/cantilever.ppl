@@ -3,31 +3,51 @@ set preamble "\usepackage{amsmath}"
 set width 14*unit(cm)
 set axis x arrow nomirrored
 set axis y arrow nomirrored
-set key bottom left
 
+
+set key bottom left
 set xrange [1e-5:1e-1]
 set logscale x
-set yrange [0:0.3]
+set yrange [0.17:0.26]
 
 #set xtics 0.1
 #set mxtics 0.05
 
-set ytics 0.1
-set mytics 0.025
+set ytics 0.02
+set mytics 0.005
 
 set grid
 
 set terminal pdf
 
 set xlabel "Inverse of the number of nodes~$1/n$"
-set ylabel "Maximum vertical displacement~$w_\text{max}$"
+set ylabel "Maximum vertical displacement~$w_\text{max}$ [mm]"
 
 set output "cantilever.pdf"
 
 wc = 1000*50**3/(3*200e3*(10**4/12))
 
 plot wc                         w l  lw 4       color gray30      ti "Euler-Bernoulli reference solution~$w_\text{max}=\frac{P\ell^3}{3EI}$",\
-     'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 4  color brickred    ti "First order unstructured tetrahedra",\
-     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 2  color plum        ti "First order structured hexahedra",\
-     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 18 color cyan        ti "Second order unstructured tetrahedra",\
-     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 16 color olivegreen  ti "Second order structured hexahedra"
+     'cantilever-1-0.dat' u 1:5 w lp lt 4 pt 18  color brickred    ti "First order unstructured tetrahedra",\
+     'cantilever-1-1.dat' u 1:5 w lp lt 3 pt 16  color plum        ti "First order structured hexahedra",\
+     'cantilever-2-0.dat' u 1:5 w lp lt 2 pt 19  color cyan        ti "Second order unstructured tetrahedra",\
+     'cantilever-2-1.dat' u 1:5 w lp lt 1 pt 17  color olivegreen  ti "Second order structured hexahedra"
+
+
+set yrange [120:130]
+set ylabel "Strain energy [N $\cdot$ mm]"
+set ytics auto
+set mytics auto
+set key bottom right
+     
+set output "cantilever-energy.pdf"     
+plot \
+     'cantilever-1-0.dat' u 1:12 w lp lt 4 pt 4  color brickred    ti "tet4 internal",\
+     'cantilever-1-0.dat' u 1:13 w lp lt 5 pt 18 color brickred    ti "tet4 external",\
+     'cantilever-1-1.dat' u 1:12 w lp lt 3 pt 2  color plum        ti "quad8 internal",\
+     'cantilever-1-1.dat' u 1:13 w lp lt 6 pt 16 color plum        ti "quad8 external",\
+     'cantilever-2-0.dat' u 1:12 w lp lt 2 pt 5  color cyan        ti "tet10 internal",\
+     'cantilever-2-0.dat' u 1:13 w lp lt 7 pt 19 color cyan        ti "tet10 external",\
+     'cantilever-2-1.dat' u 1:12 w lp lt 1 pt 3  color olivegreen  ti "quad20 internal",\
+     'cantilever-2-1.dat' u 1:13 w lp lt 8 pt 17 color olivegreen  ti "quad20 external"
+     

@@ -146,13 +146,6 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+fino_gamg_threshold+desc Default `0.01`.  
   wasora_var(fino.vars.gamg_threshold) = 0.01;
   
-//va+fino_dirichlet_diagonal+name fino_dirichlet_diagonal
-//va+fino_dirichlet_diagonal+desc Value that is inserted in the diagonal of the rows
-//va+fino_dirichlet_diagonal+desc that correspond to Dirichlet boundary conditions.
-//va+fino_dirichlet_diagonal+desc Default is one, but PETSc internally scales it up
-//va+fino_dirichlet_diagonal+desc automatically to keep a good condition number.
-//  fino.vars.dirichlet_diagonal = wasora_define_variable("fino_dirichlet_diagonal");
-  
 ///va+fino_penalty_weight+name fino_penalty_weight
 ///va+fino_penalty_weight+desc The weight $w$ used when setting multi-freedom boundary conditions.
 ///va+fino_penalty_weight+desc Higher values mean better precision in the constrain but distort
@@ -178,7 +171,15 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.U[1]= wasora_define_variable("V");
   fino.vars.U[2]= wasora_define_variable("W");
 
-///va+displ_max+name displ_max
+///va+strain_energy+name strain_energy
+///va+strain_energy+desc The strain energy stored in the solid, computed as
+///va+strain_energy+desc 
+///va+strain_energy+desc [\ \frac{1}{2} \vec{u}^T \cdot K \cdot \vec{u}]
+///va+strain_energy+desc 
+///va+strain_energy+desc where $\vec{u}$ is the displacements vector and $K$ is the stiffness matrix.
+  fino.vars.strain_energy = wasora_define_variable("strain_energy");
+
+  ///va+displ_max+name displ_max
 ///va+displ_max+desc The module of the maximum displacement of the elastic problem.
   fino.vars.displ_max = wasora_define_variable("displ_max");
 
