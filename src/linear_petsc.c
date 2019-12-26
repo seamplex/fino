@@ -157,7 +157,7 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
   }
 
   // el monitor
-  if (fino.progress_ascii || fino.shmem_progress_solve != NULL || fino.shmem_memory != NULL) {
+  if (fino.progress_ascii) {  
     petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
   }
   
@@ -174,9 +174,6 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
     return WASORA_RUNTIME_ERROR;
   }
 
-  if (fino.shmem_progress_solve != NULL) {
-    *fino.shmem_progress_solve = 1.0;
-  }
   if (fino.progress_ascii) {
     for (i = (int)(100*fino.progress_last); i < 100; i++) {
       printf(CHAR_PROGRESS_SOLVE);
@@ -223,15 +220,6 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
       fflush(stdout);
     }
     fino.progress_last = current_progress;
-  }
-  
-  if (fino.shmem_memory != NULL) {
-    getrusage(RUSAGE_SELF, &fino.resource_usage);
-    *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
-  }
-
-  if (fino.shmem_progress_solve != NULL) {
-    *fino.shmem_progress_solve = current_progress;
   }
 
   return 0;

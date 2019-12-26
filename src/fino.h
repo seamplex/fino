@@ -58,6 +58,7 @@ PetscErrorCode petsc_err;
 #define DEBUG_MATRICES_SNG_STRUCT                512
 
 #define DEFAULT_MATRICES_X_SIZE                  640
+#define DEFAULT_GRADIENT_JACOBIAN_THRESHOLD        0
 
 #define bc_math_undefined                              0
 #define bc_math_dirichlet                              1
@@ -89,6 +90,15 @@ PetscErrorCode petsc_err;
 
 
 #define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
+
+#define fino_fill_result_function(fun_nam) {\
+        fino.fun_nam->mesh = fino.mesh; \
+        fino.fun_nam->var_argument = fino.solution[0]->var_argument; \
+        fino.fun_nam->type = type_pointwise_mesh_node; \
+        fino.fun_nam->data_argument = fino.solution[0]->data_argument;   \
+        fino.fun_nam->data_size = fino.mesh->n_nodes; \
+        fino.fun_nam->data_value = calloc(fino.mesh->n_nodes, sizeof(double));}
+
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;
@@ -298,7 +308,8 @@ struct {
   int progress_ascii;
   double progress_r0;
   double progress_last;
-  
+
+/*  
   char *progress_build_shname;  
   char *progress_solve_shname;
   char *progress_gradient_shname;
@@ -308,7 +319,7 @@ struct {
   double *shmem_progress_solve;
   double *shmem_progress_gradient;
   double *shmem_memory;
-  
+*/  
   
   
   expr_t eps_ncv;

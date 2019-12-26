@@ -85,6 +85,7 @@ int fino_build_bulk(void) {
 
 // ------ progress bar ------------------------------------------    
     if ((i % step) == 0) {
+/*      
       if (fino.shmem_memory != NULL) {
         getrusage(RUSAGE_SELF, &fino.resource_usage);
         *fino.shmem_memory = (double)(1024.0*fino.resource_usage.ru_maxrss);
@@ -92,6 +93,7 @@ int fino_build_bulk(void) {
       if (fino.shmem_progress_build != NULL) {
         *fino.shmem_progress_build = (double)i/(double)fino.mesh->n_elements;
       }
+ */
       if (fino.progress_ascii) {
         printf(CHAR_PROGRESS_BUILD);  
         fflush(stdout);
@@ -125,10 +127,12 @@ int fino_build_bulk(void) {
 
   // nos copiamos la matrizota asi como esta sin las condiciones de contorno de dirichlet
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.K_nobc));
-  
+
+/*  
   if (fino.shmem_progress_build != NULL) {
     *fino.shmem_progress_build = 1.0;
   }
+ */
   if (fino.progress_ascii) {
     while (ascii_progress_chars++ < 100) {
       printf(CHAR_PROGRESS_BUILD);

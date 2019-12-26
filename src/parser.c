@@ -333,19 +333,19 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
-
-          ///kw+FINO_SOLVER+usage [ PROGRESS_BUILD_SHM <shmobject> ]
+/*
+//kw+FINO_SOLVER+usage [ PROGRESS_BUILD_SHM <shmobject> ]
         } else if (strcasecmp(token, "SHMEM_PROGRESS_BUILD") == 0 || strcasecmp(token, "PROGRESS_BUILD_SHMEM") == 0) {
           wasora_call(wasora_parser_string(&fino.progress_build_shname));
 
-///kw+FINO_SOLVER+usage [ PROGRESS_SOLVE_SHMEM <shmobject> ]
+//kw+FINO_SOLVER+usage [ PROGRESS_SOLVE_SHMEM <shmobject> ]
         } else if (strcasecmp(token, "SHMEM_PROGRESS_SOLVE") == 0 || strcasecmp(token, "PROGRESS_SOLVE_SHMEM") == 0) {
           wasora_call(wasora_parser_string(&fino.progress_solve_shname));
 
-///kw+FINO_SOLVER+usage [ MEMORY_USAGE_SHMEM <shmobject> ]
+//kw+FINO_SOLVER+usage [ MEMORY_USAGE_SHMEM <shmobject> ]
         } else if (strcasecmp(token, "SHMEM_MEMORY") == 0 || strcasecmp(token, "MEMORY_USAGE_SHMEM") == 0) {
           wasora_call(wasora_parser_string(&fino.memory_shname));
-
+*/
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
           return WASORA_PARSER_ERROR;

@@ -378,6 +378,7 @@ int plugin_init_after_parser(void) {
     }
   }
   
+/*
   // los objetos para mostrar el progress
   if (fino.progress_build_shname != NULL) {
     fino.shmem_progress_build = wasora_get_shared_pointer(fino.progress_build_shname, sizeof(double));
@@ -388,6 +389,7 @@ int plugin_init_after_parser(void) {
   if (fino.memory_shname != NULL) {
     fino.shmem_memory = wasora_get_shared_pointer(fino.memory_shname, sizeof(double));
   }  
+ */
 
   return WASORA_RUNTIME_OK;
 }
@@ -419,7 +421,8 @@ int plugin_finalize(void) {
     petsc_call(PetscFinalize());
 #endif
   }
-  
+
+/*  
   // los objetos para mostrar el progress
   if (fino.progress_build_shname != NULL) {
     wasora_free_shared_pointer(fino.shmem_progress_build, fino.progress_build_shname, sizeof(double));
@@ -430,7 +433,7 @@ int plugin_finalize(void) {
   if (fino.memory_shname != NULL) {
     wasora_free_shared_pointer(fino.shmem_memory, fino.memory_shname, sizeof(double));
   }  
-  
+*/  
   return WASORA_RUNTIME_OK;
 }
 
@@ -717,4 +720,3 @@ int fino_define_result_function(char *name, function_t **function) {
 
   return 0;
 }
-
