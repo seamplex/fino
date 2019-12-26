@@ -58,7 +58,7 @@ PetscErrorCode petsc_err;
 #define DEBUG_MATRICES_SNG_STRUCT                512
 
 #define DEFAULT_MATRICES_X_SIZE                  640
-#define DEFAULT_GRADIENT_JACOBIAN_THRESHOLD        0
+#define DEFAULT_GRADIENT_JACOBIAN_THRESHOLD       -1
 
 #define bc_math_undefined                              0
 #define bc_math_dirichlet                              1
@@ -309,19 +309,6 @@ struct {
   double progress_r0;
   double progress_last;
 
-/*  
-  char *progress_build_shname;  
-  char *progress_solve_shname;
-  char *progress_gradient_shname;
-  char *memory_shname;
-  
-  double *shmem_progress_build;
-  double *shmem_progress_solve;
-  double *shmem_progress_gradient;
-  double *shmem_memory;
-*/  
-  
-  
   expr_t eps_ncv;
   expr_t st_shift;
   expr_t st_anti_shift;  
@@ -371,18 +358,24 @@ struct {
   function_t ***base_gradient;
   
   enum {
-    gradient_undefined,
-    gradient_mass_matrix_consistent,
-    gradient_mass_matrix_row_sum,
-    gradient_mass_matrix_lobatto,
-    gradient_mass_matrix_diagonal,
-    gradient_node_average_corner,
-    gradient_node_average_all,
-    gradient_gauss_average,
-    gradient_none,
+    gradient_gauss_extrapolated,
+    gradient_at_nodes,
+    gradient_none
   } gradient_evaluation;
+
+  enum {
+    gradient_weight_volume,
+    gradient_weight_quality,
+    gradient_weight_volume_times_quality,
+    gradient_weight_flat,
+  } gradient_element_weight;
+
+  enum {
+    gradient_average,
+    gradient_actual
+  } gradient_highorder_nodes;
   
-  double gradient_jacobian_threshold;
+  double gradient_quality_threshold;
   
   // tensor de tensiones
   function_t *sigmax;

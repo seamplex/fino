@@ -407,9 +407,9 @@ int fino_break_compute_stresses(void) {
   int i, j, g, m, n;
   int j_global, j_global_prime;
   int j_local_prime;
-  int step = (fino.mesh->n_elements+fino.mesh->n_nodes > 99)?ceil((double)(fino.mesh->n_elements+fino.mesh->n_nodes)/100.0):1;
+  int progress = 0;
+  int step = 0; 
   int ascii_progress_chars = 0;
-  int gauss = 1;
 
   node_relative_t *parent;
   element_t *element;  
@@ -417,11 +417,18 @@ int fino_break_compute_stresses(void) {
   node_t *node;
   
   PetscFunctionBegin;
-  if (fino.gradient_jacobian_threshold == 0) {
-    fino.gradient_jacobian_threshold = DEFAULT_GRADIENT_JACOBIAN_THRESHOLD;
+  
+  // depende de si es gauss o node
+  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
+    step = ceil((double)(2*fino.mesh->n_elements+fino.mesh->n_nodes)/100.0);
+  } else if (fino.gradient_evaluation == gradient_at_nodes) {
+    step = ceil((double)(fino.mesh->n_elements+fino.mesh->n_nodes)/100.0);
+  }  
+  if (step < 1) {
+    step = 1;
   }
   
-
+  
   if (fino.sigma->data_value == NULL) {
     // gradiente
     for (g = 0; g < fino.degrees; g++) {
@@ -483,8 +490,14 @@ int fino_break_compute_stresses(void) {
 
 
   // paso 0 (solo si es gauss extrapolate): calculamos las derivadas en los puntos de gauss
-  if (gauss) {
+  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
     for (i = 0; i < fino.mesh->n_elements; i++) {
+      if (fino.progress_ascii && (progress++ % step) == 0) {
+        printf(CHAR_PROGRESS_GRADIENT);  
+        fflush(stdout);
+        ascii_progress_chars++;
+      }
+      
       element = &fino.mesh->element[i];
       if (element->type->dim == fino.dimensions){
         
@@ -522,12 +535,10 @@ int fino_break_compute_stresses(void) {
   
   // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   for (i = 0; i < fino.mesh->n_elements; i++) {
-    if (i % step == 0) {
-      if (fino.progress_ascii) {
-        printf(CHAR_PROGRESS_GRADIENT);  
-        fflush(stdout);
-        ascii_progress_chars++;
-      }
+    if (fino.progress_ascii && (progress++ % step) == 0) {
+      printf(CHAR_PROGRESS_GRADIENT);  
+      fflush(stdout);
+      ascii_progress_chars++;
     }
     
     element = &fino.mesh->element[i];
@@ -536,10 +547,19 @@ int fino_break_compute_stresses(void) {
       element->dphidx_node = calloc(element->type->nodes, sizeof(gsl_matrix *));
       V = element->type->gauss[GAUSS_POINTS_CANONICAL].V;
 
-      // que hacemos con calidades = 0 o negativas?      
-      mesh_compute_quality(fino.mesh, element);
-      element->type->element_volume(element);
-      element->weight = (fino.dimensions < 3 || element->type->order == 1)?element->volume:element->volume*GSL_MAX(element->quality, 1);
+      if (fino.gradient_element_weight == gradient_weight_volume) {
+        element->type->element_volume(element);
+        element->weight = element->volume;
+      } else if (fino.gradient_element_weight == gradient_weight_quality) {
+        mesh_compute_quality(fino.mesh, element);
+        element->weight = element->quality;
+      } else if (fino.gradient_element_weight == gradient_weight_volume_times_quality) {
+        element->type->element_volume(element);
+        mesh_compute_quality(fino.mesh, element);
+        element->weight = element->volume*GSL_MAX(element->quality, 1);;
+      } else if (fino.gradient_element_weight == gradient_weight_flat) {
+        element->weight = 1;
+      }
       
       // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
       if (distribution_E.function != NULL || distribution_E.physical_property != NULL ||
@@ -553,7 +573,7 @@ int fino_break_compute_stresses(void) {
         element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
         j_global = element->node[j]->index_mesh;
         
-        if (gauss && j < V && element->quality > -1 && element->type->gauss[GAUSS_POINTS_CANONICAL].extrap != NULL) {
+        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[GAUSS_POINTS_CANONICAL].extrap != NULL) {
           gsl_vector *inner = gsl_vector_alloc(V);
           gsl_vector *outer = gsl_vector_alloc(V);
           
@@ -572,7 +592,7 @@ int fino_break_compute_stresses(void) {
           gsl_vector_free(inner);
           gsl_vector_free(outer);
           
-        } else if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL) {
+        } else if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL && fino.gradient_highorder_nodes == gradient_average) {
           // promedio de padres
           double den = 0;
           LL_FOREACH(element->type->node_parents[j], parent) {
@@ -648,12 +668,10 @@ int fino_break_compute_stresses(void) {
   
   // paso 2. barremos los nodos y promediamos  
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
-    if ((fino.mesh->n_elements+j_global) % step == 0) {
-      if (fino.progress_ascii) {
-        printf(CHAR_PROGRESS_GRADIENT);  
-        fflush(stdout);
-        ascii_progress_chars++;
-      }
+    if (fino.progress_ascii && (progress++ % step) == 0) {
+      printf(CHAR_PROGRESS_GRADIENT);  
+      fflush(stdout);
+      ascii_progress_chars++;
     }
       
     node = &fino.mesh->node[j_global];

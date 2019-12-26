@@ -301,51 +301,57 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
 
-///kw+FINO_SOLVER+usage [ GRADIENT_EVALUATION {
-        } else if (strcasecmp(token, "GRADIENT_EVALUATION") == 0) {
-          char *keywords[] = {
-///kw+FINO_SOLVER+usage   mass_matrix_consistent |
-                         "mass_matrix_consistent",
-///kw+FINO_SOLVER+usage   mass_matrix_row_sum |
-                         "mass_matrix_row_sum",
-///kw+FINO_SOLVER+usage   mass_matrix_lobatto |
-                         "mass_matrix_lobatto",
-///kw+FINO_SOLVER+usage   mass_matrix_diagonal |
-                         "mass_matrix_diagonal",
-///kw+FINO_SOLVER+usage   node_average_all |
-                         "node_average_all",
-///kw+FINO_SOLVER+usage   node_average_corner |
-                         "node_average_corner",
-///kw+FINO_SOLVER+usage   gauss_average |
-                         "gauss_average",
-///kw+FINO_SOLVER+usage   none
-                         "none",
-                         ""};
-          int values[] = {gradient_mass_matrix_consistent, gradient_mass_matrix_row_sum, gradient_mass_matrix_lobatto, gradient_mass_matrix_diagonal, gradient_node_average_all, gradient_node_average_corner, gradient_gauss_average, gradient_none, 0};
-          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_evaluation));
-
-///kw+FINO_SOLVER+usage } ]
-
-///kw+FINO_SOLVER+usage [ GRADIENT_JACOBIAN_THRESHOLD <expr> ]
-        } else if (strcasecmp(token, "GRADIENT_JACOBIAN_THRESHOLD") == 0) {
-          wasora_call(wasora_parser_expression_in_string(&fino.gradient_jacobian_threshold));
-
 ///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
-/*
-//kw+FINO_SOLVER+usage [ PROGRESS_BUILD_SHM <shmobject> ]
-        } else if (strcasecmp(token, "SHMEM_PROGRESS_BUILD") == 0 || strcasecmp(token, "PROGRESS_BUILD_SHMEM") == 0) {
-          wasora_call(wasora_parser_string(&fino.progress_build_shname));
 
-//kw+FINO_SOLVER+usage [ PROGRESS_SOLVE_SHMEM <shmobject> ]
-        } else if (strcasecmp(token, "SHMEM_PROGRESS_SOLVE") == 0 || strcasecmp(token, "PROGRESS_SOLVE_SHMEM") == 0) {
-          wasora_call(wasora_parser_string(&fino.progress_solve_shname));
+///kw+FINO_SOLVER+usage [ GRADIENT_EVALUATION {
+        } else if (strcasecmp(token, "GRADIENT_EVALUATION") == 0) {
+          char *keywords[] = {
+///kw+FINO_SOLVER+usage   gauss_extrapolated |
+                         "gauss_extrapolated",
+///kw+FINO_SOLVER+usage   at_nodes |
+                         "at_nodes",
+///kw+FINO_SOLVER+usage   none
+                         "none",
+                         ""};
+          int values[] = {gradient_gauss_extrapolated, gradient_at_nodes, gradient_none, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_evaluation));
+///kw+FINO_SOLVER+usage } ]
+          
+///kw+FINO_SOLVER+usage [ GRADIENT_HIGHORDER_NODES {
+        } else if (strcasecmp(token, "GRADIENT_HIGHORDER_NODES") == 0) {
+          char *keywords[] = {
+///kw+FINO_SOLVER+usage   average |
+                         "average",
+///kw+FINO_SOLVER+usage   actual |
+                         "actual",
+                         ""};
+          int values[] = {gradient_average, gradient_actual, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_highorder_nodes));
 
-//kw+FINO_SOLVER+usage [ MEMORY_USAGE_SHMEM <shmobject> ]
-        } else if (strcasecmp(token, "SHMEM_MEMORY") == 0 || strcasecmp(token, "MEMORY_USAGE_SHMEM") == 0) {
-          wasora_call(wasora_parser_string(&fino.memory_shname));
-*/
+///kw+FINO_SOLVER+usage } ]
+          
+///kw+FINO_SOLVER+usage [ GRADIENT_ELEMENT_WEIGHT {
+        } else if (strcasecmp(token, "GRADIENT_ELEMENT_WEIGHT") == 0) {
+          char *keywords[] = {
+///kw+FINO_SOLVER+usage   volume |
+                         "volume",
+///kw+FINO_SOLVER+usage   flat |
+                         "flat",
+///kw+FINO_SOLVER+usage   quality
+                         "quality",
+///kw+FINO_SOLVER+usage   volume_times_quality
+                         "volume_times_quality",
+                         ""};
+          int values[] = {gradient_weight_flat, gradient_weight_volume, gradient_weight_quality, gradient_weight_volume_times_quality, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_element_weight));
+///kw+FINO_SOLVER+usage } ]
+          
+///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]
+        } else if (strcasecmp(token, "GRADIENT_QUALITY_THRESHOLD") == 0) {
+          wasora_call(wasora_parser_expression_in_string(&fino.gradient_quality_threshold));
+
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
           return WASORA_PARSER_ERROR;

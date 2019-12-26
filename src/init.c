@@ -308,6 +308,10 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+memory_petsc+name memory_petsc
 ///va+memory_petsc+desc Maximum resident set size (memory used by PETSc), in bytes.
   fino.vars.memory_petsc = wasora_define_variable("memory_petsc");
+  
+  
+  // empezamos con un valor muy negativo, si nadie lo toca ni calculamos la calidad
+  fino.gradient_quality_threshold = DEFAULT_GRADIENT_JACOBIAN_THRESHOLD;
 
   return WASORA_PARSER_OK;
 }
