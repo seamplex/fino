@@ -1,7 +1,7 @@
 # thermal conductivity in an engine piston as in
 # https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html
 
-SHELL "if [ ! -e piston.msh ]; then gmsh -v 0 -3 piston.geo; fi"
+SHELL "if [ ! -e piston.msh ]\; then gmsh -v 0 -3 piston.geo\; fi"
 MESH FILE_PATH piston.msh        # the mesh is in mm
 FINO_PROBLEM HEAT DIMENSIONS 3
 

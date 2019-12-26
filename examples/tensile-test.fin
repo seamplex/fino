@@ -1,5 +1,5 @@
 # tensile test example for Fino, see https://caeplex.com/p/41dd1
-MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4)
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4.x)
 
 # uniform properties given as scalar variables
 E = 200e3   # [ MPa ] Young modulus = 200 GPa
@@ -23,3 +23,4 @@ PRINT "displ_max = " %.3f displ_max "mm"
 PRINT "sigma_max = " %.1f sigma_max "MPa"
 PRINT "principal1 at center = " %.8f sigma1(0,0,0) "MPa"
 PRINT "reaction  = [" %.3e R "] Newtons"
+PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
