@@ -49,8 +49,6 @@ int fino_instruction_linearize(void *arg) {
   double sigmax_b, sigmay_b, sigmaz_b, tauxy_b, tauyz_b, tauzx_b;
   double M, B, MB, MBplus, MBminus, P, T1, T2, T;
   double x1[3], x2[3];
-  double w_gauss;
-//  double r_for_axisymmetric;
   double t_prime, t_over_two_minus_t_prime;
   double h, den;
   int i, j, k, v;
@@ -91,19 +89,16 @@ int fino_instruction_linearize(void *arg) {
     for (i = 0; i < linearize->physical_entity->n_elements; i++) {
       element = &fino.mesh->element[linearize->physical_entity->element[i]];
       for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-        w_gauss = mesh_integration_weight(fino.mesh, element, v);
-//        r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-        mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
+        mesh_compute_integration_weight_at_gauss(element, v);
+        mesh_compute_x_at_gauss(element,v );
 
-        t_prime = gsl_hypot3(gsl_vector_get(fino.mesh->fem.x, 0)-params.x1,
-                             gsl_vector_get(fino.mesh->fem.x, 1)-params.y1,
-                             gsl_vector_get(fino.mesh->fem.x, 2)-params.z1);
+        t_prime = gsl_hypot3(element->x[v][0]-params.x1, element->x[v][1]-params.y1, element->x[v][2]-params.z1);
         t_over_two_minus_t_prime = params.t/2 - t_prime;
 
         integrand_mx = integrand_my = integrand_mz = integrand_mxy = integrand_myz = integrand_mzx = 0;
         integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
         for (j = 0; j < element->type->nodes; j++) {
-          h = gsl_vector_get(fino.mesh->fem.h, j);
+          h = element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j];
           k = element->node[j]->index_mesh;
           integrand_mx   += h * fino.sigmax->data_value[k];
           integrand_my   += h * fino.sigmay->data_value[k];
@@ -125,21 +120,21 @@ int fino_instruction_linearize(void *arg) {
         }
 
 //        w_gauss *= r_for_axisymmetric;
-        sigmax_m  += w_gauss * integrand_mx;
-        sigmay_m  += w_gauss * integrand_my;
-        sigmaz_m  += w_gauss * integrand_mz;
-        tauxy_m   += w_gauss * integrand_mxy;
+        sigmax_m  += element->w[v] * integrand_mx;
+        sigmay_m  += element->w[v] * integrand_my;
+        sigmaz_m  += element->w[v] * integrand_mz;
+        tauxy_m   += element->w[v] * integrand_mxy;
 
-        sigmax_b  += w_gauss * integrand_bx;
-        sigmay_b  += w_gauss * integrand_by;
-        sigmaz_b  += w_gauss * integrand_bz;
-        tauxy_b   += w_gauss * integrand_bxy;
+        sigmax_b  += element->w[v] * integrand_bx;
+        sigmay_b  += element->w[v] * integrand_by;
+        sigmaz_b  += element->w[v] * integrand_bz;
+        tauxy_b   += element->w[v] * integrand_bxy;
 
         if (fino.dimensions > 2) {
-          tauyz_m   += w_gauss * integrand_myz;
-          tauzx_m   += w_gauss * integrand_mzx;
-          tauyz_b   += w_gauss * integrand_byz;
-          tauzx_b   += w_gauss * integrand_bzx;
+          tauyz_m   += element->w[v] * integrand_myz;
+          tauzx_m   += element->w[v] * integrand_mzx;
+          tauyz_b   += element->w[v] * integrand_byz;
+          tauzx_b   += element->w[v] * integrand_bzx;
         }
       }
     }

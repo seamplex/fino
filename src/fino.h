@@ -328,6 +328,7 @@ struct {
   gsl_matrix *Ki;               // la matriz de rigidez elemental
   gsl_matrix *Mi;               // la matriz de masa elemental
   gsl_vector *bi;               // el vector del miembro derecho elemental
+  gsl_vector *Nb;               // para las BCs de neumann
 
   // holder para poner las BCs dirichlet (y calcular las reacciones de vinculo)
   int n_dirichlet_rows;
@@ -498,7 +499,7 @@ extern int fino_build_bulk(void);
 extern int fino_build_element_volumetric(element_t *);
 extern int fino_build_element_bc(element_t *, bc_t *);
 
-extern double fino_compute_r_for_axisymmetric(void);
+extern double fino_compute_r_for_axisymmetric(element_t *, int);
 
 extern int fino_print_gsl_vector(gsl_vector *, FILE *);
 extern int fino_print_gsl_matrix(gsl_matrix *, FILE *);
@@ -559,12 +560,10 @@ extern double fino_get_cpu_time(void);
 
 // breakshake.c
 extern int fino_break_build_element(element_t *, int);
+extern int fino_break_set_neumann(element_t *, bc_t *);
 extern int fino_break_compute_C(gsl_matrix *, double, double);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
-extern int fino_break_set_stress(element_t *, bc_t *);
-extern int fino_break_set_force(element_t *, bc_t *);
-extern int fino_break_set_pressure(element_t *, bc_t *);
 extern int fino_break_set_moment(element_t *, bc_t *);
 extern int fino_compute_principal_stress(double, double, double, double, double, double, double *, double *, double *);
 extern double fino_compute_vonmises_from_principal(double, double, double);
@@ -576,7 +575,7 @@ extern int fino_compute_strain_energy(void);
 // bake.c
 extern int fino_bake_step_initial();
 extern int fino_bake_step_transient();
-extern int fino_build_bake(element_t *, int);
+extern int fino_bake_build_element(element_t *, int);
 extern int fino_bake_set_heat_flux(element_t *, bc_t *);
 extern int fino_bake_set_convection(element_t *, bc_t *);
 extern int fino_bake_compute_fluxes(void);

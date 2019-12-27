@@ -74,6 +74,9 @@ int fino_break_build_element(element_t *element, int v) {
   // vector intermedio
   static gsl_vector *Cet;
   
+  double *h;
+  gsl_matrix *dhdx;
+  
   material_t *material;
 
   double E, nu;
@@ -81,19 +84,18 @@ int fino_break_build_element(element_t *element, int v) {
   double c;
   double alphaDT;
   
-  double w_gauss;
   double r_for_axisymmetric = 1.0;
   int j;
 
   PetscFunctionBegin;
   
-  if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
-    material =  element->physical_entity->material;
-  } else {
-    material = NULL;
-  }
+  material = (element->physical_entity != NULL)?element->physical_entity->material:NULL;
   
-  w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v); 
+  mesh_compute_integration_weight_at_gauss(element, v);
+  mesh_compute_dhdx_at_gauss(element, v);
+
+  dhdx = element->dhdx[v];
+  h = element->type->gauss[GAUSS_POINTS_CANONICAL].h[v];
   
   // si la matriz C de la formulacion es null entonces allocamos y
   // buscamos las distribuciones espaciales de parametros
@@ -180,63 +182,64 @@ int fino_break_build_element(element_t *element, int v) {
 
   for (j = 0; j < J; j++) {
     if (fino.problem_kind == problem_kind_full3d) {
-      gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(dhdx, j, 0));
       
-      gsl_matrix_set(B, 1, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 1, 3*j+1, gsl_matrix_get(dhdx, j, 1));
       
-      gsl_matrix_set(B, 2, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
+      gsl_matrix_set(B, 2, 3*j+2, gsl_matrix_get(dhdx, j, 2));
     
-      gsl_matrix_set(B, 3, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
-      gsl_matrix_set(B, 3, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 3, 3*j+0, gsl_matrix_get(dhdx, j, 1));
+      gsl_matrix_set(B, 3, 3*j+1, gsl_matrix_get(dhdx, j, 0));
 
-      gsl_matrix_set(B, 4, 3*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
-      gsl_matrix_set(B, 4, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 4, 3*j+1, gsl_matrix_get(dhdx, j, 2));
+      gsl_matrix_set(B, 4, 3*j+2, gsl_matrix_get(dhdx, j, 1));
 
-      gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 2));
-      gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 5, 3*j+0, gsl_matrix_get(dhdx, j, 2));
+      gsl_matrix_set(B, 5, 3*j+2, gsl_matrix_get(dhdx, j, 0));
     
     } else if (fino.problem_kind == problem_kind_axisymmetric) {
 
-      r_for_axisymmetric = fino_compute_r_for_axisymmetric();
+      r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
       
       // ecuacion 3.5 AFEM CH.03 sec 3.3.2 pag 3.5
-      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(dhdx, j, 0));
       
-      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(dhdx, j, 1));
 
       if (fino.symmetry_axis == symmetry_axis_y) {
-        gsl_matrix_set(B, 2, 2*j+0, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+        gsl_matrix_set(B, 2, 2*j+0, h[j]/r_for_axisymmetric);
       } else if (fino.symmetry_axis == symmetry_axis_x) {
-        gsl_matrix_set(B, 2, 2*j+1, gsl_vector_get(fino.mesh->fem.h, j)/r_for_axisymmetric);
+        gsl_matrix_set(B, 2, 2*j+1, h[j]/r_for_axisymmetric);
       }
       
-      gsl_matrix_set(B, 3, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
-      gsl_matrix_set(B, 3, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 3, 2*j+0, gsl_matrix_get(dhdx, j, 1));
+      gsl_matrix_set(B, 3, 2*j+1, gsl_matrix_get(dhdx, j, 0));
 
     } else  {
       // plane stress y plane strain son iguales
       // ecuacion 14.18 IFEM CH.14 sec 14.4.1 pag 14-11
-      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(dhdx, j, 0));
       
-      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
+      gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(dhdx, j, 1));
     
-      gsl_matrix_set(B, 2, 2*j+0, gsl_matrix_get(fino.mesh->fem.dhdx, j, 1));
-      gsl_matrix_set(B, 2, 2*j+1, gsl_matrix_get(fino.mesh->fem.dhdx, j, 0));
+      gsl_matrix_set(B, 2, 2*j+0, gsl_matrix_get(dhdx, j, 1));
+      gsl_matrix_set(B, 2, 2*j+1, gsl_matrix_get(dhdx, j, 0));
       
     }
     
     if ((fino.problem_family == problem_family_break) &&
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
-      c = r_for_axisymmetric * w_gauss * gsl_vector_get(fino.mesh->fem.h, j);
+      c = r_for_axisymmetric * element->w[v] * h[j];
+      mesh_compute_x_at_gauss(element, v);
       if (distribution_fx.defined) {
-        gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, element->x[v]));
       }
       if (distribution_fy.defined) {
-        gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+1, c * fino_distribution_evaluate(&distribution_fy, material, element->x[v]));
       }
       if (distribution_fz.defined && fino.degrees == 3) {
-        gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+        gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, element->x[v]));
       }
     }
     
@@ -245,33 +248,38 @@ int fino_break_build_element(element_t *element, int v) {
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
   if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+    mesh_compute_x_at_gauss(element, v);
     wasora_call(fino_break_compute_C(C,
-        fino_distribution_evaluate(&distribution_E, material, gsl_vector_ptr(fino.mesh->fem.x, 0)),
-        fino_distribution_evaluate(&distribution_nu, material, gsl_vector_ptr(fino.mesh->fem.x, 0))));
+        fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
+        fino_distribution_evaluate(&distribution_nu, material, element->x[v])));
   }
 
   // calculamos Bt*C*B
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, r_for_axisymmetric, C, B, 0, CB);
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss, B, CB, 1.0, fino.Ki);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v], B, CB, 1.0, fino.Ki);
 
   // expansion termica
   if (distribution_alpha.defined != 0) {
+    // TODO: no volver a evaluar si no hace falta
     // este debe ser el medio!
-    alphaDT = fino_distribution_evaluate(&distribution_alpha, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+    mesh_compute_x_at_gauss(element, v);
+    alphaDT = fino_distribution_evaluate(&distribution_alpha, material, element->x[v]);
     if (alphaDT != 0) {
-      alphaDT *= fino_distribution_evaluate(&distribution_T, material, gsl_vector_ptr(fino.mesh->fem.x, 0))-T0;
+      alphaDT *= fino_distribution_evaluate(&distribution_T, material, element->x[v])-T0;
       gsl_vector_set(et, 0, alphaDT);
       gsl_vector_set(et, 1, alphaDT);
       gsl_vector_set(et, 2, alphaDT);
       gsl_blas_dgemv(CblasTrans, r_for_axisymmetric, C, et, 0, Cet);
-      gsl_blas_dgemv(CblasTrans, w_gauss, B, Cet, 1.0, fino.bi);
+      gsl_blas_dgemv(CblasTrans, element->w[v], B, Cet, 1.0, fino.bi);
     }
   }
   
   if (fino.has_mass) {
     // calculamos la matriz de masa Ht*rho*H
-    rho = fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * rho, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+    mesh_compute_x_at_gauss(element, v);
+    mesh_compute_H_at_gauss(element, v, fino.degrees);
+    rho = fino_distribution_evaluate(&distribution_rho, material, element->x[v]);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rho, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -507,24 +515,13 @@ int fino_break_compute_stresses(void) {
         for (v = 0; v < V; v++) {
         
           element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-
-          // TODO!!!!!!!
-          // calculamos las coordenadas del punto de gauss
-          for (m = 0; m < element->type->dim; m++) {
-            gsl_vector_set(fino.mesh->fem.r, m, element->type->gauss[GAUSS_POINTS_CANONICAL].r[v][m]);
-          }
-
-          mesh_compute_h(element, fino.mesh->fem.r, fino.mesh->fem.h);
-          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-          mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-          mesh_inverse(element->type->dim, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
+          mesh_compute_dhdx_at_gauss(element, v);
 
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j = 0; j < element->type->nodes; j++) {
                 j_global_prime = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(fino.mesh->fem.dhdx, j, m) * fino.solution[g]->data_value[j_global_prime]);
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * fino.solution[g]->data_value[j_global_prime]);
               }
             }
           }
@@ -609,21 +606,51 @@ int fino_break_compute_stresses(void) {
         } else {
           
           // evaluacion directa en los nodos
-          wasora_call(mesh_compute_r_at_node(element, j, fino.mesh->fem.r));
-          mesh_compute_dxdr(element, fino.mesh->fem.r, fino.mesh->fem.dxdr);
-          mesh_inverse(fino.mesh->spatial_dimensions, fino.mesh->fem.dxdr, fino.mesh->fem.drdx);
-          mesh_compute_dhdx(element, fino.mesh->fem.r, fino.mesh->fem.drdx, fino.mesh->fem.dhdx);
-
+          int j_prime, m_prime;
+          gsl_matrix *dhdx = gsl_matrix_calloc(fino.dimensions, element->type->nodes);
+          gsl_matrix *drdx = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
+          gsl_matrix *dxdr = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
+          
+          
+          // dxdr
+          for (m = 0; m < fino.dimensions; m++) {
+            for (m_prime = 0; m_prime < fino.dimensions; m_prime++) {
+              for (j_prime = 0; j_prime < element->type->nodes; j_prime++) {
+                gsl_matrix_add_to_element(dxdr, m, m_prime, element->type->dhdr(j_prime, m_prime, element->type->node_coords[j]) * element->type->node_coords[j][m]);
+              }
+            }
+          }
+          
+          // inverse para tener drdx
+          mesh_inverse(fino.dimensions, dxdr, drdx);
+          
+          // dhdx 
+          for (j_prime = 0; j_prime < element->type->nodes; j_prime++) {
+            for (m = 0; m < element->type->dim; m++) {
+              for (m_prime = 0; m_prime < element->type->dim; m_prime++) {
+                // TODO: matrix-matrix
+      	        gsl_matrix_add_to_element(dhdx, j_prime, m, element->type->dhdr(j_prime, m_prime, element->type->node_coords[j]) * gsl_matrix_get(drdx, m_prime, m));
+              }
+            }
+          }
+          
           // las nueve derivadas (o menos)
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
                 j_global_prime = element->node[j_local_prime]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(fino.mesh->fem.dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime]);
+                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime]);
               }
             }
           }
+          
+          gsl_matrix_free(dhdx);
+          gsl_matrix_free(drdx);
+          gsl_matrix_free(dxdr);
+          
         }
+        
+
         
         // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
         if (distribution_E.function != NULL || distribution_E.physical_property != NULL ||
@@ -889,254 +916,155 @@ int fino_break_compute_stresses(void) {
 }
 
 
-
 #undef  __FUNCT__
-#define __FUNCT__ "fino_break_set_stress"
-int fino_break_set_stress(element_t *element, bc_t *bc) {
-  int v;
-  double w_gauss;
-  double r_for_axisymmetric;  
-  gsl_vector *Nb;
-    
-  if ((fino.dimensions == 3 && element->type->dim != 2) ||
-      (fino.dimensions == 2 && element->type->dim != 1)) {
-    wasora_push_error_message("stress BCs can only be applied to surfaces");
-    return WASORA_RUNTIME_ERROR;
-  }
-
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
-
-  Nb = gsl_vector_calloc(fino.degrees);
-  gsl_vector_set_zero(fino.bi);
-
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
-
-    // ojo, lo hacemos de a uno por vez, capaz que se pueda hacer todo junto
-    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->expr[0]));
-    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
-  }
-
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-
-  gsl_vector_free(Nb);
+#define __FUNCT__ "fino_break_set_neumann"
+int fino_break_set_neumann(element_t *element, bc_t *bc) {
   
-  return WASORA_RUNTIME_OK;
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_set_moment"
-int fino_break_set_moment(element_t *element, bc_t *bc) {
-  int v;
-  double w_gauss;
-  double theta;
-  double dx, dy, dz;
   double x0, y0, z0;
-  double F, d;
-  double r_for_axisymmetric;
-  gsl_vector *Nb;
-  
-  physical_entity_t *physical_entity = element->physical_entity;
-  element_t *tmp_element;
-  double w;
-  double xix, xiy, xiz;
   double Ix, Iy, Iz;
-  int i, j;
+  double r_for_axisymmetric;
+  int i, j, v;
   
+
+  if (bc->type_phys ==  bc_phys_force) {
+    if (element->physical_entity->volume == 0) {
+      wasora_push_error_message("physical entity '%s' has zero volume", element->physical_entity->name);
+      return WASORA_RUNTIME_ERROR;
+    }
+  } else if (bc->type_phys == bc_phys_pressure_normal || bc->type_phys == bc_phys_pressure_real) {
+    if ((fino.dimensions-element->type->dim != 1)) {
+      wasora_push_error_message("pressure BCs can only be applied to surfaces");
+      return WASORA_RUNTIME_ERROR;
+    }
+  } else if (bc->type_phys == bc_phys_moment)   {
     
-  if ((fino.dimensions == 3 && element->type->dim != 2) ||
-      (fino.dimensions == 2 && element->type->dim != 1)) {
-    wasora_push_error_message("moment BCs can only be applied to surfaces");
-    return WASORA_RUNTIME_ERROR;
-  }
+    double xix, xiy, xiz;
+    physical_entity_t *physical_entity = element->physical_entity;
+    element_t *tmp_element;
+  
+    if ((fino.dimensions-element->type->dim != 1)) {
+      wasora_push_error_message("moment BCs can only be applied to surfaces");
+      return WASORA_RUNTIME_ERROR;
+    }
+    
+    // el centro
+    if (bc->expr[4].n_tokens != 0) {
+      x0 = wasora_evaluate_expression(&bc->expr[3]);
+    } else {
+      x0 = physical_entity->cog[0];
+    }
+    if (bc->expr[5].n_tokens != 0) {
+      y0 = wasora_evaluate_expression(&bc->expr[4]);
+    } else {
+      y0 = physical_entity->cog[1];
+    }
+    if (bc->expr[6].n_tokens != 0) {
+      z0 = wasora_evaluate_expression(&bc->expr[5]);
+    } else {
+      z0 = physical_entity->cog[2];
+    }
 
+    // el momento polar de inercia
+    Ix = 0;
+    Iy = 0;
+    Iz = 0;
+    for (i = 0; i < physical_entity->n_elements; i++) {
+      tmp_element = &fino.mesh->element[physical_entity->element[i]];
+      for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+        mesh_compute_integration_weight_at_gauss(element, v);
 
-  // el centro
-  if (bc->expr[4].n_tokens != 0) {
-    x0 = wasora_evaluate_expression(&bc->expr[3]);
-  } else {
-    x0 = physical_entity->cog[0];
-  }
-  if (bc->expr[5].n_tokens != 0) {
-    y0 = wasora_evaluate_expression(&bc->expr[4]);
-  } else {
-    y0 = physical_entity->cog[1];
-  }
-  if (bc->expr[6].n_tokens != 0) {
-    z0 = wasora_evaluate_expression(&bc->expr[5]);
-  } else {
-    z0 = physical_entity->cog[2];
-  }
+        xix = 0;
+        xiy = 0;
+        xiz = 0;
+        for (j = 0; j < element->type->nodes; j++) {
+          xix += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[0]);
+          xiy += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[1]);
+          xiz += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[2]);
+        }
 
-  // el momento polar de inercia
-  Ix = 0;
-  Iy = 0;
-  Iz = 0;
-  for (i = 0; i < physical_entity->n_elements; i++) {
-    tmp_element = &fino.mesh->element[physical_entity->element[i]];
-    for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-      w = mesh_integration_weight(fino.mesh, element, v);
-
-      xix = 0;
-      xiy = 0;
-      xiz = 0;
-      for (j = 0; j < element->type->nodes; j++) {
-        xix += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[0]);
-        xiy += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[1]);
-        xiz += gsl_vector_get(fino.mesh->fem.h, j) * gsl_pow_2(tmp_element->node[j]->x[2]);
+        Ix += element->w[v] * xix;
+        Iy += element->w[v] * xiy;
+        Iz += element->w[v] * xiz;
       }
-
-      Ix += w * xix;
-      Iy += w * xiy;
-      Iz += w * xiz;
     }
-  }
+  }  
   
-  
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
-
-  Nb = gsl_vector_calloc(fino.degrees);
-  gsl_vector_set_zero(fino.bi);
-
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
-
-    dx = gsl_vector_get(fino.mesh->fem.x, 0) - x0;
-    dy = gsl_vector_get(fino.mesh->fem.x, 1) - y0;
-    dz = gsl_vector_get(fino.mesh->fem.x, 2) - z0;
-    
-    gsl_vector_set_zero(Nb);
-
-    // los tres primeros tienen las componentes Mx My y Mz
-    if (bc->expr[0].n_tokens != 0) {
-      d = gsl_hypot(dy, dz);
-      theta = atan2(dy, dz);
-      F = wasora_evaluate_expression(&bc->expr[0]) * 0.5 * d / (Iy+Iz);
-      // ty = cos(theta)*dz
-      gsl_vector_add_to_element(Nb, 1, -F*cos(theta));
-      // tz = -sin(theta)*dy
-      gsl_vector_add_to_element(Nb, 2, +F*sin(theta));
-    }
-    
-    if (bc->expr[1].n_tokens != 0) {
-      d = gsl_hypot(dx, dz);
-      theta = atan2(dx, dz);
-      F = wasora_evaluate_expression(&bc->expr[1]) * 0.5 * d / (Ix+Iz);
-      gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
-      gsl_vector_add_to_element(Nb, 2, +F*sin(theta));
-    }
-    
-    if (bc->expr[2].n_tokens != 0) {
-      d = gsl_hypot(dx, dy);
-      theta = atan2(dx, dy);
-      F = wasora_evaluate_expression(&bc->expr[2]) * 0.5 * d / (Ix+Iy);
-      gsl_vector_add_to_element(Nb, 0, -F*cos(theta));
-      gsl_vector_add_to_element(Nb, 1, +F*sin(theta));
-    }
-    
-    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
-  }
-
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-
-  gsl_vector_free(Nb);
-  
-  return WASORA_RUNTIME_OK;
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_set_force"
-int fino_break_set_force(element_t *element, bc_t *bc) {
-  int v;
-  double w_gauss;
-  double r_for_axisymmetric;
-  gsl_vector *Nb;
-    
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
-  
-  Nb = gsl_vector_calloc(fino.degrees);
-  gsl_vector_set_zero(fino.bi);
-  
-
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
-    
-    gsl_vector_set(Nb, bc->dof, wasora_evaluate_expression(&bc->expr[0])/element->physical_entity->volume);
-    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
-  }
-
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-
-  gsl_vector_free(Nb);
-  
-  return WASORA_RUNTIME_OK;
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_set_pressure"
-int fino_break_set_pressure(element_t *element, bc_t *bc) {
-  double w_gauss;
-  double p;
-  double r_for_axisymmetric;
-  int v;
-  gsl_vector *Nb;
-
-  if ((fino.dimensions-element->type->dim != 1)) {
-    wasora_push_error_message("pressure BCs can only be applied to surfaces");
-    return WASORA_RUNTIME_ERROR;
-  }
-
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
-
-  Nb = gsl_vector_calloc(fino.degrees);
-  gsl_vector_set_zero(fino.bi);
   
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    mesh_compute_integration_weight_at_gauss(element, v);
+    mesh_compute_H_at_gauss(element, v, fino.degrees);
+    mesh_compute_x_at_gauss(element, v);
+    mesh_update_coord_vars(element->x[v]);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     
-    // la p chica es la proyeccion del vector tension sobre la normal, lo que uno espera en matematica
-    p = wasora_evaluate_expression(&bc->expr[0]);
-    // la P grande es presion positiva cuando comprime, como lo que uno espera en ingenieria
-    if (bc->type_phys == bc_phys_pressure_real) {
-      p = -p;
-    }
-    gsl_vector_set(Nb, 0, wasora_var_value(wasora_mesh.vars.nx) * p);
-    gsl_vector_set(Nb, 1, wasora_var_value(wasora_mesh.vars.ny) * p);
-    if (fino.dimensions == 3) {
-      gsl_vector_set(Nb, 2, wasora_var_value(wasora_mesh.vars.nz) * p);
-    }
+    if (bc->type_phys == bc_phys_stress) {
+      
+      gsl_vector_set(fino.Nb, bc->dof, wasora_evaluate_expression(&bc->expr[0]));
+      
+    } else if (bc->type_phys ==  bc_phys_force) {
+      
+      gsl_vector_set(fino.Nb, bc->dof, wasora_evaluate_expression(&bc->expr[0])/element->physical_entity->volume);
+      
+    } else if (bc->type_phys == bc_phys_pressure_normal || bc->type_phys == bc_phys_pressure_real) {
+      
+      double p;
+      
+      // la p chica es la proyeccion del vector tension sobre la normal, lo que uno espera en matematica
+      p = wasora_evaluate_expression(&bc->expr[0]);
+      // la P grande es presion positiva cuando comprime, como lo que uno espera en ingenieria      
+      if (bc->type_phys == bc_phys_pressure_real) {
+        p = -p;
+      }
+      
+      gsl_vector_set(fino.Nb, 0, wasora_var_value(wasora_mesh.vars.nx) * p);
+      gsl_vector_set(fino.Nb, 1, wasora_var_value(wasora_mesh.vars.ny) * p);
+      if (fino.dimensions == 3) {
+        gsl_vector_set(fino.Nb, 2, wasora_var_value(wasora_mesh.vars.nz) * p);
+      }
+      
+    } else if (bc->type_phys == bc_phys_moment)   {
+      
+      double dx, dy, dz;
+      double d, theta, F;
+      
+      dx = element->x[v][0] - x0;
+      dy = element->x[v][1] - y0;
+      dz = element->x[v][2] - z0;
     
-    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*w_gauss, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+      // los tres primeros tienen las componentes Mx My y Mz
+      if (bc->expr[0].n_tokens != 0) {
+        d = gsl_hypot(dy, dz);
+        theta = atan2(dy, dz);
+        F = wasora_evaluate_expression(&bc->expr[0]) * 0.5 * d / (Iy+Iz);
+        // ty = cos(theta)*dz
+        gsl_vector_add_to_element(fino.Nb, 1, -F*cos(theta));
+        // tz = -sin(theta)*dy
+        gsl_vector_add_to_element(fino.Nb, 2, +F*sin(theta));
+      }
+    
+      if (bc->expr[1].n_tokens != 0) {
+        d = gsl_hypot(dx, dz);
+        theta = atan2(dx, dz);
+        F = wasora_evaluate_expression(&bc->expr[1]) * 0.5 * d / (Ix+Iz);
+        gsl_vector_add_to_element(fino.Nb, 0, -F*cos(theta));
+        gsl_vector_add_to_element(fino.Nb, 2, +F*sin(theta));
+      }
+    
+      if (bc->expr[2].n_tokens != 0) {
+        d = gsl_hypot(dx, dy);
+        theta = atan2(dx, dy);
+        F = wasora_evaluate_expression(&bc->expr[2]) * 0.5 * d / (Ix+Iy);
+        gsl_vector_add_to_element(fino.Nb, 0, -F*cos(theta));
+        gsl_vector_add_to_element(fino.Nb, 1, +F*sin(theta));
+      }
+    
+    }  
+
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*element->w[v], element->H[v], fino.Nb, 1.0, fino.bi); 
+    
+    
   }
 
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-
-  gsl_vector_free(Nb);
-  
   return WASORA_RUNTIME_OK;
 }
 

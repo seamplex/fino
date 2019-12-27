@@ -512,7 +512,7 @@ int fino_problem_init(void) {
   
   if (fino.problem_family == problem_family_shake ||
       (fino.problem_family == problem_family_bake && wasora_var_value(wasora_special_var(end_time)) != 0)) {
-    // la matriz de masa para autovalores del problema elastico o para 
+    // la matriz de masa para autovalores del problema elastico o para transitorio de calor
     fino.has_mass = 1;
     petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
     petsc_call(MatSetSizes(fino.M, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));

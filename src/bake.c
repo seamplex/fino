@@ -187,10 +187,9 @@ int fino_bake_step_transient(void) {
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_build_bake"
-int fino_build_bake(element_t *element, int v) {
+#define __FUNCT__ "fino_bake_build_element"
+int fino_bake_build_element(element_t *element, int v) {
   
-  double w_gauss;
   double k, rhocp;
   double r_for_axisymmetric;
   
@@ -227,31 +226,35 @@ int fino_build_bake(element_t *element, int v) {
   
   
   if (element->physical_entity != NULL && element->physical_entity->material != NULL) {
-    material =  element->physical_entity->material;
+    material = element->physical_entity->material;
   }
   
-  w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v); 
-  r_for_axisymmetric = fino_compute_r_for_axisymmetric();
+  mesh_compute_integration_weight_at_gauss(element, v);
+  mesh_compute_H_at_gauss(element, v, fino.degrees);
+  mesh_compute_B_at_gauss(element, v, fino.degrees);
+  mesh_compute_x_at_gauss(element, v);
+  r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
 
   if (distribution_Q.defined != 0) {
     // el vector de fuente de calor volumetrica
     for (j = 0; j < element->type->nodes; j++) {
-      gsl_vector_add_to_element(fino.bi, j, w_gauss * r_for_axisymmetric * gsl_vector_get(fino.mesh->fem.h, j) * fino_distribution_evaluate(&distribution_Q, material, gsl_vector_ptr(fino.mesh->fem.x, 0)));
+      gsl_vector_add_to_element(fino.bi, j,
+        element->w[v] * r_for_axisymmetric * element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * fino_distribution_evaluate(&distribution_Q, material, element->x[v]));
     }
   }
 
   // calculamos la matriz de stiffness
-  k = fino_distribution_evaluate(&distribution_k, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
-  gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric * k, fino.mesh->fem.B, fino.mesh->fem.B, 1.0, fino.Ki);
+  k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
   if (fino.has_mass) {
     // calculamos la matriz de masa Ht*rho*cp*H
     if (distribution_kappa.defined)  {
-      rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+      rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, element->x[v]);
     } else {
-      rhocp = fino_distribution_evaluate(&distribution_rho, material, gsl_vector_ptr(fino.mesh->fem.x, 0)) * fino_distribution_evaluate(&distribution_cp, material, gsl_vector_ptr(fino.mesh->fem.x, 0));
+      rhocp = fino_distribution_evaluate(&distribution_rho, material, element->x[v]);
     }
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric *rhocp, fino.mesh->fem.H, fino.mesh->fem.H, 1.0, fino.Mi);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rhocp, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
   
   return WASORA_RUNTIME_OK;
@@ -262,38 +265,32 @@ int fino_build_bake(element_t *element, int v) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_bake_set_heat_flux"
 int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
-  double w_gauss;
   double r_for_axisymmetric;
   double q;
   int v;
-  gsl_vector *Nb;
-  
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
- 
-  Nb = gsl_vector_calloc(fino.degrees);
-  gsl_vector_set_zero(fino.bi);
 
+  if (bc->type_phys == bc_phys_heat_total && element->physical_entity->volume == 0) {
+    wasora_push_error_message("physical entity '%s' has zero volume", element->physical_entity->name);
+    return WASORA_RUNTIME_ERROR;
+  }
+  
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    mesh_compute_integration_weight_at_gauss(element, v);
+    mesh_compute_H_at_gauss(element, v, fino.degrees);
+    mesh_compute_x_at_gauss(element, v);
+    mesh_update_coord_vars(element->x[v]);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     
     if (bc->type_phys == bc_phys_heat_total) {
       q = wasora_evaluate_expression(&bc->expr[0])/element->physical_entity->volume;
     } else {
       q = wasora_evaluate_expression(&bc->expr[0]);
     }
-    gsl_vector_set(Nb, 0, q);
     
-    gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_vector_set(fino.Nb, 0, q);
+    gsl_blas_dgemv(CblasTrans, r_for_axisymmetric*element->w[v], element->H[v], fino.Nb, 1.0, fino.bi); 
   }
-
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
-
-  gsl_vector_free(Nb);
   
   return WASORA_RUNTIME_OK;
 }
@@ -303,47 +300,42 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_bake_set_convection"
 int fino_bake_set_convection(element_t *element, bc_t *bc) {
-  double w_gauss;
   double r_for_axisymmetric;
   double h = 0;
   double Tinf = 0;
   int v;
   gsl_matrix *Na;
   gsl_matrix *NaH;
-  gsl_vector *Nb;
   
-  if (fino.n_local_nodes != element->type->nodes) {
-    wasora_call(fino_allocate_elemental_objects(element));
-  }
- 
   Na = gsl_matrix_calloc(fino.degrees, fino.degrees);
   NaH = gsl_matrix_calloc(fino.degrees, fino.n_local_nodes);
-  Nb = gsl_vector_calloc(fino.degrees);
   
   gsl_matrix_set_zero(fino.Ki);
   gsl_vector_set_zero(fino.bi);
 
   for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    w_gauss = mesh_compute_fem_objects_at_gauss(fino.mesh, element, v);
-    r_for_axisymmetric = fino_compute_r_for_axisymmetric();
-    mesh_compute_x(element, fino.mesh->fem.r, fino.mesh->fem.x);
-    mesh_update_coord_vars(gsl_vector_ptr(fino.mesh->fem.x, 0));
+    
+    mesh_compute_integration_weight_at_gauss(element, v);
+    mesh_compute_H_at_gauss(element, v, fino.degrees);
+    mesh_compute_x_at_gauss(element, v);
+    mesh_update_coord_vars(element->x[v]);
+    r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     
     h = wasora_evaluate_expression(&bc->expr[0]);
     Tinf = wasora_evaluate_expression(&bc->expr[1]);
     
     gsl_matrix_set(Na, 0, 0, h);
-    gsl_vector_set(Nb, 0, h*Tinf);
+    gsl_vector_set(fino.Nb, 0, h*Tinf);
 
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, fino.mesh->fem.H, 0, NaH);
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, NaH, 1, fino.Ki);
-    gsl_blas_dgemv(CblasTrans, w_gauss * r_for_axisymmetric, fino.mesh->fem.H, Nb, 1.0, fino.bi); 
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, Na, element->H[v], 0, NaH);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric, element->H[v], NaH, 1.0, fino.Ki);
+    gsl_blas_dgemv(CblasTrans, element->w[v] * r_for_axisymmetric, element->H[v], fino.Nb, 1.0, fino.bi); 
   }
 
-  MatSetValues(fino.K, fino.elemental_size, fino.mesh->fem.l, fino.elemental_size, fino.mesh->fem.l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
-  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+  MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
+  // este lo hacemos afuera
+//  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
 
-  gsl_vector_free(Nb);
   gsl_matrix_free(Na);
   gsl_matrix_free(NaH);
   
