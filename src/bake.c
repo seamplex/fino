@@ -332,6 +332,7 @@ int fino_bake_set_convection(element_t *element, bc_t *bc) {
     gsl_blas_dgemv(CblasTrans, element->w[v] * r_for_axisymmetric, element->H[v], fino.Nb, 1.0, fino.bi); 
   }
 
+  mesh_compute_l(fino.mesh, element);
   MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
   // este lo hacemos afuera
 //  VecSetValues(fino.b, fino.elemental_size, fino.mesh->fem.l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);

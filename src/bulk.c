@@ -149,9 +149,6 @@ int fino_build_element_volumetric(element_t *element) {
       wasora_call(fino_allocate_elemental_objects(element));
     }
     
-    if (element->H == NULL) {
-      element->H = calloc(V, sizeof(gsl_matrix *));
-    }
     if (element->B == NULL) {
       element->B = calloc(V, sizeof(gsl_matrix *));
     }
@@ -164,10 +161,6 @@ int fino_build_element_volumetric(element_t *element) {
     // TODO: hacer el loop de gauss adentro de cada funcion asi podemos
     // hacer evaluaciones nodo por nodo o lo que sea para cada punto de gauss
     for (v = 0; v < V; v++) {
-      
-      if (element->H[v] == NULL) {
-        element->H[v] = gsl_matrix_calloc(fino.mesh->degrees_of_freedom, fino.elemental_size);
-      }
       
       // armamos las matrices
       if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
