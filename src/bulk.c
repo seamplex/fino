@@ -234,7 +234,7 @@ double fino_compute_r_for_axisymmetric(element_t *element, int v) {
 
   double r_for_axisymmetric = 1.0;
   
-  if (element->x == NULL) {
+  if (element->x == NULL || element->x[v] == NULL) {
     mesh_compute_x_at_gauss(element, v);
   }
   

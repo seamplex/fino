@@ -606,33 +606,16 @@ int fino_break_compute_stresses(void) {
         } else {
           
           // evaluacion directa en los nodos
-          int j_prime, m_prime;
-          gsl_matrix *dhdx = gsl_matrix_calloc(fino.dimensions, element->type->nodes);
+          gsl_matrix *dhdx = gsl_matrix_calloc(element->type->nodes, fino.dimensions); // esto esta al vesre
           gsl_matrix *drdx = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
           gsl_matrix *dxdr = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
           
-          
           // dxdr
-          for (m = 0; m < fino.dimensions; m++) {
-            for (m_prime = 0; m_prime < fino.dimensions; m_prime++) {
-              for (j_prime = 0; j_prime < element->type->nodes; j_prime++) {
-                gsl_matrix_add_to_element(dxdr, m, m_prime, element->type->dhdr(j_prime, m_prime, element->type->node_coords[j]) * element->type->node_coords[j][m]);
-              }
-            }
-          }
-          
+          mesh_compute_dxdr(element, element->type->node_coords[j], dxdr);
           // inverse para tener drdx
-          mesh_inverse(fino.dimensions, dxdr, drdx);
-          
+          mesh_inverse(dxdr, drdx);
           // dhdx 
-          for (j_prime = 0; j_prime < element->type->nodes; j_prime++) {
-            for (m = 0; m < element->type->dim; m++) {
-              for (m_prime = 0; m_prime < element->type->dim; m_prime++) {
-                // TODO: matrix-matrix
-      	        gsl_matrix_add_to_element(dhdx, j_prime, m, element->type->dhdr(j_prime, m_prime, element->type->node_coords[j]) * gsl_matrix_get(drdx, m_prime, m));
-              }
-            }
-          }
+          mesh_compute_dhdx(element, element->type->node_coords[j], dxdr, dhdx);
           
           // las nueve derivadas (o menos)
           for (g = 0; g < fino.degrees; g++) {
@@ -717,12 +700,17 @@ int fino_break_compute_stresses(void) {
     LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
       element = associated_element->element;
       if (element->dphidx_node != NULL) {
-        weight_normalized = element->weight / weight_total;
+        if (weight_total != 0) {
+          weight_normalized = element->weight / weight_total;
+        } else {
+          weight_normalized = 1.0/(double)n;
+        }  
         for (j = 0; j < element->type->nodes; j++) {
           if (element->node[j]->index_mesh == j_global) {
             
             
             // las derivadas
+            // TODO: blas level2
             for (g = 0; g < fino.degrees; g++) {
               for (m = 0; m < fino.dimensions; m++) {
                 gsl_matrix_add_to_element(node->dphidx, g, m, weight_normalized * gsl_matrix_get(element->dphidx_node[j], g, m));
