@@ -607,15 +607,7 @@ int fino_break_compute_stresses(void) {
           
           // evaluacion directa en los nodos
           gsl_matrix *dhdx = gsl_matrix_calloc(element->type->nodes, fino.dimensions); // esto esta al vesre
-          gsl_matrix *drdx = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
-          gsl_matrix *dxdr = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
-          
-          // dxdr
-          mesh_compute_dxdr(element, element->type->node_coords[j], dxdr);
-          // inverse para tener drdx
-          mesh_inverse(dxdr, drdx);
-          // dhdx 
-          mesh_compute_dhdx(element, element->type->node_coords[j], dxdr, dhdx);
+          mesh_compute_dhdx(element, element->type->node_coords[j], NULL, dhdx);
           
           // las nueve derivadas (o menos)
           for (g = 0; g < fino.degrees; g++) {
@@ -628,8 +620,6 @@ int fino_break_compute_stresses(void) {
           }
           
           gsl_matrix_free(dhdx);
-          gsl_matrix_free(drdx);
-          gsl_matrix_free(dxdr);
           
         }
         
