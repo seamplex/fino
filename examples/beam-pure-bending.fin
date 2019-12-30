@@ -2,32 +2,26 @@ FINO_SOLVER PROGRESS_ASCII
 
 MESH FILE_PATH beam-quads.msh DIMENSIONS 3
 
-PHYSICAL_ENTITY NAME fixed  BC fixed
+PHYSICAL_ENTITY NAME fixed  BC tangential radial
 
-# PHYSICAL_ENTITY NAME load BC Ty=1
-# PHYSICAL_ENTITY NAME load BC tx=(z-load_cog(3))
+# tension
+# PHYSICAL_ENTITY NAME load BC Tx=1
+# PHYSICAL_ENTITY NAME load BC tx=1
 
 # torsion
-# PHYSICAL_ENTITY NAME load BC tz=y ty=-z
-#PHYSICAL_ENTITY NAME load BC ty=cos(atan2(y,z)) tz=-sin(atan2(y,z))
+# PHYSICAL_ENTITY NAME load BC Mx=1
 
+# bending
+# PHYSICAL_ENTITY NAME load BC Fx=1 #Fy=1 Fz=1
+PHYSICAL_ENTITY NAME load BC My=1
 
-PHYSICAL_ENTITY NAME load BC Fx=1 #Fy=1 Fz=1
-# PHYSICAL_ENTITY NAME load BC My=1
-
-E = 1
-nu = 0.3
+E = 100
+nu = 0
 
 FINO_STEP
 
 MESH_POST FILE_PATH beam-pure-bending.vtk VECTOR u v w sigma sigma1 sigma2 sigma3
 
-# PRINT HEADER %g fixed_cog
-# PRINT HEADER %g load_cog
-
 FINO_REACTION PHYSICAL_ENTITY fixed RESULT R
-
-PRINT HEADER R
-
-# PRINT HEADER %g fixed_RF
-# PRINT HEADER %g fixed_RM
+PRINT R
+PRINT sigma(0,0,0)

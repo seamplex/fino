@@ -2,7 +2,7 @@
 SetFactory("OpenCASCADE");
 
 a = 1;
-l = 1;
+l = 5;
 lc = a/10;
 Box(1) = {0, -0.5*a, -0.5*a, l,  a, a};
 
