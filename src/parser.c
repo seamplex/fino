@@ -305,8 +305,8 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
 
-///kw+FINO_SOLVER+usage [ GRADIENT_EVALUATION {
-        } else if (strcasecmp(token, "GRADIENT_EVALUATION") == 0) {
+///kw+FINO_SOLVER+usage [ GRADIENT {
+        } else if (strcasecmp(token, "GRADIENT") == 0) {
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   gauss_extrapolated |
                          "gauss_extrapolated",
@@ -319,13 +319,13 @@ int plugin_parse_line(char *line) {
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_evaluation));
 ///kw+FINO_SOLVER+usage } ]
           
-///kw+FINO_SOLVER+usage [ GRADIENT_HIGHORDER_NODES {
-        } else if (strcasecmp(token, "GRADIENT_HIGHORDER_NODES") == 0) {
+///kw+FINO_SOLVER+usage [ GRADIENT_HIGHER {
+        } else if (strcasecmp(token, "GRADIENT_HIGHER") == 0) {
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   average |
                          "average",
-///kw+FINO_SOLVER+usage   actual |
-                         "actual",
+///kw+FINO_SOLVER+usage   at_nodes |
+                         "at_nodes",
                          ""};
           int values[] = {gradient_average, gradient_actual, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_highorder_nodes));

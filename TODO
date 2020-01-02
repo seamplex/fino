@@ -18,15 +18,6 @@
  * put mat2sng in a different code
  * DMplex
  * parallelization
- * realbook
- * benchmarks (real book)
-    - ASME PTB-3
-    - veeder
-    - parallelepiped
-    - cantilever vs euler
-    - cantilever natural frequencies
-    - rotating disk
-    - 3 single-part benchmarks
-    - pipe linearized
-    - algo de nafems
-    - algo de thermal
+ * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
+ * see if some for loops can be replaced by matrix-matrix products
+ 
