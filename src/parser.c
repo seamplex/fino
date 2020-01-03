@@ -1,9 +1,9 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's parsing routines
  *
- *  Copyright (C) 2015--2019 jeremy theler
+ *  Copyright (C) 2015--2020 Seamplex
  *
- *  This file is part of fino.
+ *  This file is part of Fino <https://www.seamplex.com/fino>.
  *
  *  fino is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -308,10 +308,10 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ GRADIENT {
         } else if (strcasecmp(token, "GRADIENT") == 0) {
           char *keywords[] = {
-///kw+FINO_SOLVER+usage   gauss_extrapolated |
-                         "gauss_extrapolated",
-///kw+FINO_SOLVER+usage   at_nodes |
-                         "at_nodes",
+///kw+FINO_SOLVER+usage   gauss |
+                         "gauss",
+///kw+FINO_SOLVER+usage   nodes |
+                         "nodes",
 ///kw+FINO_SOLVER+usage   none
                          "none",
                          ""};
@@ -324,8 +324,8 @@ int plugin_parse_line(char *line) {
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   average |
                          "average",
-///kw+FINO_SOLVER+usage   at_nodes |
-                         "at_nodes",
+///kw+FINO_SOLVER+usage   nodes |
+                         "nodes",
                          ""};
           int values[] = {gradient_average, gradient_actual, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_highorder_nodes));

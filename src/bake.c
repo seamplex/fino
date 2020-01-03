@@ -1,9 +1,9 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's construction of heat conduction problem (bake)
  *
- *  Copyright (C) 2015--2019 jeremy theler & ezequiel manavela chiapero
+ *  Copyright (C) 2015--2020 Seamplex, 2015 ezequiel manavela chiapero
  *
- *  This file is part of fino.
+ *  This file is part of Fino <https://www.seamplex.com/fino>.
  *
  *  fino is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by

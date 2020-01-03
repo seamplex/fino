@@ -1,9 +1,9 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino debugging and benchmarking routines
  *
- *  Copyright (C) 2015--2019 jeremy theler
+ *  Copyright (C) 2015--2020 Seamplex
  *
- *  This file is part of fino.
+ *  This file is part of Fino <https://www.seamplex.com/fino>.
  *
  *  fino is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
