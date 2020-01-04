@@ -163,15 +163,6 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
           
-///kw+FINO_PROBLEM+usage [ DEGREES <expr> ]
-        } else if (strcasecmp(token, "DEGREES") == 0) {
-          wasora_call(wasora_parser_expression_in_string(&xi));
-          fino.degrees = (int)(xi);
-          if (fino.degrees < 1)  {
-            wasora_push_error_message("a positive number of degrees should be given instead of '%d'", fino.degrees);
-            return WASORA_PARSER_ERROR;
-          }
-          
 ///kw+FINO_PROBLEM+usage [ SYMMETRY_AXIS { x | y } ]
         } else if (strcasecmp(token, "SYMMETRY_AXIS") == 0) {
           char *keywords[] = { "x", "y" };
@@ -190,7 +181,6 @@ int plugin_parse_line(char *line) {
           }
           free(mesh_name);
         
-#ifdef HAVE_SLEPC
 ///kw+FINO_PROBLEM+usage [ N_MODES <expr> ]
         } else if (strcasecmp(token, "N_MODES") == 0 || strcasecmp(token, "N_EIGEN") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
@@ -199,25 +189,6 @@ int plugin_parse_line(char *line) {
             wasora_push_error_message("a positive number of eigenvalues should be given instead of '%d'", fino.nev);
             return WASORA_PARSER_ERROR;
           }
-#endif
-
-///kw+FINO_PROBLEM+usage [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
-        } else if (strcasecmp(token, "SOLUTION") == 0 || strcasecmp(token, "SOLUTIONS") == 0 ||
-                   strcasecmp(token, "SOLUTION_NAMES") == 0 ||
-                   strcasecmp(token, "UNKNOWNS") == 0 || strcasecmp(token, "UNKNOWN") == 0) {
-
-          int g;
-          
-          if (fino.degrees == 0) {
-            wasora_push_error_message("UNKNOWNS before DEGREES");
-            return WASORA_PARSER_ERROR;
-          }
-          
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          for (g = 0; g < fino.degrees; g++) {
-            wasora_call(wasora_parser_string(&fino.unknown_name[g]));
-          }
-          
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
           return WASORA_PARSER_ERROR;
@@ -239,7 +210,6 @@ int plugin_parse_line(char *line) {
         fino.mesh->spatial_dimensions = fino.dimensions;
       }
 
-     
       wasora_call(fino_define_functions());
       
       
@@ -291,7 +261,6 @@ int plugin_parse_line(char *line) {
               return WASORA_PARSER_ERROR;
             }
           }
-          
 
 ///kw+FINO_SOLVER+usage [ DO_NOT_SET_BLOCK_SIZE 
         } else if (strcasecmp(token, "DO_NOT_SET_BLOCK_SIZE") == 0) {
@@ -351,6 +320,14 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]
         } else if (strcasecmp(token, "GRADIENT_QUALITY_THRESHOLD") == 0) {
           wasora_call(wasora_parser_expression_in_string(&fino.gradient_quality_threshold));
+          
+///kw+FINO_SOLVER+usage [ SMOOTH |
+        } else if (strcasecmp(token, "SMOOTH") == 0) {
+          fino.rough = 0;
+          
+///kw+FINO_SOLVER+usage ROUGH ]
+        } else if (strcasecmp(token, "ROUGH") == 0) {
+          fino.rough = 1;
 
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
@@ -407,7 +384,8 @@ int plugin_parse_line(char *line) {
       
       // si nadie dijo nada tenemos un solo grado de libertado
       if (fino.degrees == 0) {
-        fino.degrees = 1;
+        wasora_push_error_message("zero degrees of freedom");
+        return WASORA_PARSER_ERROR;
       }
       
       
@@ -416,7 +394,6 @@ int plugin_parse_line(char *line) {
       }
 
       // chequeo de grados de libertad (despues de tener las phi definidas)
-      // por default la cantidad de grupos es uno, asi que no hay manera de que sea cero
       if (fino.mesh->degrees_of_freedom == 0) {
         fino.mesh->degrees_of_freedom = fino.degrees;
       } else if (fino.mesh->degrees_of_freedom != fino.degrees) {
@@ -434,15 +411,6 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "JUST_SOLVE") == 0) {
           fino_step->do_not_build = 1;
           fino_step->do_not_solve = 0;
-          
-///kw+FINO_STEP+usage [ DUMP_FILE_PATH <filepath> ]
-/*          
-        } else if (strcasecmp(token, "DUMP_FILE_PATH") == 0) {
-          char *filepath;
-          wasora_parser_string(&filepath);
-          fino_step.dump = fopen(filepath, "w");
-          free(filepath);
-*/        
         } else {
           wasora_push_error_message("unknown keyword '%s'", token);
           return WASORA_PARSER_ERROR;
@@ -823,10 +791,8 @@ int fino_define_functions(void) {
   int i, g, d;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
-  if (fino.dimensions == 0) {
+  if (fino.dimensions == 0 || fino.degrees == 0) {
     wasora_push_error_message("do not know how many dimensions the problem has, tell me with DIMENSIONS in either FINO_PROBLEM or MESH");
-    return WASORA_PARSER_ERROR;
-  } else if (fino.degrees == 0) {
     return WASORA_PARSER_ERROR;
   }
 
@@ -853,34 +819,32 @@ int fino_define_functions(void) {
     }
     
     // esto lo ponemos aca por si alguien quiere hacer un PRINT o algo sin pasar por el STEP
-    fino.solution[g]->mesh = fino.mesh;
+    fino.solution[g]->mesh = (fino.rough==0)?fino.mesh:fino.mesh_rough;
     fino.solution[g]->var_argument = calloc(fino.dimensions, sizeof(var_t *));
     fino.solution[g]->var_argument_alloced = 1;
     fino.solution[g]->type = type_pointwise_mesh_node;
 
-    // las derivadas de las soluciones con respecto al espacio
-    fino.gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
-    
-    for (d = 0; d < fino.dimensions; d++) {
-      fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
+    if (fino.nev == 0) {
+      // las derivadas de las soluciones con respecto al espacio solo si no es modal
+      fino.gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
+      for (d = 0; d < fino.dimensions; d++) {
+        fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
       
-      if (asprintf(&gradname, "d%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
-        wasora_push_error_message("cannot asprintf");
-        return WASORA_RUNTIME_ERROR;
+        if (asprintf(&gradname, "d%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
+          wasora_push_error_message("cannot asprintf");
+          return WASORA_RUNTIME_ERROR;
+        }
+        if ((fino.gradient[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
+          return WASORA_PARSER_ERROR;
+        }
+        fino.gradient[g][d]->mesh = fino.solution[g]->mesh;
+        fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
+        fino.gradient[g][d]->type = type_pointwise_mesh_node;
+        free(gradname);
       }
-      if ((fino.gradient[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
-        return WASORA_PARSER_ERROR;
-      }
-/*      
-      fino.gradient[g][d]->mesh = fino.mesh;
-      fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
-      fino.gradient[g][d]->type = type_pointwise_mesh_node;
- */
-      free(gradname);
-    }
-    
-    if (fino.nev > 0) {
-
+      
+    } else {  
+      // en modal tenemos muchas soluciones
       fino.mode[g] = calloc(fino.nev, sizeof(function_t *));
       for (i = 0; i < fino.nev; i++) {
         if (asprintf(&modename, "%s%d", name, i+1) == -1) {
@@ -895,12 +859,12 @@ int fino_define_functions(void) {
         fino.mode[g][i]->type = fino.solution[g]->type;
       }
     }
-    
     free(name);
   }
 
   if (fino.problem_family == problem_family_break) {
 
+    // TODO: describir las funciones para reference
     wasora_call(fino_define_result_function("sigmax", &fino.sigmax));
     wasora_call(fino_define_result_function("sigmay", &fino.sigmay));
     wasora_call(fino_define_result_function("sigmaz", &fino.sigmaz));
@@ -998,7 +962,6 @@ int fino_define_functions(void) {
         return WASORA_RUNTIME_ERROR;
       }
       free(modename);
-      
     }
     
   }

@@ -398,10 +398,10 @@ int fino_bake_compute_fluxes(void) {
     
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
     if (fino.solution[0]->data_value[j] >= T_max) {
-      T_max = fino.solution[0]->data_value[j];
+      T_max = fino.mesh->node[j].phi[0];
     }
     if (fino.solution[0]->data_value[j] <= T_min) {
-      T_min = fino.solution[0]->data_value[j];
+      T_min = fino.mesh->node[j].phi[0];
     }
     
   }

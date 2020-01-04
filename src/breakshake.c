@@ -681,7 +681,7 @@ int fino_break_compute_stresses(void) {
   }
 
   
-  
+//  if (fino.rough == 0) {
   // paso 2. barremos los nodos y promediamos  
   for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
     if (fino.progress_ascii && (progress++ % step) == 0) {

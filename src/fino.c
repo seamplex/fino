@@ -51,10 +51,6 @@ int fino_instruction_step(void *arg) {
 
   PetscFunctionBegin;
   
-///////////////////////////////////////////////////////////  
-//  fino.rough = 1;
-///////////////////////////////////////////////////////////
-  
   //---------------------------------
   // inicializamos si hace falta
   // TODO: ver si cambia la malla  
@@ -117,14 +113,12 @@ int fino_instruction_step(void *arg) {
         
     // fabricamos G funciones con la solucion
     for (j = 0; j < fino.spatial_unknowns; j++) {
-      fino.mesh->node[j].phi = calloc(fino.degrees, sizeof(double));
       for (g = 0; g < fino.degrees; g++) {
         petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
         
-        // si tenemos una solucion base hay que sumarla
+        // si tenemos una solucion la sumamos 
         if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
-          // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
-          if (fino.base_solution[g]->data_size == fino.spatial_unknowns) {
+          if (fino.base_solution[g]->mesh == fino.mesh) {
             fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
           } else {
             fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
@@ -165,32 +159,17 @@ int fino_instruction_step(void *arg) {
     
     if (fino.problem_family == problem_family_break) {
   
-//      wasora_call(fino_compute_strain_energy());
-//      wasora_call(fino_break_compute_stresses());
-//      fino_instruction_post(NULL);
+      wasora_call(fino_compute_strain_energy());
+      wasora_call(fino_break_compute_stresses());
       
     } else if (fino.problem_family == problem_family_bake) {
         
-      double T_max = -INFTY;
-      double T_min = +INFTY;
-      int j;
       wasora_call(fino_bake_compute_fluxes());
-        
-      for (j = 0; j < fino.mesh->n_nodes; j++) {
-        // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
-        if (fino.solution[0]->data_value[j] >= T_max) {
-          T_max = fino.solution[0]->data_value[j];
-        }
-        if (fino.solution[0]->data_value[j] <= T_min) {
-          T_min = fino.solution[0]->data_value[j];
-        }
-      }
       
-      wasora_var(fino.vars.T_max) = T_max;
-      wasora_var(fino.vars.T_min) = T_min;
-        
     }
+    
     time_checkpoint(stress_end);
+    
   }
   
   if (fino_step->do_not_build == 0) {
