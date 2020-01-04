@@ -521,7 +521,7 @@ int fino_break_compute_stresses(void) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j = 0; j < element->type->nodes; j++) {
                 j_global_prime = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * fino.solution[g]->data_value[j_global_prime]);
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * fino.mesh->node[j_global_prime].phi[g]);
               }
             }
           }
@@ -614,7 +614,7 @@ int fino_break_compute_stresses(void) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
                 j_global_prime = element->node[j_local_prime]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(dhdx, j_local_prime, m) * fino.solution[g]->data_value[j_global_prime]);
+                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(dhdx, j_local_prime, m) * fino.mesh->node[j_global_prime].phi[g]);
               }
             }
           }
@@ -732,13 +732,13 @@ int fino_break_compute_stresses(void) {
             } else if (fino.problem_kind == problem_kind_axisymmetric) {
               if (fino.symmetry_axis == symmetry_axis_y) {
                 // etheta = u/r
-                if (fino.solution[0]->data_argument[0][j] > 1e-6) {
-                  ez = fino.solution[0]->data_value[j]/fino.solution[0]->data_argument[0][j];
+                if (element->node[j]->x[0] > 1e-6) {
+                  ez = element->node[j]->phi[0]/element->node[j]->x[0];
                 }
               } else if (fino.symmetry_axis == symmetry_axis_x) {
                 // etheta = v/r
-                if (fino.solution[1]->data_argument[1][j] > 1e-6) {
-                  ez = fino.solution[1]->data_value[j]/fino.solution[1]->data_argument[1][j];
+                if (element->node[j]->x[1] > 1e-6) {
+                  ez = element->node[j]->phi[1]/element->node[j]->x[1];
                 }
               }
             } else {
@@ -850,16 +850,16 @@ int fino_break_compute_stresses(void) {
       wasora_var(fino.vars.sigma_max_y) = fino.mesh->node[j_global].x[1];
       wasora_var(fino.vars.sigma_max_z) = fino.mesh->node[j_global].x[2];
       
-      wasora_var(fino.vars.u_at_sigma_max) = fino.solution[0]->data_value[j_global];
-      wasora_var(fino.vars.v_at_sigma_max) = fino.solution[1]->data_value[j_global];
+      wasora_var(fino.vars.u_at_sigma_max) = fino.mesh->node[j_global].phi[0];
+      wasora_var(fino.vars.v_at_sigma_max) = fino.mesh->node[j_global].phi[1];
       if (fino.dimensions == 3) {
-        wasora_var(fino.vars.w_at_sigma_max) = fino.solution[2]->data_value[j_global];
+        wasora_var(fino.vars.w_at_sigma_max) = fino.mesh->node[j_global].phi[2];
       }
     }
     
     displ2 = 0;
-    for (m = 0; m < fino.dimensions; m++) {
-      displ2 += gsl_pow_2(fino.solution[m]->data_value[j_global]);
+    for (g = 0; g < fino.degrees; g++) {
+      displ2 += gsl_pow_2(fino.mesh->node[j_global].phi[g]);
     }
     
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice displ_max
@@ -872,14 +872,12 @@ int fino_break_compute_stresses(void) {
         wasora_var(fino.vars.displ_max_z) = fino.mesh->node[j_global].x[2];
       }
       
-      wasora_var(fino.vars.u_at_displ_max) = fino.solution[0]->data_value[j_global];
-      wasora_var(fino.vars.v_at_displ_max) = fino.solution[1]->data_value[j_global];
+      wasora_var(fino.vars.u_at_displ_max) = fino.mesh->node[j_global].phi[0];
+      wasora_var(fino.vars.v_at_displ_max) = fino.mesh->node[j_global].phi[1];
       if (fino.dimensions == 3) {
-        wasora_var(fino.vars.w_at_displ_max) = fino.solution[2]->data_value[j_global];
+        wasora_var(fino.vars.w_at_displ_max) = fino.mesh->node[j_global].phi[2];
       }
     }
-    
-    
   }
 
   if (fino.progress_ascii) {

@@ -320,20 +320,22 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 #define __FUNCT__ "plugin_init_after_parser"
 int plugin_init_after_parser(void) {
 
-  int m, g;
+//  int m;
+  int g;
   
   wasora_call(fino_bc_string2parsed());  
   
   // desplazamientos (y derivadas) anteriores
   if (fino.problem_family == problem_family_break) {
     fino.base_solution = calloc(fino.degrees, sizeof(function_t *));
-    fino.base_gradient = calloc(fino.degrees, sizeof(function_t **));
+//    fino.base_gradient = calloc(fino.degrees, sizeof(function_t **));
     
     if (fino.dimensions == 3) {
       
       fino.base_solution[0] = wasora_get_function_ptr("u0");
       fino.base_solution[1] = wasora_get_function_ptr("v0");
       fino.base_solution[2] = wasora_get_function_ptr("w0");
+/*      
 
       fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
       fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
@@ -349,12 +351,12 @@ int plugin_init_after_parser(void) {
       fino.base_gradient[2][0] = wasora_get_function_ptr("dw0dx");
       fino.base_gradient[2][1] = wasora_get_function_ptr("dw0dy");
       fino.base_gradient[2][2] = wasora_get_function_ptr("dw0dz");
-      
+*/      
     } else if (fino.dimensions == 2) {
       
       fino.base_solution[0] = wasora_get_function_ptr("u0");
       fino.base_solution[1] = wasora_get_function_ptr("v0");
-
+/*
       fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
       fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
       fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
@@ -362,7 +364,7 @@ int plugin_init_after_parser(void) {
       fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
       fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
       fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
-      
+*/    
     }
     
 
@@ -371,13 +373,15 @@ int plugin_init_after_parser(void) {
         wasora_push_error_message("function '%s' should have %d arguments instead of %d", fino.base_solution[g]->name, fino.degrees, fino.base_solution[g]->n_arguments);
         return WASORA_PARSER_ERROR;
       }
-      
+
+/*      
       for (m = 0; m < fino.dimensions; m++) {
         if (fino.base_gradient[g][m] != NULL && fino.base_gradient[g][m]->n_arguments != fino.dimensions) {
           wasora_push_error_message("function '%s' should have %d arguments instead of %d", fino.base_gradient[g][m]->name, fino.dimensions, fino.base_gradient[g][m]->n_arguments);
           return WASORA_PARSER_ERROR;
         }
       }
+ */
       
     }
   }
@@ -531,17 +535,32 @@ int fino_problem_init(void) {
   }
 
   // rellenamos holders las funciones continuas que van a tener la solucion
-  for (g = 0; g < fino.degrees; g++) {
-    fino.solution[g]->data_size = fino.spatial_unknowns;
-    fino.solution[g]->data_argument = fino.mesh->nodes_argument;
-    fino.solution[g]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
+  
+  if (fino.mesh_rough == 0) {
+    for (g = 0; g < fino.degrees; g++) {
+      fino.solution[g]->mesh = fino.mesh;
+      fino.solution[g]->data_size = fino.spatial_unknowns;
+      fino.solution[g]->data_argument = fino.mesh->nodes_argument;
+      fino.solution[g]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
     
-    if (fino.nev > 0) {
-      for (i = 0; i < fino.nev; i++) {
-        fino.mode[g][i]->data_argument = fino.solution[0]->data_argument;
-        fino.mode[g][i]->data_size = fino.mesh->n_nodes;
-        fino.mode[g][i]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
+      if (fino.nev > 0) {
+        for (i = 0; i < fino.nev; i++) {
+          fino.mode[g][i]->mesh = fino.mesh;
+          fino.mode[g][i]->data_argument = fino.solution[0]->data_argument;
+          fino.mode[g][i]->data_size = fino.mesh->n_nodes;
+          fino.mode[g][i]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
+        }
       }
+    }  
+  } else {
+
+    fino_init_rough_mesh();
+    
+    for (g = 0; g < fino.degrees; g++) {
+      fino.solution[g]->mesh = fino.mesh_rough;
+      fino.solution[g]->data_size = fino.mesh_rough->n_nodes;
+      fino.solution[g]->data_argument = fino.mesh_rough->nodes_argument;
+      fino.solution[g]->data_value = calloc(fino.mesh_rough->n_nodes, sizeof(double));
     }
   }
 
@@ -550,6 +569,76 @@ int fino_problem_init(void) {
   return WASORA_PARSER_OK;
 }
 
+  
+#undef  __FUNCT__
+#define __FUNCT__ "fino_init_rough_mesh"
+int fino_init_rough_mesh(void) {
+  
+  int i, i_global;
+  int j, j_global;
+
+  element_t *element;
+  node_t *node;
+  element_list_item_t *element_list;
+  
+  
+  // primera pasada, copiamos lo que podemos, alocamos y contamos la cantidad de nodos
+  fino.mesh_rough = calloc(1, sizeof(mesh_t));
+  fino.mesh_rough->bulk_dimensions = fino.mesh->bulk_dimensions;
+  fino.mesh_rough->n_elements = fino.mesh->n_elements;
+  fino.mesh_rough->element = calloc(fino.mesh_rough->n_elements, sizeof(element_t));
+  fino.mesh_rough->n_nodes = 0;
+  i_global = 0;
+  for (i = 0; i < fino.mesh_rough->n_elements; i++) {
+    if (fino.mesh->element[i].type->dim == fino.mesh_rough->bulk_dimensions) {
+      element = &fino.mesh_rough->element[i_global];
+
+      element->index = i_global;
+      element->tag = i+1;
+      element->type = fino.mesh->element[i].type;
+      element->physical_entity = fino.mesh->element[i].physical_entity;
+
+      fino.mesh_rough->n_nodes += element->type->nodes;
+      i_global++;
+    }  
+  }
+  
+  fino.mesh_rough->n_elements = i_global;
+  fino.mesh_rough->element = realloc(fino.mesh_rough->element, fino.mesh_rough->n_elements*sizeof(element_t));
+  
+  // segunda pasada, creamos los nodos
+  j_global = 0;
+  fino.mesh_rough->node = calloc(fino.mesh_rough->n_nodes, sizeof(node_t));
+  for (i = 0; i < fino.mesh_rough->n_elements; i++) {
+    element = &fino.mesh_rough->element[i];
+    element->node = calloc(element->type->nodes, sizeof(node_t));
+    
+    for (j = 0; j < element->type->nodes; j++) {
+      node = &fino.mesh_rough->node[j_global];
+      node->tag = j_global+1;
+      node->index_mesh = j_global;
+      node->x[0] = fino.mesh->element[element->tag-1].node[j]->x[0];
+      node->x[1] = fino.mesh->element[element->tag-1].node[j]->x[1];
+      node->x[2] = fino.mesh->element[element->tag-1].node[j]->x[2];
+      
+      node->phi = fino.mesh->element[element->tag-1].node[j]->phi;
+      node->dphidx = fino.mesh->element[element->tag-1].dphidx_node[j];
+      
+      element_list = calloc(1, sizeof(element_list_item_t));
+      element_list->element = element;
+      LL_APPEND(node->associated_elements, element_list);
+      
+      element->node[j] = node;
+      
+      j_global++;
+    }
+  }
+  
+  return WASORA_RUNTIME_OK;
+
+}
+  
+  
 #undef  __FUNCT__
 #define __FUNCT__ "fino_problem_free"
 int fino_problem_free(void) {

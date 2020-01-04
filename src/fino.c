@@ -113,17 +113,22 @@ int fino_instruction_step(void *arg) {
     
     // fabricamos G funciones con la solucion
     for (j = 0; j < fino.spatial_unknowns; j++) {
+      fino.mesh->node[j].phi = calloc(fino.degrees, sizeof(double));
       for (g = 0; g < fino.degrees; g++) {
-        petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[j].index_dof[g], &fino.solution[g]->data_value[j]));
+        petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
+        
         // si tenemos una solucion base hay que sumarla
         if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
           // cuales son las chances de que estas sean iguales y no esten sobre la misma malla?
           if (fino.base_solution[g]->data_size == fino.spatial_unknowns) {
-            fino.solution[g]->data_value[j] += fino.base_solution[g]->data_value[j];
+            fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
           } else {
-            fino.solution[g]->data_value[j] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
+            fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
           }
         }
+        
+        // rellenamos la solucion
+        fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
         
         if (fino.nev > 1) {
           for (i = 0; i < fino.nev; i++) {
@@ -140,6 +145,7 @@ int fino_instruction_step(void *arg) {
   
       wasora_call(fino_compute_strain_energy());
       wasora_call(fino_break_compute_stresses());
+//      fino_instruction_post(NULL);
       
     } else if (fino.problem_family == problem_family_bake) {
         

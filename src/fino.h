@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino main header
  *
- *  Copyright (C) 2015--2019 jeremy theler
+ *  Copyright (C) 2015--2020 jeremy theler
  *
  *  This file is part of fino.
  *
@@ -158,8 +158,10 @@ struct {
   int dimensions;
   
   int problem_size;
+  int rough;
   
   mesh_t *mesh;
+  mesh_t *mesh_rough;   // esta es una malla donde cada node pertenece solo a un elemento
   
   fino_reaction_t *reactions;
   fino_linearize_t *linearizes;
@@ -356,7 +358,7 @@ struct {
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
-  function_t ***base_gradient;
+//  function_t ***base_gradient;
   
   enum {
     gradient_gauss_extrapolated,
@@ -519,6 +521,7 @@ extern int plugin_init_after_parser(void);
 extern int plugin_init_before_run(void);
 extern int plugin_finalize(void);
 extern int fino_problem_init(void);
+extern int fino_init_rough_mesh(void);
 extern int fino_problem_free(void);
 extern int fino_function_clean_nodal_data(function_t *);
 extern int fino_function_clean_nodal_arguments(function_t *);
@@ -589,5 +592,8 @@ extern const char *plugin_copyright(void);
 // distributions.c
 extern int fino_distribution_init(fino_distribution_t *, const char *);
 extern double fino_distribution_evaluate(fino_distribution_t *, material_t *, double *);
+
+// post.c
+extern int fino_instruction_post(void *);
 
 #endif  /* _FINO_H_ */
