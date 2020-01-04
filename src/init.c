@@ -536,7 +536,7 @@ int fino_problem_init(void) {
 
   // rellenamos holders las funciones continuas que van a tener la solucion
   
-  if (fino.mesh_rough == 0) {
+  if (fino.rough == 0) {
     for (g = 0; g < fino.degrees; g++) {
       fino.solution[g]->mesh = fino.mesh;
       fino.solution[g]->data_size = fino.spatial_unknowns;
@@ -555,7 +555,7 @@ int fino_problem_init(void) {
   } else {
 
     fino_init_rough_mesh();
-    
+    // capaz se podria usar el macro fill_ 
     for (g = 0; g < fino.degrees; g++) {
       fino.solution[g]->mesh = fino.mesh_rough;
       fino.solution[g]->data_size = fino.mesh_rough->n_nodes;
@@ -576,6 +576,7 @@ int fino_init_rough_mesh(void) {
   
   int i, i_global;
   int j, j_global;
+  int m;
 
   element_t *element;
   node_t *node;
@@ -585,6 +586,7 @@ int fino_init_rough_mesh(void) {
   // primera pasada, copiamos lo que podemos, alocamos y contamos la cantidad de nodos
   fino.mesh_rough = calloc(1, sizeof(mesh_t));
   fino.mesh_rough->bulk_dimensions = fino.mesh->bulk_dimensions;
+  fino.mesh_rough->spatial_dimensions = fino.mesh->spatial_dimensions;
   fino.mesh_rough->n_elements = fino.mesh->n_elements;
   fino.mesh_rough->element = calloc(fino.mesh_rough->n_elements, sizeof(element_t));
   fino.mesh_rough->n_nodes = 0;
@@ -622,7 +624,7 @@ int fino_init_rough_mesh(void) {
       node->x[2] = fino.mesh->element[element->tag-1].node[j]->x[2];
       
       node->phi = fino.mesh->element[element->tag-1].node[j]->phi;
-      node->dphidx = fino.mesh->element[element->tag-1].dphidx_node[j];
+//      node->dphidx = fino.mesh->element[element->tag-1].dphidx_node[j];
       
       element_list = calloc(1, sizeof(element_list_item_t));
       element_list->element = element;
@@ -633,6 +635,17 @@ int fino_init_rough_mesh(void) {
       j_global++;
     }
   }
+
+  // rellenamos un array de nodos que pueda ser usado como argumento de funciones
+  fino.mesh_rough->nodes_argument = calloc(fino.mesh_rough->spatial_dimensions, sizeof(double *));
+  for (m = 0; m < fino.mesh_rough->spatial_dimensions; m++) {
+    fino.mesh_rough->nodes_argument[m] = calloc(fino.mesh_rough->n_nodes, sizeof(double));
+    for (j = 0; j < fino.mesh_rough->n_nodes; j++) {
+      fino.mesh_rough->nodes_argument[m][j] = fino.mesh_rough->node[j].x[m]; 
+    }
+  }
+  
+  
   
   return WASORA_RUNTIME_OK;
 
@@ -783,7 +796,7 @@ int fino_function_clean_nodal_data(function_t *function) {
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_function_clean_nodal_data"
+#define __FUNCT__ "fino_function_clean_nodal_arguments"
 int fino_function_clean_nodal_arguments(function_t *function) {
  
   int d;
@@ -802,11 +815,12 @@ int fino_function_clean_nodal_arguments(function_t *function) {
 #define __FUNCT__ "fino_define_result_function"
 int fino_define_result_function(char *name, function_t **function) {
 
+  // aca la definimos para que este disponible en tiempo de parseo  
   if ((*function = wasora_define_function(name, fino.dimensions)) == NULL) {
     wasora_push_error_message("result function '%s' defined twice", name);
     return WASORA_RUNTIME_ERROR;
   }
-  (*function)->mesh = fino.mesh;
+  (*function)->mesh = fino.mesh; // esto puede cambiar a rough despues  
   fino_function_clean_nodal_arguments(*function);
   (*function)->var_argument = fino.solution[0]->var_argument;
   (*function)->type = type_pointwise_mesh_node;

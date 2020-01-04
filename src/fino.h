@@ -91,14 +91,6 @@ PetscErrorCode petsc_err;
 
 #define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
 
-#define fino_fill_result_function(fun_nam) {\
-        fino.fun_nam->mesh = fino.mesh; \
-        fino.fun_nam->var_argument = fino.solution[0]->var_argument; \
-        fino.fun_nam->type = type_pointwise_mesh_node; \
-        fino.fun_nam->data_argument = fino.solution[0]->data_argument;   \
-        fino.fun_nam->data_size = fino.mesh->n_nodes; \
-        fino.fun_nam->data_value = calloc(fino.mesh->n_nodes, sizeof(double));}
-
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;

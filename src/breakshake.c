@@ -29,6 +29,22 @@
 
 #include "fino.h"
 
+
+#define fino_fill_result_function(fun_nam) {\
+        fino.fun_nam->mesh = fino.rough==0?fino.mesh:fino.mesh_rough; \
+        fino.fun_nam->data_argument = fino.fun_nam->mesh->nodes_argument;   \
+        fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
+        fino.fun_nam->data_value = calloc(fino.fun_nam->mesh->n_nodes, sizeof(double));}
+/*
+#define fino_fill_result_function(fun_nam) {\
+        fino.fun_nam->mesh = fino.rough==0?fino.mesh:fino.mesh_rough; \
+        fino.fun_nam->var_argument = fino.solution[0]->var_argument; \
+        fino.fun_nam->type = type_pointwise_mesh_node; \
+        fino.fun_nam->data_argument = fino.solution[0]->data_argument;   \
+        fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
+        fino.fun_nam->data_value = calloc(fino.mesh->n_nodes, sizeof(double));}
+*/
+        
 fino_distribution_t distribution_E;     // modulo de young
 fino_distribution_t distribution_nu;    // coef de poisson
 fino_distribution_t distribution_rho;   // densidad

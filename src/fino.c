@@ -51,6 +51,10 @@ int fino_instruction_step(void *arg) {
 
   PetscFunctionBegin;
   
+///////////////////////////////////////////////////////////  
+//  fino.rough = 1;
+///////////////////////////////////////////////////////////
+  
   //---------------------------------
   // inicializamos si hace falta
   // TODO: ver si cambia la malla  
@@ -110,7 +114,7 @@ int fino_instruction_step(void *arg) {
     
     time_checkpoint(solve_end);
     time_checkpoint(stress_begin);
-    
+        
     // fabricamos G funciones con la solucion
     for (j = 0; j < fino.spatial_unknowns; j++) {
       fino.mesh->node[j].phi = calloc(fino.degrees, sizeof(double));
@@ -127,8 +131,11 @@ int fino_instruction_step(void *arg) {
           }
         }
         
-        // rellenamos la solucion
-        fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
+        // si no estamos en rough rellenamos la solucion de los desplazamietos
+        // porque es facil, en rough hay que iterar sobre los elementos
+        if (fino.rough == 0) {
+          fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
+        }
         
         if (fino.nev > 1) {
           for (i = 0; i < fino.nev; i++) {
@@ -141,10 +148,25 @@ int fino_instruction_step(void *arg) {
       }
     }
     
+    if (fino.rough) {
+      node_t *node;  
+      // si estamos en rough rellenamos los desplazamientos iterando sobre elements
+      // y despues sobre cada nodo
+      // TODO: ver orden de fors! capaz que convenga que el g este afuera  
+      for (g = 0; g < fino.degrees; g++) {
+        for (i = 0; i < fino.mesh_rough->n_elements; i++) {
+          for (j = 0; j < fino.mesh_rough->element[i].type->nodes; j++) {
+            node = fino.mesh_rough->element[i].node[j];  
+            fino.solution[g]->data_value[node->index_mesh] = node->phi[g];  
+          }
+        }
+      }
+    }
+    
     if (fino.problem_family == problem_family_break) {
   
-      wasora_call(fino_compute_strain_energy());
-      wasora_call(fino_break_compute_stresses());
+//      wasora_call(fino_compute_strain_energy());
+//      wasora_call(fino_break_compute_stresses());
 //      fino_instruction_post(NULL);
       
     } else if (fino.problem_family == problem_family_bake) {
