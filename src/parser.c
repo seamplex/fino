@@ -301,7 +301,16 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_SOLVER+usage } ]
           
-///kw+FINO_SOLVER+usage [ GRADIENT_ELEMENT_WEIGHT {
+///kw+FINO_SOLVER+usage [ SMOOTH |
+        } else if (strcasecmp(token, "SMOOTH") == 0) {
+          fino.rough = 0;
+          
+///kw+FINO_SOLVER+usage ROUGH ]
+        } else if (strcasecmp(token, "ROUGH") == 0) {
+          fino.rough = 1;
+          
+
+///kw+FINO_SOLVER+usage [ GRADIENT_SMOOTHING {
         } else if (strcasecmp(token, "GRADIENT_ELEMENT_WEIGHT") == 0) {
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   volume |
@@ -320,14 +329,6 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]
         } else if (strcasecmp(token, "GRADIENT_QUALITY_THRESHOLD") == 0) {
           wasora_call(wasora_parser_expression_in_string(&fino.gradient_quality_threshold));
-          
-///kw+FINO_SOLVER+usage [ SMOOTH |
-        } else if (strcasecmp(token, "SMOOTH") == 0) {
-          fino.rough = 0;
-          
-///kw+FINO_SOLVER+usage ROUGH ]
-        } else if (strcasecmp(token, "ROUGH") == 0) {
-          fino.rough = 1;
 
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
