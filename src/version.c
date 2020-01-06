@@ -37,7 +37,7 @@ char finolongversion[2048];
 const char finousage[] = "no commandline options needed";
 
 const char finocopyright[] = "\
-Fino is copyright (c) 2015--2018 jeremy theler\n\
+Fino is copyright (c) 2015--2020 jeremy theler\n\
 and licensed under GNU GPL version 3 or later.\n\
 Fino is free software: you are free to change and redistribute it.\n\
 There is NO WARRANTY, to the extent permitted by law.";
