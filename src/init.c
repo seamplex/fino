@@ -554,6 +554,8 @@ int fino_problem_init(void) {
     }  
   } else {
 
+    mesh_post_t *post; 
+    
     fino_init_rough_mesh();
     // capaz se podria usar el macro fill_ 
     for (g = 0; g < fino.degrees; g++) {
@@ -562,6 +564,14 @@ int fino_problem_init(void) {
       fino.solution[g]->data_argument = fino.mesh_rough->nodes_argument;
       fino.solution[g]->data_value = calloc(fino.mesh_rough->n_nodes, sizeof(double));
     }
+    
+    // si estamos en rough tenemos que cambiar la malla de salida de los MESH_POSTs
+    LL_FOREACH(wasora_mesh.posts, post) {
+      if (post->mesh == fino.mesh) {
+        post->mesh = fino.mesh_rough;
+      }
+    }
+    
   }
 
   wasora_call(mesh_node_indexes(fino.mesh, fino.degrees));

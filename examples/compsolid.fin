@@ -1,13 +1,18 @@
 # example of a multi-body problem (compound solid)
-# to mesh this file Gmsh >= 2.16.1 is needed
 MESH FILE_PATH compsolid.msh DIMENSIONS 3
+
+FINO_SOLVER PROGRESS_ASCII
+DEFAULT_ARGUMENT_VALUE 1 smooth
+FINO_SOLVER $1
 
 MATERIAL one E  7e4  nu 0.33
 MATERIAL two E  2e5  nu 0.28
 
 PHYSICAL_ENTITY NAME fixed  BC fixed
-PHYSICAL_ENTITY NAME load   BC p=10
+PHYSICAL_ENTITY NAME load   BC Tx=1000 Ty=-1000 Tz=1000
 
 FINO_STEP
 
-MESH_POST FILE_PATH compsolid.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH compsolid-$1.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+PRINT sigma_max
