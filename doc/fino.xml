@@ -16,16 +16,10 @@
       <item>PLANE_STRAIN</item>
       <item>ELASTIC_AXISYMMETRIC</item>
       <item>DIMENSIONS</item>
-      <item>DEGREES</item>
       <item>SYMMETRY_AXIS</item>
       <item>MESH</item>
       <item>N_MODES</item>
       <item>N_EIGEN</item>
-      <item>SOLUTION</item>
-      <item>SOLUTIONS</item>
-      <item>SOLUTION_NAMES</item>
-      <item>UNKNOWNS</item>
-      <item>UNKNOWN</item>
       <item>FINO_SOLVER</item>
       <item>ROUTINE</item>
       <item>KSP_TYPE</item>
@@ -37,12 +31,13 @@
       <item>PROGRESS_ASCII</item>
       <item>GRADIENT</item>
       <item>GRADIENT_HIGHER</item>
+      <item>SMOOTH</item>
+      <item>ROUGH</item>
       <item>GRADIENT_ELEMENT_WEIGHT</item>
       <item>GRADIENT_QUALITY_THRESHOLD</item>
       <item>FINO_STEP</item>
       <item>JUST_BUILD</item>
       <item>JUST_SOLVE</item>
-      <item>DUMP_FILE_PATH</item>
       <item>FINO_REACTION</item>
       <item>PHYSICAL_ENTITY</item>
       <item>RESULT</item>
@@ -149,6 +144,7 @@
       <item>HORIZONTAL</item>
       <item>ELEMS_PER_LINE</item>
       <item>SOLVE</item>
+      <item>UNKNOWNS</item>
       <item>RESIDUALS</item>
       <item>GUESS</item>
       <item>METHOD</item>
@@ -189,6 +185,7 @@
       <item>STRUCTURED</item>
       <item>ORDERING</item>
       <item>SCALE</item>
+      <item>DEGREES</item>
       <item>NCELLS_X</item>
       <item>NCELLS_Y</item>
       <item>NCELLS_Z</item>
@@ -212,9 +209,14 @@
       <item>OVER</item>
       <item>GAUSS_POINTS</item>
       <item>MESH_FILL_VECTOR</item>
-      <item>MESH_FIND_MAX</item>
+      <item>MESH_FIND_MINMAX</item>
+      <item>I_MIN</item>
+      <item>INDEX_MIN</item>
+      <item>X_MIN</item>
+      <item>Y_MIN</item>
+      <item>Z_MIN</item>
       <item>I_MAX</item>
-      <item>INDEX</item>
+      <item>INDEX_MAX</item>
       <item>X_MAX</item>
       <item>Y_MAX</item>
       <item>Z_MAX</item>

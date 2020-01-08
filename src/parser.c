@@ -451,8 +451,6 @@ int plugin_parse_line(char *line) {
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 ///kw+FINO_REACTION+usage {
 ///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity_name>
-///kw+FINO_REACTION+desc If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
-///kw+FINO_REACTION+desc independently of the dimension of the problem.
         
         if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
@@ -585,7 +583,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+usage [ TOTAL {
         } else if (strcasecmp(token, "TOTAL") == 0) {
           char *keywords[] = {
-///kw+FINO_LINEARIZE+usage   vonmises",
+///kw+FINO_LINEARIZE+usage   vonmises
                          "vonmises",
 ///kw+FINO_LINEARIZE+usage   tresca |
                          "tresca",

@@ -1,7 +1,7 @@
 % Fino reference sheet
 % Jeremy Theler
 
-This reference sheet is for [Fino](index.html) v0.6.13-gead0afa
+This reference sheet is for [Fino](index.html) v0.6.59-g8ead494
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 
@@ -41,7 +41,7 @@ If no name for any of the variables is given, they are stored in
 Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
 
 ~~~wasora
-FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> } [ FILE <file_id> | FILE_PATH <file_path> ] [ M <variable> ] [ MB <variable> ] [ PEAK <variable> ]
+FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> } [ FILE <file_id> | FILE_PATH <file_path> ] [ TOTAL { vonmises tresca | tresca | principal1 | principal2 | principal3 | [ M <variable> ] [ MB <variable> ] [ PEAK <variable> ]
 ~~~
 
 
@@ -51,7 +51,7 @@ FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> 
 Sets the problem type that Fino has to solve.      
 
 ~~~wasora
-FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC ] [ DIMENSIONS <expr> ] [ DEGREES <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_EIGEN <expr> ] [ UNKNOWNS <name1> <name2> ... <name_degrees> ]
+FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN | ELASTIC_AXISYMMETRIC ] [ DIMENSIONS <expr> ] [ SYMMETRY_AXIS { x | y } ] [ MESH <identifier> ] [ N_MODES <expr> ]
 ~~~
 
 
@@ -67,12 +67,26 @@ FINO_PROBLEM [ BAKE | SHAKE | BREAK | HEAT_AXISYMMETRIC | PLANE_STRESS | PLANE_S
 For the heat conduction problem the number of dimensions needs to be given either with the keyword `DIMENSIONS`
 or by defining a `MESH` (with an explicit `DIMENSIONS` keyword) before `FINO_PROBLEM`.
 
+##  FINO_REACTION
+
+Compute the reaction at the selected physical entity and store the result in the variable
+or vector provided, depending on the number of degrees of freedoms of the problem. 
+If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
+For the elastic problem, the components of the total reaction force are stored in the result vector.
+For the thermal problem, the total power passing through the entity is computed as an scalar.
+
+~~~wasora
+FINO_REACTION { PHYSICAL_ENTITY <physical_entity_name> [ RESULT { <variable> | <vector> } ]
+~~~
+
+
+
 ##  FINO_SOLVER
 
 Sets options related to the eigen-solver.
 
 ~~~wasora
-FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ] [ GRADIENT_EVALUATION { mass_matrix_consistent | mass_matrix_row_sum | mass_matrix_lobatto | mass_matrix_diagonal | node_average_all | node_average_corner | gauss_average | none } ] [ GRADIENT_JACOBIAN_THRESHOLD <expr> ] [ PROGRESS_ASCII ] ///kw+FINO_SOLVER+usage [ PROGRESS_BUILD_SHM <shmobject> ] [ PROGRESS_SOLVE_SHMEM <shmobject> ] [ MEMORY_USAGE_SHMEM <shmobject> ] [ TOTAL {
+FINO_SOLVER [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ] [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ] [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ] [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ] [ PROGRESS_ASCII ] [ GRADIENT { gauss | nodes | none } ] [ GRADIENT_HIGHER { average | nodes | } ] [ SMOOTH | ROUGH ] [ GRADIENT_SMOOTHING { volume | flat | quality volume_times_quality } ] [ GRADIENT_QUALITY_THRESHOLD <expr> ]
 ~~~
 
 
@@ -84,7 +98,7 @@ List of `PC_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/
 Solves the linear eigenvalue problem.
 
 ~~~wasora
-FINO_STEP [ JUST_BUILD | JUST_SOLVE ] [ DUMP_FILE_PATH <filepath> ]
+FINO_STEP [ JUST_BUILD | JUST_SOLVE ]
 ~~~
 
 
@@ -241,6 +255,16 @@ The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic pro
 ##  sigma_max_z
 
 The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+
+
+
+##  strain_energy
+
+The strain energy stored in the solid, computed as
+
+[\ \frac{1}{2} \vec{u}^T \cdot K \cdot \vec{u}]
+
+where $\vec{u}$ is the displacements vector and $K$ is the stiffness matrix.
 
 
 

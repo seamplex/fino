@@ -7,9 +7,9 @@ Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you
 
 # Keywords
 
-esyscmd([!../../wasora/doc/reference.sh parser kw!])
+esyscmd([!../wasora/doc/reference.sh parser kw!])
 
 # Variables
 
-esyscmd([!../../wasora/doc/reference.sh init va!])
+esyscmd([!../wasora/doc/reference.sh init va!])
 
