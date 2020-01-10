@@ -256,7 +256,7 @@ int fino_eigen_nev() {
     VecScale(fino.eigenvector[i], Gamma/sqrt(norm));
     
     // aca ponemos el tamanio, despues los rellenamos junto con las funciones
-    fino.vectors.phi[i]->size = fino.problem_size;
+    fino.vectors.phi[i]->size = fino.global_size;
   }
   
   return WASORA_RUNTIME_OK;

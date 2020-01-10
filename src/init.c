@@ -89,9 +89,8 @@ int plugin_init_before_parser(void) {
   // los segfaults son segfaults, no queremos que la petsc meta las narices
   signal(SIGSEGV, SIG_DFL);
 
-  // esto lo vamos a usar despues cuando hagamos el chiste en paralelo
-  MPI_Comm_rank(PETSC_COMM_WORLD, &fino.rank);
-  MPI_Comm_size(PETSC_COMM_WORLD, &fino.size);
+  petsc_call(MPI_Comm_size(PETSC_COMM_WORLD, &fino.nprocs));
+  petsc_call(MPI_Comm_rank(MPI_COMM_WORLD, &fino.rank));
 
   // instalamos nuestro error handler para errores la petsc 
   PetscPushErrorHandler(&fino_handler, NULL);
@@ -328,77 +327,21 @@ int plugin_init_after_parser(void) {
   // desplazamientos (y derivadas) anteriores
   if (fino.problem_family == problem_family_break) {
     fino.base_solution = calloc(fino.degrees, sizeof(function_t *));
-//    fino.base_gradient = calloc(fino.degrees, sizeof(function_t **));
-    
+
+    fino.base_solution[0] = wasora_get_function_ptr("u0");
+    fino.base_solution[1] = wasora_get_function_ptr("v0");
     if (fino.dimensions == 3) {
-      
-      fino.base_solution[0] = wasora_get_function_ptr("u0");
-      fino.base_solution[1] = wasora_get_function_ptr("v0");
       fino.base_solution[2] = wasora_get_function_ptr("w0");
-/*      
-
-      fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
-      fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
-      fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
-      fino.base_gradient[0][2] = wasora_get_function_ptr("du0dz");
-    
-      fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
-      fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
-      fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
-      fino.base_gradient[1][2] = wasora_get_function_ptr("dv0dz");
-
-      fino.base_gradient[2] = calloc(fino.dimensions, sizeof(function_t *));
-      fino.base_gradient[2][0] = wasora_get_function_ptr("dw0dx");
-      fino.base_gradient[2][1] = wasora_get_function_ptr("dw0dy");
-      fino.base_gradient[2][2] = wasora_get_function_ptr("dw0dz");
-*/      
-    } else if (fino.dimensions == 2) {
-      
-      fino.base_solution[0] = wasora_get_function_ptr("u0");
-      fino.base_solution[1] = wasora_get_function_ptr("v0");
-/*
-      fino.base_gradient[0] = calloc(fino.dimensions, sizeof(function_t *));
-      fino.base_gradient[0][0] = wasora_get_function_ptr("du0dx");
-      fino.base_gradient[0][1] = wasora_get_function_ptr("du0dy");
-    
-      fino.base_gradient[1] = calloc(fino.dimensions, sizeof(function_t *));
-      fino.base_gradient[1][0] = wasora_get_function_ptr("dv0dx");
-      fino.base_gradient[1][1] = wasora_get_function_ptr("dv0dy");
-*/    
     }
-    
 
     for (g = 0; g < fino.degrees; g++) {
       if (fino.base_solution[g] != NULL && fino.base_solution[g]->n_arguments != fino.dimensions) {
         wasora_push_error_message("function '%s' should have %d arguments instead of %d", fino.base_solution[g]->name, fino.degrees, fino.base_solution[g]->n_arguments);
         return WASORA_PARSER_ERROR;
       }
-
-/*      
-      for (m = 0; m < fino.dimensions; m++) {
-        if (fino.base_gradient[g][m] != NULL && fino.base_gradient[g][m]->n_arguments != fino.dimensions) {
-          wasora_push_error_message("function '%s' should have %d arguments instead of %d", fino.base_gradient[g][m]->name, fino.dimensions, fino.base_gradient[g][m]->n_arguments);
-          return WASORA_PARSER_ERROR;
-        }
-      }
- */
-      
     }
   }
   
-/*
-  // los objetos para mostrar el progress
-  if (fino.progress_build_shname != NULL) {
-    fino.shmem_progress_build = wasora_get_shared_pointer(fino.progress_build_shname, sizeof(double));
-  }
-  if (fino.progress_solve_shname != NULL) {
-    fino.shmem_progress_solve = wasora_get_shared_pointer(fino.progress_solve_shname, sizeof(double));
-  }
-  if (fino.memory_shname != NULL) {
-    fino.shmem_memory = wasora_get_shared_pointer(fino.memory_shname, sizeof(double));
-  }  
- */
-
   return WASORA_RUNTIME_OK;
 }
 
@@ -406,7 +349,7 @@ int plugin_init_after_parser(void) {
 #define __FUNCT__ "plugin_init_before_run"
 int plugin_init_before_run(void) {
 
-  fino.problem_size = 0;
+  fino.global_size = 0;
   fino.spatial_unknowns = 0;
   fino.progress_r0 = 0;
 
@@ -429,19 +372,7 @@ int plugin_finalize(void) {
     petsc_call(PetscFinalize());
 #endif
   }
-
-/*  
-  // los objetos para mostrar el progress
-  if (fino.progress_build_shname != NULL) {
-    wasora_free_shared_pointer(fino.shmem_progress_build, fino.progress_build_shname, sizeof(double));
-  }
-  if (fino.progress_solve_shname != NULL) {
-    wasora_free_shared_pointer(fino.shmem_progress_solve, fino.progress_solve_shname, sizeof(double));
-  }
-  if (fino.memory_shname != NULL) {
-    wasora_free_shared_pointer(fino.shmem_memory, fino.memory_shname, sizeof(double));
-  }  
-*/  
+  
   return WASORA_RUNTIME_OK;
 }
 
@@ -482,7 +413,7 @@ int fino_problem_init(void) {
   // ponemos esto para hacer explicito que somos FEM y no FVM
   fino.spatial_unknowns = fino.mesh->n_nodes;
   fino.mesh->data_type = data_type_node;
-  fino.problem_size = fino.spatial_unknowns * fino.degrees;
+  fino.global_size = fino.spatial_unknowns * fino.degrees;
   
 
 //---------------------------------
@@ -490,10 +421,15 @@ int fino_problem_init(void) {
 //---------------------------------
 
   width = GSL_MAX(fino.mesh->max_nodes_per_element, fino.mesh->max_first_neighbor_nodes) * fino.degrees;
+
+  // preguntamos cuantos nodos nos tocan
+  fino.nodes_local = PETSC_DECIDE;
+  petsc_call(PetscSplitOwnership(PETSC_COMM_WORLD, &fino.nodes_local, &fino.mesh->n_nodes));
+  fino.size_local = fino.degrees * fino.nodes_local;
   
   // la matriz de stiffnes global
   petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.K));
-  petsc_call(MatSetSizes(fino.K, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
+  petsc_call(MatSetSizes(fino.K, fino.size_local, fino.size_local, fino.global_size, fino.global_size));
   petsc_call(MatSetFromOptions(fino.K));
   petsc_call(MatMPIAIJSetPreallocation(fino.K, width, PETSC_NULL, width, PETSC_NULL));
   petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
@@ -502,11 +438,11 @@ int fino_problem_init(void) {
     petsc_call(MatSetBlockSize(fino.K, fino.degrees));
   }
   petsc_call(PetscObjectSetName((PetscObject)fino.K, "K"));
-  
+
   // el vector incognita
   petsc_call(MatCreateVecs(fino.K, NULL, &fino.phi));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));
-
+  
   if (fino.math_type == math_type_linear) {
     // el vector del miembro derecho
     fino.has_rhs = 1;
@@ -519,7 +455,7 @@ int fino_problem_init(void) {
     // la matriz de masa para autovalores del problema elastico o para transitorio de calor
     fino.has_mass = 1;
     petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
-    petsc_call(MatSetSizes(fino.M, PETSC_DECIDE, PETSC_DECIDE, fino.problem_size, fino.problem_size));
+    petsc_call(MatSetSizes(fino.M, fino.size_local, fino.size_local, fino.global_size, fino.global_size));
     petsc_call(MatSetFromOptions(fino.M));
     petsc_call(MatMPIAIJSetPreallocation(fino.M, width, PETSC_NULL, width, PETSC_NULL));
     petsc_call(MatSeqAIJSetPreallocation(fino.M, width, PETSC_NULL));
@@ -530,6 +466,23 @@ int fino_problem_init(void) {
     petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
   }
   
+  
+  // ahora pedimos el local ownership range
+  petsc_call(MatGetOwnershipRange(fino.K, &fino.first_row, &fino.last_row));
+  fino.first_node = fino.first_row / fino.degrees;
+  fino.last_node = fino.last_row / fino.degrees;
+  
+  // para paralelizar el assembly dividimos los elementos a lo cabeza porque no es tan importante
+  // https://lists.mcs.anl.gov/pipermail/petsc-users/2014-April/021433.html
+  fino.first_element = (fino.mesh->n_elements / fino.nprocs) * fino.rank;
+  if (fino.mesh->n_elements % fino.nprocs > fino.rank) {
+    fino.first_element += fino.rank;
+    fino.last_element = fino.first_element + (fino.mesh->n_elements / fino.nprocs) + 1;
+  } else {  
+    fino.first_element += fino.mesh->n_elements % fino.nprocs;
+    fino.last_element = fino.first_element + (fino.mesh->n_elements / fino.nprocs);
+  }  
+
   if (fino.mesh->structured) {
     wasora_mesh_struct_init_rectangular_for_nodes(fino.mesh);
   }
@@ -551,7 +504,8 @@ int fino_problem_init(void) {
           fino.mode[g][i]->data_value = calloc(fino.spatial_unknowns, sizeof(double));
         }
       }
-    }  
+    }
+    
   } else {
 
     mesh_post_t *post; 

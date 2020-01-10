@@ -79,7 +79,7 @@ int fino_build_bulk(void) {
     step = 1;
   }
   
-  for (i = 0; i < fino.mesh->n_elements; i++) {
+  for (i = fino.first_element; i < fino.last_element; i++) {
 
 // ------ progress bar ------------------------------------------    
     if (fino.progress_ascii && (i % step) == 0) {

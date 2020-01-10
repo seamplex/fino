@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's linear solver using PETSc routines
  *
- *  Copyright (C) 2015--2017 jeremy theler
+ *  Copyright (C) 2015--2020 jeremy theler
  *
  *  This file is part of Fino <https://www.seamplex.com/fino>.
  *
@@ -89,15 +89,14 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
     switch(fino.set_near_nullspace) {
 
       case set_near_nullspace_rigidbody:
-        petsc_call(VecCreate(MPI_COMM_WORLD, &vec_coords));
+        petsc_call(MatCreateVecs(A, NULL, &vec_coords));
         petsc_call(VecSetBlockSize(vec_coords, fino.degrees));
-        petsc_call(VecSetSizes(vec_coords, PETSC_DECIDE, fino.dimensions * fino.mesh->n_nodes));
         petsc_call(VecSetUp(vec_coords));
         petsc_call(VecGetArray(vec_coords, &coords));
 
-        for (j = 0; j < fino.mesh->n_nodes; j++) {
+        for (j = fino.first_node; j < fino.last_node; j++) {          
           for (d = 0; d < fino.dimensions; d++) {
-            coords[fino.mesh->node[j].index_dof[d]] = fino.mesh->node[j].x[d];
+            coords[fino.mesh->node[j].index_dof[d]-fino.first_row] = fino.mesh->node[j].x[d];
           }
         }
 

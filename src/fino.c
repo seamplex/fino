@@ -49,6 +49,9 @@ int fino_instruction_step(void *arg) {
   double xi;
   int i, j, g;
 
+  Vec                phi;
+  VecScatter         vscat;
+  
   PetscFunctionBegin;
   
   //---------------------------------
@@ -110,37 +113,49 @@ int fino_instruction_step(void *arg) {
     
     time_checkpoint(solve_end);
     time_checkpoint(stress_begin);
-        
+  
+    // TODO: meter esto en linearpetsc
+    
+    petsc_call(VecScatterCreateToZero(fino.phi, &vscat, &phi));
+    petsc_call(VecScatterBegin(vscat, fino.phi, phi, INSERT_VALUES,SCATTER_FORWARD););
+    petsc_call(VecScatterEnd(vscat, fino.phi, phi, INSERT_VALUES,SCATTER_FORWARD););
+    
     // fabricamos G funciones con la solucion
-    for (j = 0; j < fino.spatial_unknowns; j++) {
-      for (g = 0; g < fino.degrees; g++) {
-        petsc_call(VecGetValues(fino.phi, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
-        
-        // si tenemos una solucion la sumamos 
-        if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
-          if (fino.base_solution[g]->mesh == fino.mesh) {
-            fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
-          } else {
-            fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
+    if (fino.rank == 0) {
+      for (j = 0; j < fino.spatial_unknowns; j++) {
+        for (g = 0; g < fino.degrees; g++) {
+          petsc_call(VecGetValues(phi, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
+
+          // si tenemos una solucion la sumamos 
+          if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
+            if (fino.base_solution[g]->mesh == fino.mesh) {
+              fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
+            } else {
+              fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
+            }
           }
-        }
-        
-        // si no estamos en rough rellenamos la solucion de los desplazamietos
-        // porque es facil, en rough hay que iterar sobre los elementos
-        if (fino.rough == 0) {
-          fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
-        }
-        
-        if (fino.nev > 1) {
-          for (i = 0; i < fino.nev; i++) {
-            // las funciones ya vienen con el factor de excitacion
-            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
-            fino.mode[g][i]->data_value[j] = xi;
-            wasora_vector_set(fino.vectors.phi[i], j, xi);
+
+          // si no estamos en rough rellenamos la solucion de los desplazamietos
+          // porque es facil, en rough hay que iterar sobre los elementos
+          if (fino.rough == 0) {
+            fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
+          }
+
+          if (fino.nev > 1) {
+            for (i = 0; i < fino.nev; i++) {
+              // las funciones ya vienen con el factor de excitacion
+              petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
+              fino.mode[g][i]->data_value[j] = xi;
+              wasora_vector_set(fino.vectors.phi[i], j, xi);
+            }
           }
         }
       }
     }
+    
+    petsc_call(VecDestroy(&phi));
+    petsc_call(VecScatterDestroy(&vscat));
+    
     
     if (fino.rough) {
       node_t *node;  

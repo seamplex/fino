@@ -354,7 +354,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
 
   if (fino.n_dirichlet_rows == 0) {
-    n_bcs = (fino.problem_size>999)?ceil(BC_FACTOR*fino.problem_size):fino.problem_size;
+    n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
     current_size = n_bcs;
     
     fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
@@ -362,7 +362,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
     fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
   }
   
-  for (j = 0; j < fino.mesh->n_nodes; j++) {
+  for (j = fino.first_node; j < fino.last_node; j++) {
 
 // TODO: arreglar esta logica, los nodos de alto orden terminan con una constante de penalidad diferente que los de primer orden    
 //    physical_entity_last = NULL;
@@ -636,7 +636,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   // alguna veces hay nodos sueltos que no tienen nigun volumen asociado asi que le quedan
   // ceros en la diagonal y el MatZeroRowsColumns se queja
-  for (k = 0; k < fino.problem_size; k++) {
+  for (k = fino.first_row; k < fino.last_row; k++) {
     petsc_call(MatGetValues(A, 1, &k, 1, &k, &diag));
     if (diag == 0) {
       petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));

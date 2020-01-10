@@ -149,7 +149,7 @@ struct {
   int degrees;
   int dimensions;
   
-  int problem_size;
+  int global_size;
   int rough;
   
   mesh_t *mesh;
@@ -177,11 +177,6 @@ struct {
 //    var_t *error_estimate;
 //    var_t *rel_error;
 
-/*    
-    var_t *nx;
-    var_t *ny;
-    var_t *nz;
-*/  
     var_t *U[3];
 
     var_t *strain_energy;
@@ -253,7 +248,11 @@ struct {
   
   // cosas para paralelizacion
   PetscInt rank;
-  PetscInt size;
+  PetscInt nprocs;
+  PetscInt nodes_local, size_local;
+  PetscInt first_row, last_row;
+  PetscInt first_node, last_node;
+  PetscInt first_element, last_element;
 
   // objetos globales
   Vec phi;       // el vector incognita
