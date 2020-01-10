@@ -1184,14 +1184,15 @@ int fino_compute_strain_energy(void) {
   PetscScalar e;
   Vec Kphi;
   
-  VecDuplicate(fino.phi, &Kphi);
-  MatMult(fino.K, fino.phi, Kphi);
-  VecDot(fino.phi, Kphi, &e);
+  petsc_call(VecDuplicate(fino.phi, &Kphi));
+  petsc_call(MatMult(fino.K, fino.phi, Kphi));
+  petsc_call(VecDot(fino.phi, Kphi, &e));
   wasora_var(fino.vars.strain_energy) = 0.5*e;
   
   if (fino.problem_kind == problem_kind_axisymmetric) {
     wasora_var(fino.vars.strain_energy) *= 2*M_PI;
   }
+  petsc_call(VecDestroy(&Kphi));
   
   return WASORA_RUNTIME_OK;
 }
