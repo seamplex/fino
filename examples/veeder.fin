@@ -6,7 +6,7 @@ H = 20   # cylinder height
 lc = 5   # characteristic length of the mesh
 
 # mesh
-M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo MACRO lc lc MACRO r r MACRO H H
+M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo EXPAND lc EXPAND r EXPAND H
 SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
 MESH FILE_PATH veeder.msh DIMENSIONS 3
 
