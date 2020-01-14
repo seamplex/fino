@@ -1185,7 +1185,7 @@ int fino_compute_strain_energy(void) {
   Vec Kphi;
   
   petsc_call(VecDuplicate(fino.phi, &Kphi));
-  petsc_call(MatMult(fino.K, fino.phi, Kphi));
+  petsc_call(MatMult(fino.K_nobc, fino.phi, Kphi));
   petsc_call(VecDot(fino.phi, Kphi, &e));
   wasora_var(fino.vars.strain_energy) = 0.5*e;
   
