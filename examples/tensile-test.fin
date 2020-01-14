@@ -13,16 +13,14 @@ PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
 FINO_STEP                   # solve
 
 # compute reaction force at fixed end
-# FINO_REACTION PHYSICAL_ENTITY left RESULT R
+FINO_REACTION PHYSICAL_ENTITY left RESULT R
 
 # write results (Von Mises, principal and displacements) in a VTK file
-# MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
 
-# # print some results (otherwise output will be null)
-# PRINT "displ_max = " %.3f displ_max "mm"
-# PRINT "sigma_max = " %.1f sigma_max "MPa"
-# PRINT "principal1 at center = " %.8f sigma1(0,0,0) "MPa"
-# PRINT "reaction  = [" %.3e R "] Newtons"
-# PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
-
-PRINT time_wall_build time_wall_solve
+# print some results (otherwise output will be null)
+PRINT "displ_max = " %.3f displ_max "mm"
+PRINT "sigma_max = " %.1f sigma_max "MPa"
+PRINT "principal1 at center = " %.8f sigma1(0,0,0) "MPa"
+PRINT "reaction  = [" %.3e R "] Newtons"
+PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)

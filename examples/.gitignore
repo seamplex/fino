@@ -2,7 +2,7 @@
 *.log
 *.dat
 
-tensile-test.vtk
+tensile-*.vtk
 tensile-test.inp
 tensile-test.cvg
 tensile-test.frd

@@ -1,4 +1,4 @@
-# Minimum Working Example for Fino
+# displacement-based tensile-test
 MESH FILE_PATH tensile-test.msh # mesh file in Gmsh format (either version 2.2 or 4)
 
 E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
@@ -6,10 +6,10 @@ nu = 0.3    # Poisson ratio
 
 # boundary conditions ("left" and "right" come from the names in the mesh)
 PHYSICAL_ENTITY left  BC fixed
-PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
+PHYSICAL_ENTITY right BC u=0.0755372
 
 FINO_STEP   # solve
 
 # write results (Von Mises, principal and displacements) in a VTK file
-MESH_POST FILE_PATH tensile-mwe.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+MESH_POST FILE_PATH tensile-displ.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
 PRINT HEADER  displ_max u_at_displ_max strain_energy
