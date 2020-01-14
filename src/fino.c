@@ -175,7 +175,9 @@ int fino_instruction_step(void *arg) {
     if (fino.problem_family == problem_family_break) {
   
       wasora_call(fino_compute_strain_energy());
-      wasora_call(fino_break_compute_stresses());
+      if (fino.gradient_evaluation != gradient_none) {
+        wasora_call(fino_break_compute_stresses());
+      }  
       
     } else if (fino.problem_family == problem_family_bake) {
         
