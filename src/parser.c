@@ -136,7 +136,7 @@ int plugin_parse_line(char *line) {
           fino.unknown_name[1] = strdup("v");
           
 ///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC
-///kw+FINO_PROBLEM+usage ]
+///kw+FINO_PROBLEM+usage ]@
 ///kw+FINO_PROBLEM+detail  * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
 ///kw+FINO_PROBLEM+detail @  
         } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
@@ -169,7 +169,7 @@ int plugin_parse_line(char *line) {
           int values[] = {symmetry_axis_x, symmetry_axis_y, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.symmetry_axis));
           
-///kw+FINO_PROBLEM+usage [ MESH <identifier> ]
+///kw+FINO_PROBLEM+usage [ MESH <identifier> ] @
         } else if (strcasecmp(token, "MESH") == 0) {
           char *mesh_name;
           
@@ -181,7 +181,7 @@ int plugin_parse_line(char *line) {
           }
           free(mesh_name);
         
-///kw+FINO_PROBLEM+usage [ N_MODES <expr> ]
+///kw+FINO_PROBLEM+usage [ N_MODES <expr> ] @
         } else if (strcasecmp(token, "N_MODES") == 0 || strcasecmp(token, "N_EIGEN") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
           fino.nev = (int)(xi);
@@ -234,19 +234,20 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
 
-///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]
-///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>
-///kw+FINO_SOLVER+detail          
+///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]@
+///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
+///kw+FINO_SOLVER+detail @
         } else if (strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.ksp_type));
 
-///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]
-///kw+FINO_SOLVER+detail List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>
-///kw+FINO_SOLVER+detail          
+///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]@
+///kw+FINO_SOLVER+detail List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.  @
+///kw+FINO_SOLVER+detail @
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string(&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]
+///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]@
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
           token = wasora_get_next_token(NULL);
           if (token != NULL) {
@@ -266,11 +267,11 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "DO_NOT_SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 1;
           
-///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]
+///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]@
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
 
-///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]
+///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]@
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
 
@@ -286,7 +287,7 @@ int plugin_parse_line(char *line) {
                          ""};
           int values[] = {gradient_gauss_extrapolated, gradient_at_nodes, gradient_none, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_evaluation));
-///kw+FINO_SOLVER+usage } ]
+///kw+FINO_SOLVER+usage } ]@
           
 ///kw+FINO_SOLVER+usage [ GRADIENT_HIGHER {
         } else if (strcasecmp(token, "GRADIENT_HIGHER") == 0) {
@@ -299,13 +300,13 @@ int plugin_parse_line(char *line) {
           int values[] = {gradient_average, gradient_actual, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_highorder_nodes));
 
-///kw+FINO_SOLVER+usage } ]
+///kw+FINO_SOLVER+usage } ]@
           
 ///kw+FINO_SOLVER+usage [ SMOOTH |
         } else if (strcasecmp(token, "SMOOTH") == 0) {
           fino.rough = 0;
           
-///kw+FINO_SOLVER+usage ROUGH ]
+///kw+FINO_SOLVER+usage ROUGH ]@
         } else if (strcasecmp(token, "ROUGH") == 0) {
           fino.rough = 1;
           
@@ -324,9 +325,9 @@ int plugin_parse_line(char *line) {
                          ""};
           int values[] = {gradient_weight_flat, gradient_weight_volume, gradient_weight_quality, gradient_weight_volume_times_quality, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_element_weight));
-///kw+FINO_SOLVER+usage } ]
+///kw+FINO_SOLVER+usage } ]@
           
-///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]
+///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]@
         } else if (strcasecmp(token, "GRADIENT_QUALITY_THRESHOLD") == 0) {
           wasora_call(wasora_parser_expression_in_string(&fino.gradient_quality_threshold));
 
@@ -429,11 +430,11 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_REACTION+usage FINO_REACTION
-///kw+FINO_REACTION+desc Compute the reaction at the selected physical entity and store the result in the variable
-///kw+FINO_REACTION+desc or vector provided, depending on the number of degrees of freedoms of the problem. 
-///kw+FINO_REACTION+desc If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
-///kw+FINO_REACTION+desc For the elastic problem, the components of the total reaction force are stored in the result vector.
-///kw+FINO_REACTION+desc For the thermal problem, the total power passing through the entity is computed as an scalar.
+///kw+FINO_REACTION+desc Compute the reaction at the selected physical entity.
+///kw+FINO_REACTION+detail The result is stored in the variable or vector provided, depending on the number of degrees of freedoms of the problem. 
+///kw+FINO_REACTION+detail If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
+///kw+FINO_REACTION+detail For the elastic problem, the components of the total reaction force are stored in the result vector.
+///kw+FINO_REACTION+detail For the thermal problem, the total power passing through the entity is computed as an scalar.
       
     } else if ((strcasecmp(token, "FINO_REACTION") == 0)) {
 
@@ -449,7 +450,6 @@ int plugin_parse_line(char *line) {
       LL_APPEND(fino.reactions, reaction);
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
-///kw+FINO_REACTION+usage {
 ///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity_name>
         
         if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
@@ -549,7 +549,7 @@ int plugin_parse_line(char *line) {
           }
           
 ///kw+FINO_LINEARIZE+usage END_POINT <x2> <y2> <z2>
-///kw+FINO_LINEARIZE+usage }
+///kw+FINO_LINEARIZE+usage }@
         } else if (strcasecmp(token, "END_POINT") == 0) {
           if (fino.dimensions == 0) {
             wasora_push_error_message("need to know the problem dimension before LINEARIZE END_POINT");
@@ -574,7 +574,7 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&linearize->file));
      
-///kw+FINO_LINEARIZE+usage FILE_PATH <file_path> ]
+///kw+FINO_LINEARIZE+usage FILE_PATH <file_path> ]@
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
@@ -593,7 +593,7 @@ int plugin_parse_line(char *line) {
                          "principal2",
 ///kw+FINO_LINEARIZE+usage   principal2 |
                          "principal3",
-///kw+FINO_LINEARIZE+usage   principal3 |
+///kw+FINO_LINEARIZE+usage   principal3 }@
                          ""};
           int values[] = {linearize_vonmises, linearize_tresca, linearize_principal1, linearize_principal2, linearize_principal3, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&linearize->total));
@@ -604,7 +604,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+desc `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
 ///kw+FINO_LINEARIZE+desc Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
             
-///kw+FINO_LINEARIZE+usage [ M <variable> ]
+///kw+FINO_LINEARIZE+usage [ M <variable> ]@
         } else if (strcasecmp(token, "M") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((linearize->M = wasora_get_or_define_variable_ptr(name)) == NULL) {
@@ -612,7 +612,7 @@ int plugin_parse_line(char *line) {
           }
           free(name);
           
-///kw+FINO_LINEARIZE+usage [ MB <variable> ]
+///kw+FINO_LINEARIZE+usage [ MB <variable> ]@
         } else if (strcasecmp(token, "MB") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((linearize->MB = wasora_get_or_define_variable_ptr(name)) == NULL) {
@@ -620,7 +620,7 @@ int plugin_parse_line(char *line) {
           }
           free(name);
 
-///kw+FINO_LINEARIZE+usage [ PEAK <variable> ]
+///kw+FINO_LINEARIZE+usage [ PEAK <variable> ]@
         } else if (strcasecmp(token, "PEAK") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((linearize->P = wasora_get_or_define_variable_ptr(name)) == NULL) {
@@ -702,51 +702,51 @@ int plugin_parse_line(char *line) {
         if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&debug->file));
           
-///kw+FINO_DEBUG+usage FILE_PATH <file_path> ]
+///kw+FINO_DEBUG+usage FILE_PATH <file_path> ]@
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&debug->file, "w"));
           
-///kw+FINO_DEBUG+usage [ MATRICES_ASCII ]
+///kw+FINO_DEBUG+usage [ MATRICES_ASCII ]@
         } else if (strcasecmp(token, "MATRICES_ASCII") == 0) {
           debug->matrices |= DEBUG_MATRICES_ASCII;
-///kw+FINO_DEBUG+usage [ MATRICES_ASCII_STRUCTURE ]
+///kw+FINO_DEBUG+usage [ MATRICES_ASCII_STRUCTURE ]@
         } else if (strcasecmp(token, "MATRICES_ASCII_STRUCTURE") == 0) {
           debug->matrices |= DEBUG_MATRICES_ASCII_STRUCT;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_BINARY ]
+///kw+FINO_DEBUG+usage [ MATRICES_PETSC_BINARY ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_BINARY") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_BINARY;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_COMPRESSED_BINARY ]
+///kw+FINO_DEBUG+usage [ MATRICES_PETSC_COMPRESSED_BINARY ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_COMPRESSED_BINARY") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_COMPRESSED_BINARY;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_ASCII ]
+///kw+FINO_DEBUG+usage [ MATRICES_PETSC_ASCII ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_ASCII") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_ASCII;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_OCTAVE ]
+///kw+FINO_DEBUG+usage [ MATRICES_PETSC_OCTAVE ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_OCTAVE") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_OCTAVE;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_DENSE ]
+///kw+FINO_DEBUG+usage [ MATRICES_PETSC_DENSE ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_DENSE") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_DENSE;
-///kw+FINO_DEBUG+usage [ MATRICES_X ]
+///kw+FINO_DEBUG+usage [ MATRICES_X ]@
         } else if (strcasecmp(token, "MATRICES_X") == 0) {
           debug->matrices |= DEBUG_MATRICES_X;
-///kw+FINO_DEBUG+usage [ MATRICES_SNG ]
+///kw+FINO_DEBUG+usage [ MATRICES_SNG ]@
         } else if (strcasecmp(token, "MATRICES_SNG") == 0) {
           debug->matrices |= DEBUG_MATRICES_SNG;
-///kw+FINO_DEBUG+usage [ MATRICES_SNG_STRUCT ]
+///kw+FINO_DEBUG+usage [ MATRICES_SNG_STRUCT ]@
         } else if (strcasecmp(token, "MATRICES_SNG_STRUCT") == 0) {
           debug->matrices |= DEBUG_MATRICES_SNG_STRUCT;
 
-///kw+FINO_DEBUG+usage [ MATRICES_SIZE <expr> ]
+///kw+FINO_DEBUG+usage [ MATRICES_SIZE <expr> ]@
         } else if (strcasecmp(token, "MATRICES_SIZE") == 0 || strcasecmp(token, "MATRICES_X_SIZE") == 0) {
           wasora_call(wasora_parser_expression(&debug->matrices_size));
           
-///kw+FINO_DEBUG+usage [ MATRICES_STRIDE <expr> ]
+///kw+FINO_DEBUG+usage [ MATRICES_STRIDE <expr> ]@
         } else if (strcasecmp(token, "MATRICES_STRIDE") == 0) {
           wasora_call(wasora_parser_expression(&debug->matrices_stride));
 
           
-///kw+FINO_DEBUG+usage [ INCLUDE_INPUT ]
+///kw+FINO_DEBUG+usage [ INCLUDE_INPUT ]@
         } else if (strcasecmp(token, "INCLUDE_INPUT") == 0) {
           debug->include_input = 1;
         } else {
