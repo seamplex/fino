@@ -460,7 +460,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
               fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
 
-              if (fino.math_type == math_type_linear && (strcmp(bc->expr[0].string, "0") != 0)) {
+              if (fino.math_type != math_type_eigen && (strcmp(bc->expr[0].string, "0") != 0)) {
                 fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr[0]);
               } else {
                 fino.dirichlet_rhs[k] = 0;
@@ -622,7 +622,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
     }
   }
 
-  if (fino.n_dirichlet_rows == 0) {
+ if (fino.n_dirichlet_rows != k) {
     fino.n_dirichlet_rows = k;
     
     // si k == 0 esto es como hacer free

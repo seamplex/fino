@@ -79,6 +79,10 @@ int fino_build_bulk(void) {
     step = 1;
   }
   
+  // empty global objects
+  petsc_call(MatZeroEntries(fino.K));
+  petsc_call(VecZeroEntries(fino.b));
+  
   for (i = fino.first_element; i < fino.last_element; i++) {
 
 // ------ progress bar ------------------------------------------    
@@ -174,7 +178,7 @@ int fino_build_element_volumetric(element_t *element) {
     mesh_compute_l(fino.mesh, element);
 
     MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
-    if (fino.math_type == math_type_linear) {
+    if (fino.math_type != math_type_eigen) {
       VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
     }
     if (fino.has_mass)  {

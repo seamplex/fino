@@ -1,4 +1,23 @@
- * derivatives at material interfaces
+ * manual
+ * rewrite DEBUG
+ * rewrite --version output: compact, standard & extended
+ * BC type radiation
+ * unify problem types
+ * compute heat fluxes
+ * put mat2sng in a different code
+ * DMplex
+ * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
+ * see if some for loops can be replaced by matrix-matrix products
+ * 2nd-order prisms (wedges)
+ * extrapolate matrix for quads/prisms
+ * non-linearities
+    - material:
+       * bi-linear elastoplastic 
+    - geometry
+       * total lagrangain
+    - contact
+       * hertz?
+       
  * test suite
     - transient heat
     - shake
@@ -10,14 +29,3 @@
     - axisymmmetric (elephant)
     - space-dependent properties
     - plane stress/strain (nafems challenge)
- * manual
- * rewrite DEBUG
- * rewrite --version output: compact, standard & extended
- * unify problem types
- * compute heat fluxes
- * put mat2sng in a different code
- * DMplex
- * parallelization
- * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
- * see if some for loops can be replaced by matrix-matrix products
- 

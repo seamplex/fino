@@ -124,6 +124,7 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   
   // leemos la solucion posta
   petsc_call(EPSGetEigenpair(fino.eps, fino.nev-1, &fino.lambda, &xi, fino.phi, PETSC_NULL));
+  wasora_var(fino.vars.lambda) = fino.lambda;  
   
   // chequeamos que el autovalor sea real
   if (xi != 0) {

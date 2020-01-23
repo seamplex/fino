@@ -39,7 +39,7 @@ Because almost every piece of FEA software falls in either one of these two cate
      ii. complicated, so the only way to use them is through their embedded mouse-based GUI, and/or
      iii. expensive and out of the league of many companies and professionals.
      
-    **Examples:** [CalculiX](http://calculix.de/), [CodeAster](https://www.code-aster.org).^[We list just the open-source ones because we [at Seamplex do not want to encourage the usage of non-free software](https://www.seamplex.com/mission.html#principles), but any of the commercial packages out there would also apply.] 
+    **Examples:** [CalculiX](http://calculix.de/), [CodeAster](https://www.code-aster.org), [NASTRAN](https://github.com/nasa/NASTRAN-95)^[We list just the open-source ones because we [at Seamplex do not want to encourage the usage of non-free software](https://www.seamplex.com/mission.html#principles), but any of the commercial packages out there would also apply.] 
      
 Hence, Fino tries to fill in the gap between these two worlds with a different design basis.^[Somewhat like [milonga](https://www.seamplex.com/milonga) although the landscape is slightly different.]
 
@@ -181,7 +181,7 @@ $
  * The generation of the mesh `tensile-test.msh` is not covered in this example. See [`tensile-test.geo`](https://github.com/seamplex/fino/blob/master/examples/tensile-test.geo). Yet, please do consider the comparison of two few-lines [syntactically-sweetened](https://en.wikipedia.org/wiki/Syntactic_sugar) plain-text files which live near the English language with a similar input file for a certain open-source solver (whose input is in turn inspired by another non-free solver) that condenses both the mesh and the problem definition in a single 5Mb file that lives far away from plain English. 
  * The `VTK` output can be post-processed with the free tool [ParaView](http://www.paraview.org/):
 
-![Tensile test results obtained by [Fino](https://www.seamplex.com/fino) and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid}
+![Tensile test results obtained by [Fino](https://www.seamplex.com/fino) and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid #fig:tensile-vtk}
 
 
 ## Cantilever beam with first & second order elements {#cantilever}
@@ -253,9 +253,9 @@ OUTPUT_FILE vtk cantilever-$1-$2-%g.vtk n
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
 ```
 
-![Cantilever beam displacement for different grids and element order.](examples/cantilever.svg){width=100%}
+![Cantilever beam displacement for different grids and element order.](examples/cantilever.svg){.img-fluid width=100% #fig:cantilever-displ}
 
-![Cantilever beam strain energy for different grids and element order.](examples/cantilever-energy.svg){width=100%}
+![Cantilever beam strain energy for different grids and element order.](examples/cantilever-energy.svg){.img-fluid width=100% #fig:cantilever-energy}
 
 
 ## Thermal conduction in a piston engine
@@ -296,9 +296,9 @@ PRINT "\# memory [Mb]    = "  %.0f memory/1024^2
 PRINT %.0f T(0,0,0)
 ```
 
-![Fino results.](examples/engine-piston.png){.img-fluid}
+![Fino results.](examples/engine-piston.png){.img-fluid #fig:engine-piston}
 
-![Simscale (CalculiX) results.](examples/piston-simscale.png){.img-fluid}
+![Simscale (CalculiX) results.](examples/piston-simscale.png){.img-fluid #fig:piston-simscale}
 
 
 ## Conic valve
@@ -345,7 +345,7 @@ See the original tweet at <https://twitter.com/seamplex/status/78944053532918169
 
 ## Thermal expansion of finite cylinders
 
-![Veeder Benchmark problem](examples/veeder.png){.img-fluid}
+![Veeder Benchmark problem](examples/veeder.png){.img-fluid #fig:veeder}
 
 
 See <https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf>.

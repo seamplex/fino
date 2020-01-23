@@ -478,6 +478,7 @@ struct fino_times_t {
 extern int fino_instruction_step(void *);
 extern int fino_assembly(void);
 extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy);
+extern int fino_phi_to_solution(Vec phi);
 
 // bc.c
 extern int fino_bc_string2parsed(void);
@@ -536,10 +537,13 @@ extern void fino_usage(char *);
 extern void fino_version(FILE *, int, int);
 extern void fino_license(FILE *);
 
-// linear_petsc.c
+// petsc_ksp.c
 extern int fino_solve_linear_petsc(Mat, Vec);
 
-// eigen_slepc.c
+// petsc_snes.c
+extern int fino_solve_nonlinear_petsc();
+
+// slepc_eigen.c
 extern int fino_solve_eigen_slepc(Mat, Mat);
 extern int fino_eigen_nev(void);
 

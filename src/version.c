@@ -1,7 +1,7 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
  *  fino's version banner
  *
- *  Copyright (C) 2015--2018 jeremy theler
+ *  Copyright (C) 2015--2020 jeremy theler
  *
  *  This file is part of Fino <https://www.seamplex.com/fino>.
  *

@@ -443,7 +443,7 @@ int fino_problem_init(void) {
   petsc_call(MatCreateVecs(fino.K, NULL, &fino.phi));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));
   
-  if (fino.math_type == math_type_linear) {
+  if (fino.math_type != math_type_eigen) {
     // el vector del miembro derecho
     fino.has_rhs = 1;
     petsc_call(MatCreateVecs(fino.K, NULL, &fino.b));
