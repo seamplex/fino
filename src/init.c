@@ -695,12 +695,15 @@ int fino_problem_free(void) {
   wasora_call(fino_free_elemental_objects());
   
   if (fino.problem_family == problem_family_mechanical) {
+    
     fino_function_clean_nodal_data(fino.sigma1);
     fino_function_clean_nodal_data(fino.sigma2);
     fino_function_clean_nodal_data(fino.sigma3);
     fino_function_clean_nodal_data(fino.sigma);
     fino_function_clean_nodal_data(fino.tresca);
+    
   } else if (fino.problem_family == problem_family_thermal) {
+    
     if (fino.has_transient) {
       MatDestroy(&fino.A);
       MatDestroy(&fino.B);
@@ -754,7 +757,7 @@ int fino_problem_free(void) {
 #define __FUNCT__ "fino_function_clean_nodal_data"
 int fino_function_clean_nodal_data(function_t *function) {
  
-  if (function->data_value != NULL) {  
+  if (function != NULL && function->data_value != NULL) {  
     free(function->data_value);
     function->data_value = NULL;
   }

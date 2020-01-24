@@ -163,11 +163,20 @@ int plugin_parse_line(char *line) {
         fino.mesh->spatial_dimensions = fino.dimensions;
       }
       
+      // si no pusieron tipo, somos mecanicos
+      if (fino.problem_family == problem_family_undefined) {
+        fino.problem_family = problem_family_mechanical;
+      }
       
-      if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
+      // si no pusieron familia, somos full 3d
+      if (fino.problem_kind == problem_kind_undefined) {
+        fino.problem_kind = problem_kind_full3d;
+      }
+      
+      if (fino.problem_family == problem_family_mechanical ||
+          fino.problem_family == problem_family_modal) {
         
-        if (fino.problem_kind == problem_kind_full3d ||
-            fino.problem_kind == problem_kind_undefined) {
+        if (fino.problem_kind == problem_kind_full3d) {
           fino.dimensions = 3;
           fino.degrees = 3;
           
@@ -187,7 +196,7 @@ int plugin_parse_line(char *line) {
         fino.unknown_name[0] = strdup("u");
         fino.unknown_name[1] = strdup("v");
         if (fino.degrees == 3) {
-          fino.unknown_name[1] = strdup("w");
+          fino.unknown_name[2] = strdup("w");
         }
         
       } else if (fino.problem_family == problem_family_thermal) {
