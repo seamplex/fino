@@ -167,9 +167,9 @@ int fino_build_element_volumetric(element_t *element) {
     for (v = 0; v < V; v++) {
       
       // armamos las matrices
-      if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
+      if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         wasora_call(fino_break_build_element(element, v));
-      } else if (fino.problem_family == problem_family_bake) {
+      } else if (fino.problem_family == problem_family_thermal) {
         wasora_call(fino_bake_build_element(element, v));
       }
     }
@@ -203,7 +203,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   gsl_vector_set_zero(fino.Nb);
   gsl_vector_set_zero(fino.bi);
 
-  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_mechanical) {
     
     // TODO: poner un flag si se necesita
     if (element->type->dim == 2) {
@@ -212,7 +212,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
     
     wasora_call(fino_break_set_neumann(element, bc));
     
-  } else if (fino.problem_family == problem_family_bake) {
+  } else if (fino.problem_family == problem_family_thermal) {
     
     if (bc->type_phys == bc_phys_heat_flux || bc->type_phys == bc_phys_heat_total) {
       if (strcmp(bc->expr[0].string, "0") != 0) { // para no tener que hacer cuentas si es adiabatico

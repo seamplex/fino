@@ -127,16 +127,7 @@ int fino_bake_step_transient(void) {
   
   MatMult(fino.B, fino.phi, fino.c);
   VecAXPY(fino.c, 1, fino.b);
-/*  
-  printf("phi\n");
-  fino_print_petsc_vector(fino.phi, PETSC_VIEWER_STDOUT_SELF);
-  printf("b\n");
-  fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
-  printf("B\n");
-  fino_print_petsc_matrix(fino.B, PETSC_VIEWER_STDOUT_SELF);
-  printf("c\n");
-  fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_SELF);
-*/  
+  
   if (nonlinear) {
     // o hacemos un c nuevo como c = c + Mdot*T
     MatMult(fino.dotM, fino.phi, fino.m);
@@ -148,27 +139,9 @@ int fino_bake_step_transient(void) {
   // hay que volver a poner esta
   wasora_call(fino_set_essential_bc(fino.A, fino.c));
 
-/*  
-  printf("A\n");
-  fino_print_petsc_matrix(fino.A, PETSC_VIEWER_STDOUT_SELF);
-  printf("c\n");
-  fino_print_petsc_vector(fino.c, PETSC_VIEWER_STDOUT_SELF);
- */
-  
   // y resolver
   wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
 
-/*  
-  PetscViewerPushFormat(PETSC_VIEWER_STDOUT_SELF, PETSC_VIEWER_ASCII_MATLAB);
-  MatView(fino.A, PETSC_VIEWER_STDOUT_SELF);
-  VecView(fino.c, PETSC_VIEWER_STDOUT_SELF);
-  VecView(fino.phi, PETSC_VIEWER_STDOUT_SELF);
-*/  
-/*  
-  printf("phi\n");
-  fino_print_petsc_vector(fino.phi, PETSC_VIEWER_STDOUT_SELF);
-*/
-  
   if (nonlinear) {
     MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);
   }
@@ -176,13 +149,6 @@ int fino_bake_step_transient(void) {
   // esto viene aca porque el ksp tiene que ser != null, capaz que se pueda meter en el solver  
   petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
  
-/*  
-  MatDestroy(&fino.A);
-  MatDestroy(&fino.B);
-  VecDestroy(&fino.c);
-  fino.has_transient = 0;
-*/
-        
   return WASORA_RUNTIME_OK;
 }
 

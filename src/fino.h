@@ -28,6 +28,7 @@
 #include <wasora.h>
 
 #include <petscksp.h>
+#include <petscsnes.h>
 #include <petscpc.h>
 #include <petsctime.h>
 #ifdef HAVE_SLEPC
@@ -59,6 +60,8 @@ PetscErrorCode petsc_err;
 
 #define DEFAULT_MATRICES_X_SIZE                  640
 #define DEFAULT_GRADIENT_JACOBIAN_THRESHOLD       -1
+
+#define DEFAULT_NMODES        10
 
 #define bc_math_undefined                              0
 #define bc_math_dirichlet                              1
@@ -119,6 +122,7 @@ typedef struct {
 struct {
 
   enum {
+    math_type_undefined,
     math_type_linear,
     math_type_nonlinear,
     math_type_eigen,
@@ -126,17 +130,17 @@ struct {
   
   enum {
     problem_family_undefined,
-    problem_family_bake,
-    problem_family_break,
-    problem_family_shake,
+    problem_family_mechanical,
+    problem_family_thermal,
+    problem_family_modal,
   } problem_family;
   
   enum {
     problem_kind_undefined,
     problem_kind_full3d,
+    problem_kind_axisymmetric,
     problem_kind_plane_stress,
-    problem_kind_plane_strain,
-    problem_kind_axisymmetric    
+    problem_kind_plane_strain
   } problem_kind;
   
   enum {
@@ -273,7 +277,8 @@ struct {
   Mat dotM;
   Vec m;
   
-  // contexto del solver de krylov
+  // contexto de solvers de PETSc
+  SNES snes;
   KSP ksp;
   PC pc;
   
@@ -284,12 +289,10 @@ struct {
   loadable_routine_t *user_provided_linearsolver;
   
   // strings con tipos
-  char *ksp_type;
-  char *pc_type;
+  SNESType snes_type;
+  KSPType ksp_type;
+  PCType pc_type;
 
-  char *eps_type;
-  char *st_type;
-  
   enum {
     set_near_nullspace_rigidbody,
     set_near_nullspace_fino,
@@ -349,7 +352,6 @@ struct {
   
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
-//  function_t ***base_gradient;
   
   enum {
     gradient_gauss_extrapolated,
@@ -389,6 +391,9 @@ struct {
   // las pongo al final por si acaso (mezcla de plugins compilados con difentes libs, no se)
   int nev;      // el numero del autovalor pedido
 #ifdef HAVE_SLEPC
+  EPSType eps_type;
+  STType st_type;
+  
   EPS eps;      // contexto eigensolver (SLEPc)
   ST st;        // contexto de la transformacion espectral asociada
   EPSWhich eigen_spectrum;
@@ -477,7 +482,6 @@ struct fino_times_t {
 // fino.c
 extern int fino_instruction_step(void *);
 extern int fino_assembly(void);
-extern PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy);
 extern int fino_phi_to_solution(Vec phi);
 
 // bc.c
@@ -539,12 +543,14 @@ extern void fino_license(FILE *);
 
 // petsc_ksp.c
 extern int fino_solve_linear_petsc(Mat, Vec);
+extern PetscErrorCode fino_ksp_monitor(KSP, PetscInt, PetscReal, void *);
+extern int fino_ksp_set_pc(Mat);
 
 // petsc_snes.c
 extern int fino_solve_nonlinear_petsc();
-
+extern PetscErrorCode fino_snes_monitor(SNES, PetscInt, PetscReal, void *);
 // slepc_eigen.c
-extern int fino_solve_eigen_slepc(Mat, Mat);
+extern int fino_solve_eigen_slepc();
 extern int fino_eigen_nev(void);
 
 // gradient.c

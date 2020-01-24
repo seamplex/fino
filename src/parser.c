@@ -40,120 +40,74 @@ int plugin_parse_line(char *line) {
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 
 ///kw+FINO_PROBLEM+usage [
-///kw+FINO_PROBLEM+usage BAKE
+        
+///kw+FINO_PROBLEM+usage mechanical
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail @
-///kw+FINO_PROBLEM+detail  * `BAKE` (or `HEAT` or `THERMAL`) solves the heat conduction problem.
-        if (strcasecmp(token, "BAKE") == 0 || strcasecmp(token, "HEAT") == 0 || strcasecmp(token, "THERMAL") == 0) {
-          fino.problem_family = problem_family_bake;
-          fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_type_linear;
-          fino.degrees = 1;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("T");
+///kw+FINO_PROBLEM+detail  * `mechanical` (or `elastic` or `break`) solves the mechanical elastic problem (default).        
+        if (strcasecmp(token, "mechanical") == 0 || strcasecmp(token, "elastic") == 0 || strcasecmp(token, "break") == 0) {
+          fino.problem_family = problem_family_mechanical;
+///kw+FINO_PROBLEM+usage thermal
+          
+///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+detail  * `thermal` (or `heat` or `bake`) solves the heat conduction problem.
+        } else if (strcasecmp(token, "thermal") == 0 || strcasecmp(token, "heat") == 0 || strcasecmp(token, "bake") == 0) {
+          fino.problem_family = problem_family_thermal;
 
-///kw+FINO_PROBLEM+usage SHAKE
-///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `SHAKE` (or `MODAL`) computes the natural frequencies and modes.        
-        } else if (strcasecmp(token, "SHAKE") == 0 || strcasecmp(token, "MODAL") == 0) {
+///kw+FINO_PROBLEM+usage modal
+///kw+FINO_PROBLEM+usage ]@
+///kw+FINO_PROBLEM+detail  * `modal` (or `shake`) computes the natural frequencies and oscillation modes.        
+        } else if (strcasecmp(token, "modal") == 0 || strcasecmp(token, "shake") == 0) {
 #ifndef HAVE_SLEPC
-          wasora_push_error_message("MODAL needs a fino binary linked agains SLEPc.");
+          wasora_push_error_message("modal problems need a Fino binary linked against SLEPc.");
           return WASORA_PARSER_ERROR;
 #endif
-          fino.problem_family = problem_family_shake;
-          fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_type_eigen;
-          fino.dimensions = 3;
-          fino.degrees = 3;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("u");
-          fino.unknown_name[1] = strdup("v");
-          fino.unknown_name[2] = strdup("w");
-          // por default 10 modos
+          fino.problem_family = problem_family_modal;
           if (fino.nev == 0) {
-            fino.nev = 10;
+            fino.nev = DEFAULT_NMODES;
           }
           
-///kw+FINO_PROBLEM+usage BREAK
-///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `BREAK` (or `ELASTIC` or `MECHANICAL`) solves the elastic problem.        
-        } else if (strcasecmp(token, "BREAK") == 0 || strcasecmp(token, "ELASTIC") == 0 || strcasecmp(token, "MECHANICAL") == 0) {
-          fino.problem_family = problem_family_break;
-          fino.problem_kind = problem_kind_full3d;
-          fino.math_type = math_type_linear;
-          fino.dimensions = 3;
-          fino.degrees = 3;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("u");
-          fino.unknown_name[1] = strdup("v");
-          fino.unknown_name[2] = strdup("w");
 
-///kw+FINO_PROBLEM+usage HEAT_AXISYMMETRIC
+///kw+FINO_PROBLEM+usage [
+///kw+FINO_PROBLEM+usage AXISYMMETRIC
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `HEAT_AXISYMMETRIC` solves the heat conduction problem in an axysimmetric way.          
-        } else if (strcasecmp(token, "HEAT_AXISYMMETRIC") == 0) {
-          fino.problem_family = problem_family_bake;
+///kw+FINO_PROBLEM+detail If the `AXISYMMETRIC` keyword is given, the mesh is expected to be two-dimensional in the $x$-$y$ plane
+///kw+FINO_PROBLEM+detail and the problem is assumed to be axi-symmetric around the axis given by `SYMMETRY_AXIS` (default is $y$). 
+        } else if (strcasecmp(token, "AXISYMMETRIC") == 0) {
           fino.problem_kind = problem_kind_axisymmetric;
           if (fino.symmetry_axis == symmetry_axis_none) {
             fino.symmetry_axis = symmetry_axis_y;
           }
-          fino.math_type = math_type_linear;
-          fino.dimensions = 2;
-          fino.degrees = 1;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("T");
 
 ///kw+FINO_PROBLEM+usage PLANE_STRESS
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `PLANE_STRESS` solves the plane stress elastic problem. 
+///kw+FINO_PROBLEM+detail If the problem type is mechanical and the mesh is two-dimensional on the $x$-$y$ plane and no
+///kw+FINO_PROBLEM+detail axisymmetry is given, either `PLANE_STRESS` and `PLAIN_STRAIN` can be provided (default is plane stress). 
         } else if (strcasecmp(token, "PLANE_STRESS") == 0) {
-          fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_stress;
-          if (fino.symmetry_axis == symmetry_axis_none) {
-            fino.symmetry_axis = symmetry_axis_y;
-          }
-          fino.math_type = math_type_linear;
-          fino.dimensions = 2;
-          fino.degrees = 2;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("u");
-          fino.unknown_name[1] = strdup("v");
 
 ///kw+FINO_PROBLEM+usage PLANE_STRAIN
-///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `PLANE_STRAIN` solves the plane strain elastic problem.
+///kw+FINO_PROBLEM+usage ]
         } else if (strcasecmp(token, "PLANE_STRAIN") == 0) {
-          fino.problem_family = problem_family_break;
           fino.problem_kind = problem_kind_plane_strain;
-          if (fino.symmetry_axis == symmetry_axis_none) {
-            fino.symmetry_axis = symmetry_axis_y;
-          }
-          fino.math_type = math_type_linear;
-          fino.dimensions = 2;
-          fino.degrees = 2;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("u");
-          fino.unknown_name[1] = strdup("v");
           
-///kw+FINO_PROBLEM+usage ELASTIC_AXISYMMETRIC
-///kw+FINO_PROBLEM+usage ]@
-///kw+FINO_PROBLEM+detail  * `ELASTIC_AXISYMMETRIC` solves the elastic problem in an axysimmetric way.
-///kw+FINO_PROBLEM+detail @  
-        } else if (strcasecmp(token, "ELASTIC_AXISYMMETRIC") == 0) {
-          fino.problem_family = problem_family_break;
-          fino.problem_kind = problem_kind_axisymmetric;
-          if (fino.symmetry_axis == symmetry_axis_none) {
-            fino.symmetry_axis = symmetry_axis_y;
-          }
-          fino.math_type = math_type_linear;
-          fino.dimensions = 2;
-          fino.degrees = 2;
-          fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-          fino.unknown_name[0] = strdup("u");
-          fino.unknown_name[1] = strdup("v");
+///kw+FINO_PROBLEM+usage [ SYMMETRY_AXIS { x | y } ]
+        } else if (strcasecmp(token, "SYMMETRY_AXIS") == 0) {
+          char *keywords[] = { "x", "y" };
+          int values[] = {symmetry_axis_x, symmetry_axis_y, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.symmetry_axis));
 
+///kw+FINO_PROBLEM+usage [ LINEAR
+        } else if (strcasecmp(token, "LINEAR") == 0) {
+          fino.math_type = math_type_linear;
+
+///kw+FINO_PROBLEM+usage | NON_LINEAR ]@
+        } else if (strcasecmp(token, "NON_LINEAR") == 0) {
+          fino.math_type = math_type_nonlinear;
+///kw+FINO_PROBLEM+detail By default Fino tries to detect wheter the computation should be linear or non-linear.
+///kw+FINO_PROBLEM+detail An explicit mode can be set with either `LINEAR` on `NON_LINEAR`.
+          
 ///kw+FINO_PROBLEM+usage [ DIMENSIONS <expr> ]
-///kw+FINO_PROBLEM+detail For the heat conduction problem the number of dimensions needs to be given either with the keyword `DIMENSIONS`
+///kw+FINO_PROBLEM+detail The number of spatial dimensions of the problem needs to be given either with the keyword `DIMENSIONS`
 ///kw+FINO_PROBLEM+detail or by defining a `MESH` (with an explicit `DIMENSIONS` keyword) before `FINO_PROBLEM`.
         } else if (strcasecmp(token, "DIMENSIONS") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
@@ -163,13 +117,11 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
           
-///kw+FINO_PROBLEM+usage [ SYMMETRY_AXIS { x | y } ]
-        } else if (strcasecmp(token, "SYMMETRY_AXIS") == 0) {
-          char *keywords[] = { "x", "y" };
-          int values[] = {symmetry_axis_x, symmetry_axis_y, 0};
-          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.symmetry_axis));
           
 ///kw+FINO_PROBLEM+usage [ MESH <identifier> ] @
+///kw+FINO_PROBLEM+detail If there are more than one `MESH`es define, the one over which the problem is to be solved
+///kw+FINO_PROBLEM+detail can be defined by giving the explicit mesh name with `MESH`. By default, the first mesh to be
+///kw+FINO_PROBLEM+detail defined in the input file is the one over which the problem is solved.
         } else if (strcasecmp(token, "MESH") == 0) {
           char *mesh_name;
           
@@ -182,22 +134,23 @@ int plugin_parse_line(char *line) {
           free(mesh_name);
         
 ///kw+FINO_PROBLEM+usage [ N_MODES <expr> ] @
+///kw+FINO_PROBLEM+detail The number of modes to be computed in the modal problem. The default is DEFAULT_NMODES.
         } else if (strcasecmp(token, "N_MODES") == 0 || strcasecmp(token, "N_EIGEN") == 0) {
           wasora_call(wasora_parser_expression_in_string(&xi));
           fino.nev = (int)(xi);
           if (fino.nev < 1)  {
-            wasora_push_error_message("a positive number of eigenvalues should be given instead of '%d'", fino.nev);
+            wasora_push_error_message("a positive number of modes should be given instead of '%d'", fino.nev);
             return WASORA_PARSER_ERROR;
           }
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
           return WASORA_PARSER_ERROR;
         }
-      }
+      } 
 
       // si no nos dieron explicitamente la malla, ponemos la principal
       if (fino.mesh == NULL && (fino.mesh = wasora_mesh.main_mesh) == NULL) {
-        wasora_push_error_message("unknown mesh for FINO_PROBLEM (no MESH keyword)", token);
+        wasora_push_error_message("unknown mesh (no MESH keyword before FINO_PROBLEM)", token);
         return WASORA_PARSER_ERROR;
       }
 
@@ -208,6 +161,41 @@ int plugin_parse_line(char *line) {
       // al reves, si ya nos la dieron, se las damos a la malla
       if (fino.mesh != NULL && fino.mesh->spatial_dimensions == 0 && fino.dimensions != 0) {
         fino.mesh->spatial_dimensions = fino.dimensions;
+      }
+      
+      
+      if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
+        
+        if (fino.problem_kind == problem_kind_full3d ||
+            fino.problem_kind == problem_kind_undefined) {
+          fino.dimensions = 3;
+          fino.degrees = 3;
+          
+        } else if (fino.problem_kind == problem_kind_axisymmetric ||
+                   fino.problem_kind == problem_kind_plane_stress ||
+                   fino.problem_kind == problem_kind_plane_strain) {
+          
+          fino.dimensions = 2;
+          fino.degrees = 2;
+        }
+        
+        if (fino.problem_family == problem_family_modal) {
+          fino.math_type = math_type_eigen;
+        }
+        
+        fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+        fino.unknown_name[0] = strdup("u");
+        fino.unknown_name[1] = strdup("v");
+        if (fino.degrees == 3) {
+          fino.unknown_name[1] = strdup("w");
+        }
+        
+      } else if (fino.problem_family == problem_family_thermal) {
+        
+        fino.degrees = 1;
+        fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+        fino.unknown_name[0] = strdup("T");
+        
       }
 
       wasora_call(fino_define_functions());
@@ -234,18 +222,26 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
 
-///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]@
-///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
-///kw+FINO_SOLVER+detail @
-        } else if (strcasecmp(token, "KSP_TYPE") == 0) {
-          wasora_call(wasora_parser_string(&fino.ksp_type));
-
 ///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]@
+///kw+FINO_SOLVER+detail @
 ///kw+FINO_SOLVER+detail List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.  @
 ///kw+FINO_SOLVER+detail @
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
-          wasora_call(wasora_parser_string(&fino.pc_type));
+          wasora_call(wasora_parser_string((char **)&fino.pc_type));
+
+///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]@
+///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.  @
+///kw+FINO_SOLVER+detail @
+        } else if (strcasecmp(token, "KSP_TYPE") == 0) {
+          wasora_call(wasora_parser_string((char **)&fino.ksp_type));
+
+///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
+///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+detail List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.  @
+///kw+FINO_SOLVER+detail @
+        } else if (strcasecmp(token, "SNES_TYPE") == 0) {
+          wasora_call(wasora_parser_string((char **)&fino.snes_type));
 
 ///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]@
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
@@ -358,19 +354,6 @@ int plugin_parse_line(char *line) {
         // defaulteamos a tres
         fino.dimensions = 3;
       }
-        
-      // defaulteamos a break
-      if (fino.problem_family == problem_family_undefined) {
-        fino.problem_family = problem_family_break;
-        fino.problem_kind = problem_kind_full3d;
-        fino.math_type = math_type_linear;
-        fino.degrees = 3;
-        fino.unknown_name = calloc(fino.degrees, sizeof(char *));
-        fino.unknown_name[0] = strdup("u");
-        fino.unknown_name[1] = strdup("v");
-        fino.unknown_name[2] = strdup("w");
-      }
-      
       // si alguna es cero, la rellenamos con la otra
       if (fino.dimensions == 0) {
         fino.dimensions = fino.mesh->spatial_dimensions;
@@ -382,6 +365,28 @@ int plugin_parse_line(char *line) {
       if (fino.dimensions != fino.mesh->spatial_dimensions) {
         wasora_push_error_message("inconsistent dimensions (FINO_PROBLEM = %d, MESH = %d)", fino.dimensions, fino.mesh->spatial_dimensions);
         return WASORA_PARSER_ERROR;
+      }
+      
+      // defaulteamos a mechanical
+      if (fino.problem_family == problem_family_undefined) {
+        fino.problem_family = problem_family_mechanical;
+        if (fino.dimensions == 3) {
+          fino.problem_kind = problem_kind_full3d;
+          fino.degrees = 3;
+        } else if (fino.dimensions == 2) {
+          fino.problem_kind = problem_kind_plane_stress;
+          fino.degrees = 2;
+        } else {
+          wasora_push_error_message("no explicit problem type given with a one-dimensional mesh. Give me PROBLEM_TYPE.");
+          return WASORA_PARSER_ERROR;
+        }  
+        
+        fino.unknown_name = calloc(fino.degrees, sizeof(char *));
+        fino.unknown_name[0] = strdup("u");
+        fino.unknown_name[1] = strdup("v");
+        if (fino.degrees == 3) {
+          fino.unknown_name[2] = strdup("w");
+        }  
       }
       
       // si nadie dijo nada tenemos un solo grado de libertado
@@ -441,7 +446,7 @@ int plugin_parse_line(char *line) {
       char *name;
       fino_reaction_t *reaction;
       
-      if (fino.problem_family != problem_family_break) {
+      if (fino.problem_family != problem_family_mechanical) {
         wasora_push_error_message("FINO_REACTION makes sense only in elastic problems");
         return WASORA_PARSER_ERROR;
       }
@@ -507,7 +512,7 @@ int plugin_parse_line(char *line) {
       fino_linearize_t *linearize, *tmp;
       int n_linearizes;
       
-      if (fino.problem_family != problem_family_break) {
+      if (fino.problem_family != problem_family_mechanical) {
         wasora_push_error_message("FINO_LINEARIZE makes sense only in elastic problems");
         return WASORA_PARSER_ERROR;
       }
@@ -861,7 +866,7 @@ int fino_define_functions(void) {
     free(name);
   }
 
-  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_mechanical) {
 
     // TODO: describir las funciones para reference
     wasora_call(fino_define_result_function("sigmax", &fino.sigmax));

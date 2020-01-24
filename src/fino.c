@@ -62,24 +62,25 @@ int fino_instruction_step(void *arg) {
   // build
   // ------------------------------------
   
-  if (fino_step->do_not_build == 0 && wasora_var_value(wasora_special_var(end_time)) == 0) {
+  // el do_not_build se podria usar en el extremo caso en que alguien quiera ensamblar
+  // por si mismo con una user-provided routine
+  if (fino_step->do_not_build == 0 && (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal)) {
     time_checkpoint(build_begin);
-    wasora_call(fino_build_bulk());                         // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
+    wasora_call(fino_build_bulk());
+    wasora_call(fino_set_essential_bc(fino.K, fino.b));
     time_checkpoint(build_end);
   }
 
-//  fino.math_type = math_type_nonlinear;
-  
   // ------------------------------------
   // solve
   // ------------------------------------
+  // el do_not_solve se puede pedir para debuguear las matrices cuando no convergen
   if (fino_step->do_not_solve == 0) {
     
     time_checkpoint(solve_begin);
-    
-    if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_bake) {
-      // resolvemos un steady state
+    if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
+      
+      // si no nos pidieron transient de calor resolvemos un steady state de lo que sea
       if (fino.math_type == math_type_linear) {
         
         wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
@@ -92,7 +93,7 @@ int fino_instruction_step(void *arg) {
       } else if (fino.math_type == math_type_eigen) {
         
 #ifdef HAVE_SLEPC
-        wasora_call(fino_solve_eigen_slepc(fino.K, fino.M));
+        wasora_call(fino_solve_eigen_slepc());
         wasora_call(fino_eigen_nev()); 
         wasora_call(fino_phi_to_solution(fino.phi));
 #else 
@@ -101,24 +102,30 @@ int fino_instruction_step(void *arg) {
 #endif      
       }
     } else {
+      
+      // si nos pidieron transient de calor
       if (wasora_var_value(wasora_special_var(in_static))) {
         wasora_call(fino_bake_step_initial());
       } else {
         wasora_call(fino_bake_step_transient());
       }
     }
-    
     time_checkpoint(solve_end);
+    
+  // ------------------------------------
+  // build
+  // ------------------------------------
+    
     time_checkpoint(stress_begin);
     
-    if (fino.problem_family == problem_family_break) {
+    if (fino.problem_family == problem_family_mechanical) {
   
       wasora_call(fino_compute_strain_energy());
       if (fino.gradient_evaluation != gradient_none) {
         wasora_call(fino_break_compute_stresses());
       }  
       
-    } else if (fino.problem_family == problem_family_bake) {
+    } else if (fino.problem_family == problem_family_thermal) {
         
       wasora_call(fino_bake_compute_fluxes());
       

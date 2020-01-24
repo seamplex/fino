@@ -27,24 +27,6 @@
 
 #include "fino.h"
 
-extern PetscErrorCode Monitor(SNES,PetscInt,PetscReal,void*);
-
-PetscErrorCode Monitor(SNES snes,PetscInt its,PetscReal fnorm,void *ctx)
-{
-  PetscErrorCode ierr;
-  Vec            x;
-
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"iter = %D, SNES Function norm %g\n",its,(double)fnorm);CHKERRQ(ierr);
-  ierr = SNESGetSolution(snes,&x);CHKERRQ(ierr);
-  printf("phi\n");
-  fino_print_petsc_vector(x, PETSC_VIEWER_STDOUT_SELF);
-  printf("b\n");
-  fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
-  printf("K\n");
-  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
-  return 0;
-}
-
 
 PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   
@@ -54,19 +36,19 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   wasora_call(fino_set_essential_bc(fino.K, fino.b));
   
   MatMult(fino.K, phi, r);
-  printf("residual\n");
-  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+//  printf("residual\n");
+//  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
 }
 
 PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
-  printf("jacobiano\n");
+//  printf("jacobiano\n");
   MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
   
   return 0;
-  
+   
 }
 
 #undef  __FUNCT__
@@ -74,45 +56,57 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
 int fino_solve_nonlinear_petsc(void) {
 
   SNESConvergedReason reason;
-  SNES           snes;
-  Mat            J;            /* Jacobian matrix */
-  Vec            r;
+  Mat            J;    // jacobiano
+  Vec            r;    // residuo
   PetscInt       its;    
 
-  SNESCreate(PETSC_COMM_WORLD, &snes);
-  VecDuplicate(fino.phi, &r);
-  MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+  if (fino.snes == NULL) {
+    petsc_call(SNESCreate(PETSC_COMM_WORLD, &fino.snes));
+  }
+  petsc_call(VecDuplicate(fino.phi, &r));
+  petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &J));
   
-  SNESSetFunction(snes, r, fino_solve_residual, NULL);
-  SNESSetJacobian(snes, J, J, fino_solve_jacobian, NULL);
+  petsc_call(SNESSetFunction(fino.snes, r, fino_solve_residual, NULL));
+  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_solve_jacobian, NULL));
+  petsc_call(SNESSetTolerances(fino.snes, wasora_var(fino.vars.abstol),
+                                          wasora_var(fino.vars.reltol),
+                                          PETSC_DEFAULT,
+                                          (PetscInt)wasora_var(fino.vars.max_iterations),
+                                          PETSC_DEFAULT));
+  // el SNES 
+  if (fino.snes_type != NULL) {
+    // si nos dieron lo ponemos, sino dejamos el dafault
+    petsc_call(SNESSetType(fino.snes, fino.snes_type));
+  }
   
-  // extract ksp and set
-  // TODO
+  // el KSP
+  petsc_call(SNESGetKSP(fino.snes, &fino.ksp));
+  if (fino.ksp_type != NULL) {
+    // si nos dieron lo ponemos, sino dejamos el default
+    petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
+  }
   
-  SNESSetFromOptions(snes);
+  wasora_call(fino_ksp_set_pc(fino.K));
+  
+  petsc_call(SNESSetFromOptions(fino.snes));
 
   // initial value
   VecSet(fino.phi, 0);
-      
-  // monitor
-  // TODO
 
-//  SNESMonitorSet(snes, SNESMonitorResidual, NULL, 0);
-//  PetscViewerDrawOpen(PETSC_COMM_WORLD,0,0,0,0,400,400,&monP.viewer);
-  SNESMonitorSet(snes,Monitor,NULL,0);
+  // monitor
+  SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0);
   
   // solve
-  SNESSolve(snes, fino.b, fino.phi);
-
+  SNESSolve(fino.snes, fino.b, fino.phi);
   
   // chequeamos que haya convergido
-  petsc_call(SNESGetConvergedReason(snes, &reason));
+  petsc_call(SNESGetConvergedReason(fino.snes, &reason));
   if (reason < 0) {
     wasora_push_error_message("PETSc's non-linear solver did not converge with reason '%s' (%d)", SNESConvergedReasons[reason], reason);
     return WASORA_RUNTIME_ERROR;
   }
   
-  SNESGetIterationNumber(snes, &its);  
+  SNESGetIterationNumber(fino.snes, &its);  
   wasora_value(fino.vars.iterations) = (double)its;
   
 //  petsc_call(SNESGetResidualNorm(snes, wasora_value_ptr(fino.vars.residual_norm)));
@@ -122,3 +116,32 @@ int fino_solve_nonlinear_petsc(void) {
 
 }
 
+PetscErrorCode fino_snes_monitor(SNES snes, PetscInt n, PetscReal rnorm, void *dummy) {
+  int i;
+  double current_progress;
+  
+  if (fino.progress_r0 == 0) {
+    fino.progress_r0 = rnorm;
+  }
+  
+  if (rnorm < 1e-20) {
+    current_progress = 1;
+  } else {
+    current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
+    if (current_progress > 1) {
+      current_progress = 1;
+    }
+  } 
+
+//  printf("%d %e %e\n", n, rnorm/fino.progress_r0, current_progress);
+  
+  if (fino.progress_ascii) {
+    for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
+      printf(CHAR_PROGRESS_SOLVE);
+      fflush(stdout);
+    }
+    fino.progress_last = current_progress;
+  }
+
+  return 0;
+}

@@ -32,22 +32,14 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
-  PetscInt i, j, d;
-  PCType pc_type;
-
-  PetscInt nearnulldim = 0;
-  MatNullSpace nullsp = NULL;
-  PetscScalar  dots[5];
-  Vec          *nullvec;  
-  PetscReal *coords;
-  Vec       vec_coords;
+  int i;
 
   // creamos un solver lineal
   if (fino.ksp == NULL) {
     petsc_call(KSPCreate(PETSC_COMM_WORLD, &fino.ksp));
-    petsc_call(KSPSetOperators(fino.ksp, A, A));
   }
-
+  
+  petsc_call(KSPSetOperators(fino.ksp, A, A));
   petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.reltol),
                                         wasora_var(fino.vars.abstol),
                                         wasora_var(fino.vars.divtol),
@@ -59,18 +51,111 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
     // el default es gmres, no esta mal
   }
 
-  // precondicionador
-  petsc_call(KSPGetPC(fino.ksp, &fino.pc));
+  // el precondicionador lo usamos tanto aca como en snes
+  wasora_call(fino_ksp_set_pc(A));
+
+  // el monitor
+  if (fino.progress_ascii) {  
+    petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
+  }
+  
+  // sobreescribimos con la linea de comandos
+  petsc_call(KSPSetFromOptions(fino.ksp));
+  
+  // do the work!
+  petsc_call(KSPSolve(fino.ksp, b, fino.phi));
+  
+  // chequeamos que haya convergido
+  petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
+  if (reason < 0) {
+    wasora_push_error_message("PETSc's linear solver did not converge with reason '%s' (%d)", KSPConvergedReasons[reason], reason);
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  if (fino.progress_ascii) {
+    for (i = (int)(100*fino.progress_last); i < 100; i++) {
+      printf(CHAR_PROGRESS_SOLVE);
+    }
+    printf("\n");
+    fflush(stdout);
+  }
+
+    
+  petsc_call(KSPGetIterationNumber(fino.ksp, &iterations));
+  wasora_value(fino.vars.iterations) = (double)iterations;
+  
+  petsc_call(KSPGetResidualNorm(fino.ksp, wasora_value_ptr(fino.vars.residual_norm)));
+
+
+  return WASORA_RUNTIME_OK;
+
+}
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_ksp_monitor"
+PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
+//  wasora_value(fino.vars.iterations) = (double)n;
+//  wasora_var_value(fino.vars.residual_norm) = rnorm;
+  int i;
+  double current_progress;
+  
+  if (fino.progress_r0 == 0) {
+    fino.progress_r0 = rnorm;
+  }
+  
+  if (rnorm < 1e-20) {
+    current_progress = 1;
+  } else {
+    current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
+    if (current_progress > 1) {
+      current_progress = 1;
+    }
+  } 
+
+//  printf("%d %e %e\n", n, rnorm/r0, current_progress);
+  
+  if (fino.progress_ascii) {
+    for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
+      printf(CHAR_PROGRESS_SOLVE);
+      fflush(stdout);
+    }
+    fino.progress_last = current_progress;
+  }
+
+  return 0;
+}
+
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_ksp_set_pc"
+int fino_ksp_set_pc(Mat A) {
+
+  PetscInt i, j, d;
+  PCType pc_type;
+
+  PetscInt nearnulldim = 0;
+  MatNullSpace nullsp = NULL;
+  PetscScalar  dots[5];
+  Vec          *nullvec;  
+  PetscReal *coords;
+  Vec       vec_coords;
   
   // el precondicionador
+  petsc_call(KSPGetPC(fino.ksp, &fino.pc));
   if (fino.pc_type != NULL) {
+    // si nos dieron uno, lo ponemos
     petsc_call(PCSetType(fino.pc, fino.pc_type));
   } else {
-    petsc_call(PCSetType(fino.pc, "gamg"));
+    // si no nos dieron y estamos en mechanical, ponemos GAMG 
+    if (fino.problem_family == problem_family_mechanical) {
+      petsc_call(PCSetType(fino.pc, PCGAMG));
+    }
+    // sino que quede el default
   }
   
   petsc_call(PCGetType(fino.pc, &pc_type));
-  if (strcmp(pc_type, PCGAMG) == 0) {
+  if (pc_type != NULL && strcmp(pc_type, PCGAMG) == 0) {
 #if PETSC_VERSION_LT(3,8,0)
     PCGAMGSetThreshold(fino.pc, (PetscReal)wasora_var_value(fino.vars.gamg_threshold));
 #else
@@ -78,7 +163,7 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
 #endif
   }
 
-  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_mechanical) {
     // las coordenadas (solo para break)
   // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
     // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody
@@ -154,72 +239,6 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
       break;
     }
   }
-
-  // el monitor
-  if (fino.progress_ascii) {  
-    petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
-  }
   
-  // sobreescribimos con la linea de comandos
-  petsc_call(KSPSetFromOptions(fino.ksp));
-  
-  // do the work!
-  petsc_call(KSPSolve(fino.ksp, b, fino.phi));
-  
-  // chequeamos que haya convergido
-  petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
-  if (reason < 0) {
-    wasora_push_error_message("PETSc's linear solver did not converge with reason '%s' (%d)", KSPConvergedReasons[reason], reason);
-    return WASORA_RUNTIME_ERROR;
-  }
-
-  if (fino.progress_ascii) {
-    for (i = (int)(100*fino.progress_last); i < 100; i++) {
-      printf(CHAR_PROGRESS_SOLVE);
-    }
-    printf("\n");
-    fflush(stdout);
-  }
-
-    
-  petsc_call(KSPGetIterationNumber(fino.ksp, &iterations));
-  wasora_value(fino.vars.iterations) = (double)iterations;
-  
-  petsc_call(KSPGetResidualNorm(fino.ksp, wasora_value_ptr(fino.vars.residual_norm)));
-
-
   return WASORA_RUNTIME_OK;
-
-}
-
-PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
-//  wasora_value(fino.vars.iterations) = (double)n;
-//  wasora_var_value(fino.vars.residual_norm) = rnorm;
-  int i;
-  double current_progress;
-  
-  if (fino.progress_r0 == 0) {
-    fino.progress_r0 = rnorm;
-  }
-  
-  if (rnorm < 1e-20) {
-    current_progress = 1;
-  } else {
-    current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
-    if (current_progress > 1) {
-      current_progress = 1;
-    }
-  } 
-
-//  printf("%d %e %e\n", n, rnorm/r0, current_progress);
-  
-  if (fino.progress_ascii) {
-    for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
-      printf(CHAR_PROGRESS_SOLVE);
-      fflush(stdout);
-    }
-    fino.progress_last = current_progress;
-  }
-
-  return 0;
 }

@@ -1,3 +1,7 @@
+ * nonlinear
+    - initial guess como en thermal T0
+    - optimizar assemblies
+    - elastoplastic materials - E_xyz(e_xyz)
  * manual
  * rewrite DEBUG
  * rewrite --version output: compact, standard & extended
@@ -5,9 +9,10 @@
  * unify problem types
  * compute heat fluxes
  * put mat2sng in a different code
- * DMplex
  * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
  * see if some for loops can be replaced by matrix-matrix products
+ * DMplex
+ * use TS for heat transient
  * 2nd-order prisms (wedges)
  * extrapolate matrix for quads/prisms
  * non-linearities

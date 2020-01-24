@@ -252,7 +252,7 @@ int fino_break_build_element(element_t *element, int v) {
       
     }
     
-    if ((fino.problem_family == problem_family_break) &&
+    if ((fino.problem_family == problem_family_mechanical) &&
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // el vector de fuerzas volumetricas
       c = r_for_axisymmetric * element->w[v] * h[j];

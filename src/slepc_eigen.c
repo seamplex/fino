@@ -30,7 +30,7 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_eigen_slepc"
-int fino_solve_eigen_slepc(Mat A, Mat B) {
+int fino_solve_eigen_slepc(void) {
 
   int i;
   PetscReal xi = 1.0;
@@ -51,12 +51,8 @@ int fino_solve_eigen_slepc(Mat A, Mat B) {
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
   petsc_call(PetscObjectSetName((PetscObject)fino.pc, "preconditioner"));
 
-  petsc_call(EPSSetOperators(fino.eps, B, A));
+  petsc_call(EPSSetOperators(fino.eps, fino.M, fino.K));
   petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_LARGEST_MAGNITUDE));
-  
-  // problema generalizado no hermitico (por las condiciones de contorno)
-  // TODO: no romper simetria!
-//  petsc_call(EPSSetProblemType(fino.eps, EPS_GNHEP));  
   petsc_call(EPSSetProblemType(fino.eps, EPS_GHEP));    
   
   // TODO: ver bien esto del guess inicial

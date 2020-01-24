@@ -325,7 +325,7 @@ int plugin_init_after_parser(void) {
   wasora_call(fino_bc_string2parsed());  
   
   // desplazamientos (y derivadas) anteriores
-  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_mechanical) {
     fino.base_solution = calloc(fino.degrees, sizeof(function_t *));
 
     fino.base_solution[0] = wasora_get_function_ptr("u0");
@@ -341,6 +341,12 @@ int plugin_init_after_parser(void) {
       }
     }
   }
+  
+  // si no nos dijeron explicitamente si quieren lineal o no lienal, tratamos de adivinar
+  if (fino.math_type == math_type_undefined) {
+    fino.math_type = math_type_linear;
+  }
+  
   
   return WASORA_RUNTIME_OK;
 }
@@ -450,8 +456,8 @@ int fino_problem_init(void) {
     petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
   }
   
-  if (fino.problem_family == problem_family_shake ||
-      (fino.problem_family == problem_family_bake && wasora_var_value(wasora_special_var(end_time)) != 0)) {
+  if (fino.problem_family == problem_family_modal ||
+      (fino.problem_family == problem_family_thermal && wasora_var_value(wasora_special_var(end_time)) != 0)) {
     // la matriz de masa para autovalores del problema elastico o para transitorio de calor
     fino.has_mass = 1;
     petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
@@ -688,13 +694,13 @@ int fino_problem_free(void) {
   
   wasora_call(fino_free_elemental_objects());
   
-  if (fino.problem_family == problem_family_break) {
+  if (fino.problem_family == problem_family_mechanical) {
     fino_function_clean_nodal_data(fino.sigma1);
     fino_function_clean_nodal_data(fino.sigma2);
     fino_function_clean_nodal_data(fino.sigma3);
     fino_function_clean_nodal_data(fino.sigma);
     fino_function_clean_nodal_data(fino.tresca);
-  } else if (fino.problem_family == problem_family_bake) {
+  } else if (fino.problem_family == problem_family_thermal) {
     if (fino.has_transient) {
       MatDestroy(&fino.A);
       MatDestroy(&fino.B);

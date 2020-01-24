@@ -63,7 +63,7 @@ int fino_bc_string2parsed(void) {
 
       fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
 
-      if (fino.problem_family == problem_family_break || fino.problem_family == problem_family_shake) {
+      if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         if (strcmp(name, "fixed") == 0) {
           bc->type_math = bc_math_dirichlet;
           bc->type_phys = bc_phys_displacement_fixed;
@@ -245,7 +245,7 @@ int fino_bc_string2parsed(void) {
           PetscFunctionReturn(WASORA_PARSER_ERROR);
         }
 
-      } else if (fino.problem_family == problem_family_bake) {
+      } else if (fino.problem_family == problem_family_thermal) {
         if (strcmp(name, "T") == 0) {
           bc->type_math = bc_math_dirichlet;
           bc->type_phys = bc_phys_temperature;
@@ -332,6 +332,7 @@ void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sig
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_set_essential_bc"
+// esta pide argumentos porque se llama desde thermal transient con una matriz intermedia
 int fino_set_essential_bc(Mat A, Vec b) {
 
   PetscScalar diag;
