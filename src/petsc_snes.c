@@ -31,13 +31,21 @@
 PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   
   // pasamos phi a la solucion porque K puede depender de phi
+  wasora_call(fino_assembly());
   wasora_call(fino_phi_to_solution(phi));
+  if (fino.problem_family == problem_family_mechanical) {
+    wasora_call(fino_break_compute_stresses());
+  }  
   wasora_call(fino_build_bulk());
   wasora_call(fino_set_essential_bc(fino.K, fino.b));
+  wasora_call(fino_assembly());
   
   MatMult(fino.K, phi, r);
 //  printf("residual\n");
 //  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+
+//  printf("phi\n");
+//  fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
 }
@@ -45,6 +53,19 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
 PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
 //  printf("jacobiano\n");
+//    fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+  
+  // pasamos phi a la solucion porque K puede depender de phi
+/*  
+  wasora_call(fino_assembly());
+  wasora_call(fino_phi_to_solution(phi));
+  if (fino.problem_family == problem_family_mechanical) {
+    wasora_call(fino_break_compute_stresses());
+  }  
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+  wasora_call(fino_assembly());
+*/  
   MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
   
   return 0;
@@ -109,6 +130,9 @@ int fino_solve_nonlinear_petsc(void) {
   SNESGetIterationNumber(fino.snes, &its);  
   wasora_value(fino.vars.iterations) = (double)its;
   
+//  printf("residuo final\n");
+//  MatMult(fino.K, fino.phi, r);
+//  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
 //  petsc_call(SNESGetResidualNorm(snes, wasora_value_ptr(fino.vars.residual_norm)));
   
   
@@ -133,7 +157,7 @@ PetscErrorCode fino_snes_monitor(SNES snes, PetscInt n, PetscReal rnorm, void *d
     }
   } 
 
-//  printf("%d %e %e\n", n, rnorm/fino.progress_r0, current_progress);
+  printf("%d %e %.1f\n", n, rnorm/fino.progress_r0, current_progress);
   
   if (fino.progress_ascii) {
     for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {

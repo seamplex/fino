@@ -1,0 +1,13 @@
+MESH FILE_PATH quad4.msh
+FINO_PROBLEM PLANE_STRAIN NON_LINEAR
+
+E = 1   # [ MPa ] Young modulus ~ 200 GPa
+nu = 0  # Poisson ratio
+
+PHYSICAL_ENTITY left   BC fixed
+PHYSICAL_ENTITY right  BC Fx=1.01
+# PHYSICAL_ENTITY three  BC u=3
+
+FINO_STEP   # solve
+
+PRINT_FUNCTION u v 0

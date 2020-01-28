@@ -556,16 +556,17 @@ extern int fino_eigen_nev(void);
 // gradient.c
 extern int fino_compute_gradients(void);
 
-// petschandler.c
+// petsc_handler.c
 PetscErrorCode fino_handler(MPI_Comm comm, int, const char *, const char *, PetscErrorCode, PetscErrorType, const char *, void *);
 
 // times.c
 extern double fino_get_cpu_time(void);
 
-// breakshake.c
+// mehcanical.c
 extern int fino_break_build_element(element_t *, int);
 extern int fino_break_set_neumann(element_t *, bc_t *);
-extern int fino_break_compute_C(gsl_matrix *, double, double);
+extern int fino_break_compute_C_linear(gsl_matrix *, double, double);
+extern int fino_break_compute_C_nonlinear(element_t *, int, gsl_matrix *);
 extern int fino_break_compute_nodal_stresses(element_t *, int, double *, double *, double *, double *, double *, double *);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);

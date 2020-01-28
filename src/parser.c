@@ -100,8 +100,8 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "LINEAR") == 0) {
           fino.math_type = math_type_linear;
 
-///kw+FINO_PROBLEM+usage | NON_LINEAR ]@
-        } else if (strcasecmp(token, "NON_LINEAR") == 0) {
+///kw+FINO_PROBLEM+usage | NONLINEAR ]@
+        } else if (strcasecmp(token, "NONLINEAR") == 0 || strcasecmp(token, "NON_LINEAR") == 0) {
           fino.math_type = math_type_nonlinear;
 ///kw+FINO_PROBLEM+detail By default Fino tries to detect wheter the computation should be linear or non-linear.
 ///kw+FINO_PROBLEM+detail An explicit mode can be set with either `LINEAR` on `NON_LINEAR`.
@@ -163,11 +163,19 @@ int plugin_parse_line(char *line) {
         fino.mesh->spatial_dimensions = fino.dimensions;
       }
       
+      if (fino.problem_family == problem_family_undefined) {
+        fino.problem_family = problem_family_mechanical;
+      }
       
-      if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
+      if (fino.problem_kind == problem_kind_undefined) {
+        fino.problem_kind = problem_kind_full3d;
+      }
+      
+      if (fino.problem_family == problem_family_mechanical ||
+          fino.problem_family == problem_family_modal) {
         
-        if (fino.problem_kind == problem_kind_full3d ||
-            fino.problem_kind == problem_kind_undefined) {
+        
+        if (fino.problem_kind == problem_kind_full3d) {
           fino.dimensions = 3;
           fino.degrees = 3;
           
@@ -187,7 +195,7 @@ int plugin_parse_line(char *line) {
         fino.unknown_name[0] = strdup("u");
         fino.unknown_name[1] = strdup("v");
         if (fino.degrees == 3) {
-          fino.unknown_name[1] = strdup("w");
+          fino.unknown_name[2] = strdup("w");
         }
         
       } else if (fino.problem_family == problem_family_thermal) {

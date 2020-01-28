@@ -1,0 +1,16 @@
+
+# MESH FILE_PATH tensile-plastic.msh
+MESH FILE_PATH beam-quads.msh
+FINO_PROBLEM NON_LINEAR
+
+E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
+nu = 0.3    # Poisson ratio
+
+PHYSICAL_ENTITY fixed  BC fixed
+PHYSICAL_ENTITY load   BC Fx=120
+
+FINO_STEP   # solve
+
+# write results (Von Mises, principal and displacements) in a VTK file
+MESH_POST FILE_PATH tensile-plastic.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+PRINT HEADER  displ_max u_at_displ_max strain_energy

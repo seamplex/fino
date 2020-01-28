@@ -47,15 +47,6 @@
         fino.fun_nam->data_argument = fino.fun_nam->mesh->nodes_argument;   \
         fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
         fino.fun_nam->data_value = calloc(fino.fun_nam->mesh->n_nodes, sizeof(double));}
-/*
-#define fino_fill_result_function(fun_nam) {\
-        fino.fun_nam->mesh = fino.rough==0?fino.mesh:fino.mesh_rough; \
-        fino.fun_nam->var_argument = fino.solution[0]->var_argument; \
-        fino.fun_nam->type = type_pointwise_mesh_node; \
-        fino.fun_nam->data_argument = fino.solution[0]->data_argument;   \
-        fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
-        fino.fun_nam->data_value = calloc(fino.mesh->n_nodes, sizeof(double));}
-*/
         
 fino_distribution_t distribution_E;     // modulo de young
 fino_distribution_t distribution_nu;    // coef de poisson
@@ -168,7 +159,7 @@ int fino_break_build_element(element_t *element, int v) {
     et = gsl_vector_calloc(stress_strain_size);
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
-    if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+    if (fino.math_type == math_type_linear && distribution_E.variable != NULL && distribution_nu.variable != NULL) {
       if ((E = fino_distribution_evaluate(&distribution_E, material, NULL)) <= 0) {
         wasora_push_error_message("E is not positive (%g)", E);
         return WASORA_RUNTIME_ERROR;
@@ -182,7 +173,7 @@ int fino_break_build_element(element_t *element, int v) {
         wasora_push_error_message("nu is negative");
         return WASORA_RUNTIME_ERROR;
       }
-      wasora_call(fino_break_compute_C(C, E, nu));
+      wasora_call(fino_break_compute_C_linear(C, E, nu));
     }
     
   }
@@ -272,11 +263,18 @@ int fino_break_build_element(element_t *element, int v) {
   
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
-  if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+  if (fino.math_type == math_type_nonlinear) {
+    
     mesh_compute_x_at_gauss(element, v);
-    wasora_call(fino_break_compute_C(C,
+    fino_break_compute_C_nonlinear(element, v, C);
+    
+  } else if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+    
+    mesh_compute_x_at_gauss(element, v);
+    wasora_call(fino_break_compute_C_linear(C,
         fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
         fino_distribution_evaluate(&distribution_nu, material, element->x[v])));
+    
   }
 
   // calculamos Bt*C*B
@@ -312,8 +310,8 @@ int fino_break_build_element(element_t *element, int v) {
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_break_compute_C"
-int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
+#define __FUNCT__ "fino_break_compute_C_linear"
+int fino_break_compute_C_linear(gsl_matrix *C, double E, double nu) {
   
   double lambda, mu, lambda2mu;
   
@@ -386,6 +384,112 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }    
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_break_compute_C_nonlinear"
+int fino_break_compute_C_nonlinear(element_t *element, int v, gsl_matrix *C) {
+  
+  material_t *material;
+  double E;
+  double E_nl;
+  
+  double lambda[3];
+  double mu[3];
+  double lambda2mu[3];
+  
+  double epsilon;
+  double sigma;
+  
+  double sigma_yield;
+  double epsilon_yield;
+  
+  int m;
+  
+  material = (element->physical_entity != NULL)?element->physical_entity->material : NULL;
+    
+  E = fino_distribution_evaluate(&distribution_E, material, element->x[v]);
+  nu = fino_distribution_evaluate(&distribution_nu, material, element->x[v]);
+  sigma_yield = 1;
+  epsilon_yield = sigma_yield/E;
+  
+  for (m = 0; m < fino.dimensions; m++) {
+    epsilon = (element->dphidx_gauss != NULL) ? fabs(gsl_matrix_get(element->dphidx_gauss[v], m, m)) : 0;
+    if (epsilon < epsilon_yield) {
+      E_nl = E;
+    } else {
+      E_nl = sigma_yield / epsilon;
+//      printf("pistola %d %d %e %e %e\n", element->index, v, epsilon, epsilon_yield, E_nl);
+    }
+//    E_nl = (epsilon < epsilon_yield) ? E : sigma_yield / epsilon;
+    lambda[m] = E_nl*nu/((1+nu)*(1-2*nu));
+    mu[m] = 0.5*E_nl/(1+nu);
+    lambda2mu[m] = lambda[m] + 2*mu[m];
+  }
+  
+
+  if (fino.problem_kind == problem_kind_full3d) {
+
+    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
+    gsl_matrix_set(C, 0, 1, lambda[0]);
+    gsl_matrix_set(C, 0, 2, lambda[0]);
+
+    gsl_matrix_set(C, 1, 0, lambda[1]);
+    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
+    gsl_matrix_set(C, 1, 2, lambda[1]);
+
+    gsl_matrix_set(C, 2, 0, lambda[2]);
+    gsl_matrix_set(C, 2, 1, lambda[2]);
+    gsl_matrix_set(C, 2, 2, lambda2mu[2]);
+  
+    gsl_matrix_set(C, 3, 3, mu[0]);
+    gsl_matrix_set(C, 4, 4, mu[1]);
+    gsl_matrix_set(C, 5, 5, mu[2]);
+    
+  } else if (fino.problem_kind == problem_kind_plane_stress) {
+    
+    double c1, c2;
+    
+    c1 = E/(1-nu*nu);
+    c2 = nu * c1;
+    gsl_matrix_set(C, 0, 0, c1);
+    gsl_matrix_set(C, 0, 1, c2);
+    
+    gsl_matrix_set(C, 1, 0, c2);
+    gsl_matrix_set(C, 1, 1, c1);
+
+    gsl_matrix_set(C, 2, 2, c1*0.5*(1-nu));
+    
+  } else if (fino.problem_kind == problem_kind_plane_strain) {
+    
+    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
+    gsl_matrix_set(C, 0, 1, lambda[0]);
+    
+    gsl_matrix_set(C, 1, 0, lambda[1]);
+    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
+
+    gsl_matrix_set(C, 2, 2, 0.5*(mu[0]+mu[1]));
+    
+  } else if (fino.problem_kind == problem_kind_axisymmetric) {
+    
+    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
+    gsl_matrix_set(C, 0, 1, lambda[0]);
+    gsl_matrix_set(C, 0, 2, lambda[0]);
+    
+    gsl_matrix_set(C, 1, 0, lambda[1]);
+    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
+    gsl_matrix_set(C, 1, 2, lambda[1]);
+
+    gsl_matrix_set(C, 2, 0, 0.5*(lambda[0]+lambda[1]));
+    gsl_matrix_set(C, 2, 1, 0.5*(lambda[0]+lambda[1]));
+    gsl_matrix_set(C, 2, 2, 0.5*(lambda2mu[0]+lambda2mu[1]));
+
+    gsl_matrix_set(C, 3, 3, 0.5*(mu[0]+mu[1]));
+    
+  }
+
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
+}    
+
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_nodal_stresses"
