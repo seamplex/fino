@@ -56,7 +56,7 @@ int fino_bake_step_initial(void) {
     
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
     wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
-    wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
+    wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
     
     // este ksp ya no sirve mas, porque despues usamos otras matrice y demas
     petsc_call(KSPDestroy(&fino.ksp));
@@ -140,7 +140,7 @@ int fino_bake_step_transient(void) {
   wasora_call(fino_set_essential_bc(fino.A, fino.c));
 
   // y resolver
-  wasora_call(fino_solve_linear_petsc(fino.A, fino.c));
+  wasora_call(fino_solve_petsc_linear(fino.A, fino.c));
 
   if (nonlinear) {
     MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);

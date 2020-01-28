@@ -27,8 +27,8 @@
 #include "fino.h"
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_solve_linear_petsc"
-int fino_solve_linear_petsc(Mat A, Vec b) {
+#define __FUNCT__ "fino_solve_petsc_linear"
+int fino_solve_petsc_linear(Mat A, Vec b) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
@@ -46,9 +46,14 @@ int fino_solve_linear_petsc(Mat A, Vec b) {
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
 
   // el KSP
+  // si no nos dieron nada, dejamos el default gmres, que no esta mal
   if (fino.ksp_type != NULL) {
-    petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-    // el default es gmres, no esta mal
+    if (strcasecmp(fino.ksp_type, "mumps") == 0) {
+      // mumps es un caso particular, hay que poner pre-only aca y en el pc otras cosas
+      KSPSetType(fino.ksp, KSPPREONLY);
+    } else {
+      petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
+    }  
   }
 
   // el precondicionador lo usamos tanto aca como en snes
@@ -138,8 +143,8 @@ int fino_ksp_set_pc(Mat A) {
   MatNullSpace nullsp = NULL;
   PetscScalar  dots[5];
   Vec          *nullvec;  
-  PetscReal *coords;
-  Vec       vec_coords;
+  PetscReal    *coords;
+  Vec          vec_coords;
   
   // el precondicionador
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
@@ -152,6 +157,17 @@ int fino_ksp_set_pc(Mat A) {
       petsc_call(PCSetType(fino.pc, PCGAMG));
     }
     // sino que quede el default
+  }
+  
+  // si nos pidieron mumps, hay que usar LU o cholesky y poner MatSolverType
+  if (fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) {
+//    petsc_call(PCSetType(fino.pc, PCLU));
+      petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
+      petsc_call(PCSetType(fino.pc, PCCHOLESKY));
+
+      petsc_call(PCFactorSetMatSolverType(fino.pc, MATSOLVERMUMPS));
+      petsc_call(PCFactorSetUpMatSolverType(fino.pc)); /* call MatGetFactor() to create F */
+//      petsc_call(PCFactorGeMatrix(pc, &F));    
   }
   
   petsc_call(PCGetType(fino.pc, &pc_type));

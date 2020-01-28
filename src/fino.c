@@ -83,7 +83,7 @@ int fino_instruction_step(void *arg) {
       // si no nos pidieron transient de calor resolvemos un steady state de lo que sea
       if (fino.math_type == math_type_linear) {
         
-        wasora_call(fino_solve_linear_petsc(fino.K, fino.b));
+        wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
         wasora_call(fino_phi_to_solution(fino.phi));
         
       } else if (fino.math_type == math_type_nonlinear) {
