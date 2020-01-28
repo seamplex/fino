@@ -80,8 +80,15 @@ int fino_build_bulk(void) {
   }
   
   // empty global objects
-  petsc_call(MatZeroEntries(fino.K));
-  petsc_call(VecZeroEntries(fino.b));
+  if (fino.K != NULL) {
+    petsc_call(MatZeroEntries(fino.K));
+  }
+  if (fino.M != NULL) {
+    petsc_call(MatZeroEntries(fino.M));
+  }
+  if (fino.b != NULL) {
+    petsc_call(VecZeroEntries(fino.b));
+  }  
   
   for (i = fino.first_element; i < fino.last_element; i++) {
 
