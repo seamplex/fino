@@ -1,20 +1,21 @@
-#MESH FILE_PATH quad4.msh
-MESH FILE_PATH beam-quads.msh
+MESH FILE_PATH hexa8.msh
+# MESH FILE_PATH quad4.msh
+# MESH FILE_PATH beam-quads.msh
 
-FINO_PROBLEM NON_LINEAR # PLANE_STRAIN
+FINO_PROBLEM NON_LINEAR
 
-E = 100e3   # [ MPa ] Young modulus ~ 200 GPa
-nu = 0    # Poisson ratio
+E = 1 
+nu = 0
 
-# PHYSICAL_ENTITY left   BC fixed
-# PHYSICAL_ENTITY right  BC Fx=2
+PHYSICAL_ENTITY left   BC fixed
+PHYSICAL_ENTITY right  BC Fx=1.1
 
-PHYSICAL_ENTITY fixed   BC fixed
-PHYSICAL_ENTITY top     BC P=0.4
+# PHYSICAL_ENTITY fixed   BC fixed
+# PHYSICAL_ENTITY top     BC P=0.4
 
 FINO_STEP   # solve
 
-# PRINT_FUNCTION u v 0
-MESH_POST FILE_PATH plastic.vtk VECTOR u v w sigma
+PRINT_FUNCTION u v 0
+# MESH_POST FILE_PATH plastic.vtk VECTOR u v w sigma
 
 PRINT sigma_max

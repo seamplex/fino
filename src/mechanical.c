@@ -267,6 +267,8 @@ int fino_break_build_element(element_t *element, int v) {
     
     mesh_compute_x_at_gauss(element, v);
     fino_break_compute_C_nonlinear(element, v, C);
+//    printf("%d\n", v);
+//    fino_print_gsl_matrix(C, stdout);
     
   } else if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
     
@@ -402,7 +404,7 @@ int fino_break_compute_C_nonlinear(element_t *element, int v, gsl_matrix *C) {
   material = (element->physical_entity != NULL)?element->physical_entity->material : NULL;
   E = fino_distribution_evaluate(&distribution_E, material, element->x[v]);
   nu = fino_distribution_evaluate(&distribution_nu, material, element->x[v]);
-  sigma_yield = 100;
+  sigma_yield = 1;
   
   if (element->node[v]->f != NULL) {
     sigma = fino_compute_vonmises_from_tensor(element->node[v]->f[SIGMAX],

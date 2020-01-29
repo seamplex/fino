@@ -41,8 +41,10 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   wasora_call(fino_assembly());
   
   MatMult(fino.K, phi, r);
-//  printf("residual\n");
+  printf("residual\n");
+//  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
 //  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+  
 
 //  printf("phi\n");
 //  fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
@@ -51,9 +53,6 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
 }
 
 PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
-  
-//  printf("jacobiano\n");
-//    fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
   
   // pasamos phi a la solucion porque K puede depender de phi
 /*  
@@ -67,6 +66,9 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   wasora_call(fino_assembly());
 */  
   MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+  
+  printf("jacobiano\n");
+//  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
    
@@ -113,8 +115,6 @@ int fino_solve_nonlinear_petsc(void) {
 
   // initial value
   petsc_call(VecSet(fino.phi, 0));
-//  VecSetValue(fino.phi, 2, 1.01, INSERT_VALUES);
-//  VecSetValue(fino.phi, 4, 1.01, INSERT_VALUES);
 
   // monitor
   petsc_call(SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0));
