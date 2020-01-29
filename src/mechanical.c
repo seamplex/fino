@@ -391,59 +391,56 @@ int fino_break_compute_C_nonlinear(element_t *element, int v, gsl_matrix *C) {
   
   material_t *material;
   double E;
-  double E_nl;
-  
-  double lambda[3];
-  double mu[3];
-  double lambda2mu[3];
-  
-  double epsilon;
+
+  double lambda;
+  double mu;
+  double lambda2mu;
+
   double sigma;
-  
   double sigma_yield;
-  double epsilon_yield;
-  
-  int m;
   
   material = (element->physical_entity != NULL)?element->physical_entity->material : NULL;
-    
   E = fino_distribution_evaluate(&distribution_E, material, element->x[v]);
   nu = fino_distribution_evaluate(&distribution_nu, material, element->x[v]);
-  sigma_yield = 1;
-  epsilon_yield = sigma_yield/E;
+  sigma_yield = 100;
   
-  for (m = 0; m < fino.dimensions; m++) {
-    epsilon = (element->dphidx_gauss != NULL) ? fabs(gsl_matrix_get(element->dphidx_gauss[v], m, m)) : 0;
-    if (epsilon < epsilon_yield) {
-      E_nl = E;
-    } else {
-      E_nl = sigma_yield / epsilon;
-//      printf("pistola %d %d %e %e %e\n", element->index, v, epsilon, epsilon_yield, E_nl);
-    }
-//    E_nl = (epsilon < epsilon_yield) ? E : sigma_yield / epsilon;
-    lambda[m] = E_nl*nu/((1+nu)*(1-2*nu));
-    mu[m] = 0.5*E_nl/(1+nu);
-    lambda2mu[m] = lambda[m] + 2*mu[m];
+  if (element->node[v]->f != NULL) {
+    sigma = fino_compute_vonmises_from_tensor(element->node[v]->f[SIGMAX],
+                                              element->node[v]->f[SIGMAY],
+                                              element->node[v]->f[SIGMAZ],
+                                              element->node[v]->f[TAUXY],
+                                              element->node[v]->f[TAUYZ],
+                                              element->node[v]->f[TAUZX]);
+  } else {
+    sigma = 0;
   }
   
+  if (sigma > sigma_yield) {
+    E *= sigma_yield / sigma;
+  }
+
+  lambda = E*nu/((1+nu)*(1-2*nu));
+  mu = 0.5*E/(1+nu);
+  lambda2mu = lambda + 2*mu;
+
 
   if (fino.problem_kind == problem_kind_full3d) {
 
-    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
-    gsl_matrix_set(C, 0, 1, lambda[0]);
-    gsl_matrix_set(C, 0, 2, lambda[0]);
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
+    gsl_matrix_set(C, 0, 2, lambda);
 
-    gsl_matrix_set(C, 1, 0, lambda[1]);
-    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
-    gsl_matrix_set(C, 1, 2, lambda[1]);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
+    gsl_matrix_set(C, 1, 2, lambda);
 
-    gsl_matrix_set(C, 2, 0, lambda[2]);
-    gsl_matrix_set(C, 2, 1, lambda[2]);
-    gsl_matrix_set(C, 2, 2, lambda2mu[2]);
+    gsl_matrix_set(C, 2, 0, lambda);
+    gsl_matrix_set(C, 2, 1, lambda);
+    gsl_matrix_set(C, 2, 2, lambda2mu);
   
-    gsl_matrix_set(C, 3, 3, mu[0]);
-    gsl_matrix_set(C, 4, 4, mu[1]);
-    gsl_matrix_set(C, 5, 5, mu[2]);
+    gsl_matrix_set(C, 3, 3, mu);
+    gsl_matrix_set(C, 4, 4, mu);
+    gsl_matrix_set(C, 5, 5, mu);
     
   } else if (fino.problem_kind == problem_kind_plane_stress) {
     
@@ -461,29 +458,29 @@ int fino_break_compute_C_nonlinear(element_t *element, int v, gsl_matrix *C) {
     
   } else if (fino.problem_kind == problem_kind_plane_strain) {
     
-    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
-    gsl_matrix_set(C, 0, 1, lambda[0]);
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
     
-    gsl_matrix_set(C, 1, 0, lambda[1]);
-    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
 
-    gsl_matrix_set(C, 2, 2, 0.5*(mu[0]+mu[1]));
+    gsl_matrix_set(C, 2, 2, mu);
     
   } else if (fino.problem_kind == problem_kind_axisymmetric) {
     
-    gsl_matrix_set(C, 0, 0, lambda2mu[0]);
-    gsl_matrix_set(C, 0, 1, lambda[0]);
-    gsl_matrix_set(C, 0, 2, lambda[0]);
+    gsl_matrix_set(C, 0, 0, lambda2mu);
+    gsl_matrix_set(C, 0, 1, lambda);
+    gsl_matrix_set(C, 0, 2, lambda);
     
-    gsl_matrix_set(C, 1, 0, lambda[1]);
-    gsl_matrix_set(C, 1, 1, lambda2mu[1]);
-    gsl_matrix_set(C, 1, 2, lambda[1]);
+    gsl_matrix_set(C, 1, 0, lambda);
+    gsl_matrix_set(C, 1, 1, lambda2mu);
+    gsl_matrix_set(C, 1, 2, lambda);
 
-    gsl_matrix_set(C, 2, 0, 0.5*(lambda[0]+lambda[1]));
-    gsl_matrix_set(C, 2, 1, 0.5*(lambda[0]+lambda[1]));
-    gsl_matrix_set(C, 2, 2, 0.5*(lambda2mu[0]+lambda2mu[1]));
+    gsl_matrix_set(C, 2, 0, lambda);
+    gsl_matrix_set(C, 2, 1, lambda);
+    gsl_matrix_set(C, 2, 2, lambda2mu);
 
-    gsl_matrix_set(C, 3, 3, 0.5*(mu[0]+mu[1]));
+    gsl_matrix_set(C, 3, 3, mu);
     
   }
 

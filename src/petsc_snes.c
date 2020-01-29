@@ -112,13 +112,15 @@ int fino_solve_nonlinear_petsc(void) {
   petsc_call(SNESSetFromOptions(fino.snes));
 
   // initial value
-  VecSet(fino.phi, 0);
+  petsc_call(VecSet(fino.phi, 0));
+//  VecSetValue(fino.phi, 2, 1.01, INSERT_VALUES);
+//  VecSetValue(fino.phi, 4, 1.01, INSERT_VALUES);
 
   // monitor
-  SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0);
+  petsc_call(SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0));
   
   // solve
-  SNESSolve(fino.snes, fino.b, fino.phi);
+  petsc_call(SNESSolve(fino.snes, fino.b, fino.phi));
   
   // chequeamos que haya convergido
   petsc_call(SNESGetConvergedReason(fino.snes, &reason));
@@ -127,7 +129,7 @@ int fino_solve_nonlinear_petsc(void) {
     return WASORA_RUNTIME_ERROR;
   }
   
-  SNESGetIterationNumber(fino.snes, &its);  
+  petsc_call(SNESGetIterationNumber(fino.snes, &its));  
   wasora_value(fino.vars.iterations) = (double)its;
   
 //  printf("residuo final\n");
@@ -157,7 +159,7 @@ PetscErrorCode fino_snes_monitor(SNES snes, PetscInt n, PetscReal rnorm, void *d
     }
   } 
 
-  printf("%d %e %.1f\n", n, rnorm/fino.progress_r0, current_progress);
+  printf("%d %e %.0f\n", n, rnorm/fino.progress_r0, 100*current_progress);
   
   if (fino.progress_ascii) {
     for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {

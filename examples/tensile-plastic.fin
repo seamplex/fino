@@ -1,13 +1,12 @@
-
-# MESH FILE_PATH tensile-plastic.msh
-MESH FILE_PATH beam-quads.msh
+MESH FILE_PATH tensile-plastic.msh
+#MESH FILE_PATH beam-quads.msh
 FINO_PROBLEM NON_LINEAR
 
 E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
 nu = 0.3    # Poisson ratio
 
-PHYSICAL_ENTITY fixed  BC fixed
-PHYSICAL_ENTITY load   BC Fx=120
+PHYSICAL_ENTITY left    BC fixed
+PHYSICAL_ENTITY right   BC Fx=1e4
 
 FINO_STEP   # solve
 
