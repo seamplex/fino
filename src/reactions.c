@@ -27,24 +27,29 @@
 int fino_instruction_reaction(void *arg) {
 
   fino_reaction_t *reaction = (fino_reaction_t *)arg;
-  
-  node_t *node;
   element_t *element;
-  
-  PetscInt d, i, j, j_local, k;
-  PetscInt add;
-  PetscInt ncols;
-  const PetscInt    *cols;
-  const PetscScalar *vals;  
-  PetscScalar    *u;
   double R[3] = {0, 0, 0};
+
+  IS set_rows;
+  IS set_cols;
+  Mat K_row;
+  Vec K_row_u;
+  PetscScalar xi;
+  
+  PetscInt i, j, j_local, g, k;
+  PetscInt add;
+  PetscInt    **rows;
 
   if (reaction->vector->initialized == 0) {
     wasora_vector_init(reaction->vector);
   }
   
-  petsc_call(VecGetArray(fino.phi, &u));
+  rows = calloc(fino.degrees, sizeof(PetscInt *));
+  for (g = 0; g < fino.degrees; g++) {
+    rows[g] = calloc(fino.n_dirichlet_rows, sizeof(PetscInt));
+  }  
 
+  k = 0;
   for (j = 0; j < fino.mesh->n_nodes; j++) {
     add = 0;
     for (i = 0; add == 0 && i < reaction->physical_entity->n_elements; i++) {
@@ -52,25 +57,37 @@ int fino_instruction_reaction(void *arg) {
       for (j_local = 0; add == 0 && j_local < element->type->nodes; j_local++) {
         if (element->node[j_local]->index_mesh == j) {
           add = 1;
+          for (g = 0; g < fino.degrees; g++) {
+            rows[g][k] = fino.mesh->node[j].index_dof[g];
+          }
+          k++;
         }
-      }
-    }
-    
-    if (add) {
-      node = &fino.mesh->node[j];
-      
-      for (d = 0; d < fino.degrees; d++) {
-        petsc_call(MatGetRow(fino.K_nobc, node->index_dof[d], &ncols, &cols, &vals));
-        for (k = 0; k < ncols; k++) {
-          R[d] += vals[k] * u[cols[k]];
-        }
-        petsc_call(MatRestoreRow(fino.K_nobc, node->index_dof[d], &ncols, &cols, &vals));
       }
     }
   }
 
-  petsc_call(VecRestoreArray(fino.phi, &u));
+  if (k > 0) {
+    // el index set de las columnas es el mismo para todos los dofs
+    printf("%d %d %d %d\n", wasora.rank, fino.global_size, fino.first_row, fino.size_local);
+    petsc_call(ISCreateStride(PETSC_COMM_WORLD, fino.size_local, fino.first_row, 1, &set_cols));
   
+    for (g = 0; g < fino.degrees; g++) {
+      ISCreateGeneral(PETSC_COMM_WORLD, k, rows[g], PETSC_USE_POINTER, &set_rows);
+      MatCreateSubMatrix(fino.K_nobc, set_rows, set_cols, (g==0)?MAT_INITIAL_MATRIX:MAT_REUSE_MATRIX, &K_row);
+      if (g == 0) {
+        MatCreateVecs(K_row, PETSC_NULL, &K_row_u);
+      }  
+      MatMult(K_row, fino.phi, K_row_u);
+      VecSum(K_row_u, &xi);
+      R[g] += xi;
+      ISDestroy(&set_rows);
+    }  
+    
+    VecDestroy(&K_row_u);
+    MatDestroy(&K_row);
+    ISDestroy(&set_cols);
+  }    
+    
   if (fino.problem_kind == problem_kind_axisymmetric) {
     if (fino.symmetry_axis == symmetry_axis_y) {
       gsl_vector_set(reaction->vector->value, 0, 0);
@@ -80,14 +97,16 @@ int fino_instruction_reaction(void *arg) {
       gsl_vector_set(reaction->vector->value, 1, 0);
     }
   } else {  
-    gsl_vector_set(reaction->vector->value, 0, R[0]);
-    if (fino.dimensions > 1) {
-      gsl_vector_set(reaction->vector->value, 1, R[1]);
-      if (fino.dimensions > 2) {
-        gsl_vector_set(reaction->vector->value, 2, R[2]);
-      }
+    for (g = 0; g < fino.degrees; g++) {
+      gsl_vector_set(reaction->vector->value, g, R[g]);
     }
   }
+  
+  // esto lo ponemos aca porque si k==0 hay leak
+  for (g = 0; g < fino.degrees; g++) {
+    free(rows[g]);
+  }  
+  free(rows);
   
 
   return WASORA_RUNTIME_OK;

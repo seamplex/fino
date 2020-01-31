@@ -127,11 +127,15 @@ int fino_build_bulk(void) {
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.K_nobc));
 
   if (fino.progress_ascii) {
-    while (ascii_progress_chars++ < 100) {
-      printf(CHAR_PROGRESS_BUILD);
+    if (wasora.nprocs == 1) {
+      while (ascii_progress_chars++ < 100) {
+        printf(CHAR_PROGRESS_BUILD);
+      }
     }
-    printf("\n");  
-    fflush(stdout);
+    if (wasora.rank == 0) {
+      printf("\n");  
+      fflush(stdout);
+    }  
   }
   
   // aca tambien perdemos a C y a et porque son static

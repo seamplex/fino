@@ -201,7 +201,7 @@ int fino_phi_to_solution(Vec phi) {
   petsc_call(VecScatterEnd(vscat, phi, phi0, INSERT_VALUES,SCATTER_FORWARD););
     
   // fabricamos G funciones con la solucion
-  if (fino.rank == 0) {
+  if (wasora.rank == 0) {
     for (j = 0; j < fino.spatial_unknowns; j++) {
       for (g = 0; g < fino.degrees; g++) {
         petsc_call(VecGetValues(phi0, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));

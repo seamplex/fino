@@ -536,9 +536,9 @@ int fino_break_compute_stresses(void) {
   
   // depende de si es gauss o node
   if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
-    step = ceil((double)(2*mesh->n_elements+mesh->n_nodes)/100.0);
+    step = ceil((double)(2*mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0);
   } else if (fino.gradient_evaluation == gradient_at_nodes) {
-    step = ceil((double)(mesh->n_elements+mesh->n_nodes)/100.0);
+    step = ceil((double)(mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0);
   }  
   if (step < 1) {
     step = 1;
@@ -928,11 +928,15 @@ int fino_break_compute_stresses(void) {
   }
 
   if (fino.progress_ascii) {
-    while (ascii_progress_chars++ < 100) {
-      printf(CHAR_PROGRESS_GRADIENT);
+    if (wasora.nprocs == 1) {
+      while (ascii_progress_chars++ < 100) {
+        printf(CHAR_PROGRESS_GRADIENT);
+      }
     }
-    printf("\n");  
-    fflush(stdout);
+    if (wasora.rank == 0) {
+      printf("\n");  
+      fflush(stdout);
+    }  
   }
 
   PetscFunctionReturn(WASORA_RUNTIME_OK);

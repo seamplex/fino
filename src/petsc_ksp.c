@@ -78,11 +78,15 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
   }
 
   if (fino.progress_ascii) {
-    for (i = (int)(100*fino.progress_last); i < 100; i++) {
-      printf(CHAR_PROGRESS_SOLVE);
+    if (wasora.nprocs == 1) {
+      for (i = (int)(100*fino.progress_last); i < 100; i++) {
+        printf(CHAR_PROGRESS_SOLVE);
+      }
     }
-    printf("\n");
-    fflush(stdout);
+    if (wasora.rank == 0) {
+      printf("\n");
+      fflush(stdout);
+    }  
   }
 
     
@@ -104,28 +108,31 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
   int i;
   double current_progress;
   
-  if (fino.progress_r0 == 0) {
-    fino.progress_r0 = rnorm;
-  }
+  if (wasora.rank == 0) {
   
-  if (rnorm < 1e-20) {
-    current_progress = 1;
-  } else {
-    current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
-    if (current_progress > 1) {
+    if (fino.progress_r0 == 0) {
+      fino.progress_r0 = rnorm;
+    }
+  
+    if (rnorm < 1e-20) {
       current_progress = 1;
-    }
-  } 
+    } else {
+      current_progress = log((rnorm/fino.progress_r0))/log(wasora_var_value(fino.vars.reltol));
+      if (current_progress > 1) {
+        current_progress = 1;
+      }
+    } 
 
-//  printf("%d %e %e\n", n, rnorm/r0, current_progress);
-  
-  if (fino.progress_ascii) {
-    for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
-      printf(CHAR_PROGRESS_SOLVE);
-      fflush(stdout);
+//    printf("%d %e %.0f\n", n, rnorm/r0, 100*current_progress);
+    
+    if (fino.progress_ascii) {
+      for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
+        printf(CHAR_PROGRESS_SOLVE);
+        fflush(stdout);
+      }
+      fino.progress_last = current_progress;
     }
-    fino.progress_last = current_progress;
-  }
+  }  
 
   return 0;
 }

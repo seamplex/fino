@@ -89,8 +89,8 @@ int plugin_init_before_parser(void) {
   // los segfaults son segfaults, no queremos que la petsc meta las narices
   signal(SIGSEGV, SIG_DFL);
 
-  petsc_call(MPI_Comm_size(PETSC_COMM_WORLD, &fino.nprocs));
-  petsc_call(MPI_Comm_rank(MPI_COMM_WORLD, &fino.rank));
+  petsc_call(MPI_Comm_size(PETSC_COMM_WORLD, &wasora.nprocs));
+  petsc_call(MPI_Comm_rank(MPI_COMM_WORLD, &wasora.rank));
 
   // instalamos nuestro error handler para errores la petsc 
   PetscPushErrorHandler(&fino_handler, NULL);
@@ -480,13 +480,13 @@ int fino_problem_init(void) {
   
   // para paralelizar el assembly dividimos los elementos a lo cabeza porque no es tan importante
   // https://lists.mcs.anl.gov/pipermail/petsc-users/2014-April/021433.html
-  fino.first_element = (fino.mesh->n_elements / fino.nprocs) * fino.rank;
-  if (fino.mesh->n_elements % fino.nprocs > fino.rank) {
-    fino.first_element += fino.rank;
-    fino.last_element = fino.first_element + (fino.mesh->n_elements / fino.nprocs) + 1;
+  fino.first_element = (fino.mesh->n_elements / wasora.nprocs) * wasora.rank;
+  if (fino.mesh->n_elements % wasora.nprocs > wasora.rank) {
+    fino.first_element += wasora.rank;
+    fino.last_element = fino.first_element + (fino.mesh->n_elements / wasora.nprocs) + 1;
   } else {  
-    fino.first_element += fino.mesh->n_elements % fino.nprocs;
-    fino.last_element = fino.first_element + (fino.mesh->n_elements / fino.nprocs);
+    fino.first_element += fino.mesh->n_elements % wasora.nprocs;
+    fino.last_element = fino.first_element + (fino.mesh->n_elements / wasora.nprocs);
   }  
 
   if (fino.mesh->structured) {

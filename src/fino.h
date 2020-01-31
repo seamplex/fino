@@ -251,8 +251,8 @@ struct {
   PetscInt petscinit_called;
   
   // cosas para paralelizacion
-  PetscInt rank;
-  PetscInt nprocs;
+//  PetscInt rank;     // estos ahora estan en wasora
+//  PetscInt nprocs;
   PetscInt nodes_local, size_local;
   PetscInt first_row, last_row;
   PetscInt first_node, last_node;
