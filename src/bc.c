@@ -623,7 +623,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
     }
   }
 
- if (fino.n_dirichlet_rows != k) {
+  if (fino.n_dirichlet_rows != k) {
     fino.n_dirichlet_rows = k;
     
     // si k == 0 esto es como hacer free

@@ -9,7 +9,7 @@ nu = 0.3    # Poisson’s ratio
 PHYSICAL_ENTITY left  BC fixed       # fixed end
 PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
 
-# FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
 FINO_STEP                   # solve
 
 # compute reaction force at fixed end

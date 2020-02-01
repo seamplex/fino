@@ -46,11 +46,12 @@ int fino_instruction_reaction(void *arg) {
   
   rows = calloc(fino.degrees, sizeof(PetscInt *));
   for (g = 0; g < fino.degrees; g++) {
-    rows[g] = calloc(fino.n_dirichlet_rows, sizeof(PetscInt));
+    rows[g] = calloc(fino.size_local, sizeof(PetscInt));
   }  
-
+  
   k = 0;
-  for (j = 0; j < fino.mesh->n_nodes; j++) {
+  for (j = fino.first_node; j < fino.last_node; j++) {
+//  for (j = 0; j < fino.mesh->n_nodes; j++) {      
     add = 0;
     for (i = 0; add == 0 && i < reaction->physical_entity->n_elements; i++) {
       element = &fino.mesh->element[reaction->physical_entity->element[i]];
@@ -68,12 +69,15 @@ int fino_instruction_reaction(void *arg) {
 
   if (k > 0) {
     // el index set de las columnas es el mismo para todos los dofs
-    printf("%d %d %d %d\n", wasora.rank, fino.global_size, fino.first_row, fino.size_local);
+    printf("before %d %d %d %d\n", wasora.rank, fino.global_size, fino.first_row, fino.size_local);
     petsc_call(ISCreateStride(PETSC_COMM_WORLD, fino.size_local, fino.first_row, 1, &set_cols));
-  
+    printf("after %d %d %d %d\n", wasora.rank, fino.global_size, fino.first_row, fino.size_local);
+
     for (g = 0; g < fino.degrees; g++) {
+      printf("%d %d\n", wasora.rank, g);
       ISCreateGeneral(PETSC_COMM_WORLD, k, rows[g], PETSC_USE_POINTER, &set_rows);
       MatCreateSubMatrix(fino.K_nobc, set_rows, set_cols, (g==0)?MAT_INITIAL_MATRIX:MAT_REUSE_MATRIX, &K_row);
+//      MatSetOption(K_row, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
       if (g == 0) {
         MatCreateVecs(K_row, PETSC_NULL, &K_row_u);
       }  
