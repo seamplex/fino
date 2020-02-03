@@ -55,6 +55,10 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
 PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
   // pasamos phi a la solucion porque K puede depender de phi
+  double xi;
+  double K, dKdT;
+  double T;
+  int i, j;
 /*  
   wasora_call(fino_assembly());
   wasora_call(fino_phi_to_solution(phi));
@@ -66,6 +70,15 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   wasora_call(fino_assembly());
 */  
   MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+  
+  for (i = 0; i < fino.mesh->n_nodes; i++) {
+    for (j = 0; j < fino.mesh->n_nodes; j++) {
+      VecGetValues(phi, j, &T);
+      K = 1+10*T;
+      dKdT = 10;
+      xi = 1/K * dKdT * 
+    }
+  }
   
   printf("jacobiano\n");
 //  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
