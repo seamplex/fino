@@ -215,10 +215,17 @@ int fino_instruction_debug(void *arg) {
     if (debug->matrices & DEBUG_MATRICES_ASCII) {
       PetscViewer ascii_file;
 
+      // TODO: spot
       sprintf(filename, "%s-K.txt", debug->file->path);
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
       fino_print_petsc_matrix(fino.K, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
+      
+      sprintf(filename, "%s-K-nobc.txt", debug->file->path);
+      petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
+      fino_print_petsc_matrix(fino.K_nobc, ascii_file);
+      petsc_call(PetscViewerDestroy(&ascii_file));
+      
       
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.txt", debug->file->path);
@@ -230,6 +237,12 @@ int fino_instruction_debug(void *arg) {
         petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
         fino_print_petsc_vector(fino.b, ascii_file);
         petsc_call(PetscViewerDestroy(&ascii_file));
+        
+        sprintf(filename, "%s-phi.txt", debug->file->path);
+        petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
+        fino_print_petsc_vector(fino.phi, ascii_file);
+        petsc_call(PetscViewerDestroy(&ascii_file));
+        
       }
     }
 
@@ -240,7 +253,7 @@ int fino_instruction_debug(void *arg) {
       petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
       fino_print_petsc_matrix_struct(fino.K, ascii_file);
       petsc_call(PetscViewerDestroy(&ascii_file));
-
+      
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.str", debug->file->path);
         petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
@@ -251,6 +264,12 @@ int fino_instruction_debug(void *arg) {
         petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
         fino_print_petsc_vector(fino.b, ascii_file);
         petsc_call(PetscViewerDestroy(&ascii_file));
+        
+        sprintf(filename, "%s-phi.txt", debug->file->path);
+        petsc_call(PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &ascii_file));
+        fino_print_petsc_vector(fino.phi, ascii_file);
+        petsc_call(PetscViewerDestroy(&ascii_file));
+        
       }
     }
 
@@ -258,6 +277,11 @@ int fino_instruction_debug(void *arg) {
       sprintf(filename, "%s-K.bin", debug->file->path);
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
       MatView(fino.K, viewer);
+      PetscViewerDestroy(&viewer);
+      
+      sprintf(filename, "%s-K-nobc.bin", debug->file->path);
+      PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+      MatView(fino.K_nobc, viewer);
       PetscViewerDestroy(&viewer);
       
       if (fino.math_type == math_type_eigen) {
@@ -270,6 +294,12 @@ int fino_instruction_debug(void *arg) {
         PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
         VecView(fino.b, viewer);
         PetscViewerDestroy(&viewer);
+        
+        sprintf(filename, "%s-phi.bin", debug->file->path);
+        PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+        VecView(fino.phi, viewer);
+        PetscViewerDestroy(&viewer);
+        
       }
     }
 
@@ -278,6 +308,12 @@ int fino_instruction_debug(void *arg) {
       PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
       MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
+      
+      sprintf(filename, "%s-K-nobc.gz", debug->file->path);
+      PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+      MatView(fino.K_nobc, viewer);
+      PetscViewerDestroy(&viewer);
+      
       
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.gz", debug->file->path);
@@ -289,6 +325,12 @@ int fino_instruction_debug(void *arg) {
         PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
         VecView(fino.b, viewer);
         PetscViewerDestroy(&viewer);
+        
+        sprintf(filename, "%s-phi.gz", debug->file->path);
+        PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer);
+        VecView(fino.phi, viewer);
+        PetscViewerDestroy(&viewer);
+        
       }
     }
 
@@ -298,6 +340,13 @@ int fino_instruction_debug(void *arg) {
       PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
       MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
+      
+      sprintf(filename, "%s-K-nobc.asc", debug->file->path);
+      PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+      PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
+      MatView(fino.K_nobc, viewer);
+      PetscViewerDestroy(&viewer);
+      
 
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.asc", debug->file->path);
@@ -311,6 +360,13 @@ int fino_instruction_debug(void *arg) {
         PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
         VecView(fino.b, viewer);
         PetscViewerDestroy(&viewer);
+        
+        sprintf(filename, "%s-phi.asc", debug->file->path);
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+        PetscViewerPushFormat(viewer, PETSC_VIEWER_DEFAULT);
+        VecView(fino.phi, viewer);
+        PetscViewerDestroy(&viewer);
+        
       }
     }
 
@@ -320,6 +376,13 @@ int fino_instruction_debug(void *arg) {
       PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
       MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
+      
+      sprintf(filename, "%s-K-nobc.m", debug->file->path);
+      PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+      PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
+      MatView(fino.K_nobc, viewer);
+      PetscViewerDestroy(&viewer);
+      
 
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.m", debug->file->path);
@@ -333,6 +396,13 @@ int fino_instruction_debug(void *arg) {
         PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
         VecView(fino.b, viewer);
         PetscViewerDestroy(&viewer);
+        
+        sprintf(filename, "%s-phi.m", debug->file->path);
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+        PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_MATLAB);
+        VecView(fino.phi, viewer);
+        PetscViewerDestroy(&viewer);
+        
       }
     }
 
@@ -342,6 +412,13 @@ int fino_instruction_debug(void *arg) {
       PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
       MatView(fino.K, viewer);
       PetscViewerDestroy(&viewer);
+      
+      sprintf(filename, "%s-K_nobc.den", debug->file->path);
+      PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+      PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
+      MatView(fino.K_nobc, viewer);
+      PetscViewerDestroy(&viewer);
+      
 
       if (fino.math_type == math_type_eigen) {
         sprintf(filename, "%s-M.den", debug->file->path);
@@ -355,6 +432,13 @@ int fino_instruction_debug(void *arg) {
         PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
         VecView(fino.b, viewer);
         PetscViewerDestroy(&viewer);
+        
+        sprintf(filename, "%s-phi.den", debug->file->path);
+        PetscViewerASCIIOpen(PETSC_COMM_WORLD, filename, &viewer);
+        PetscViewerPushFormat(viewer, PETSC_VIEWER_ASCII_DENSE);
+        VecView(fino.phi, viewer);
+        PetscViewerDestroy(&viewer);
+        
       }
     }
 
