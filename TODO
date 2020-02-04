@@ -13,11 +13,11 @@
  * see if some for loops can be replaced by matrix-matrix products
  * DMplex
  * use TS for heat transient
- * 2nd-order prisms (wedges)
  * extrapolate matrix for quads/prisms
  * non-linearities
     - material:
        * bi-linear elastoplastic 
+       * anisotropy
     - geometry
        * total lagrangain
     - contact
