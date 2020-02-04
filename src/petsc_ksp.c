@@ -168,13 +168,17 @@ int fino_ksp_set_pc(Mat A) {
   
   // si nos pidieron mumps, hay que usar LU o cholesky y poner MatSolverType
   if (fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) {
-//    petsc_call(PCSetType(fino.pc, PCLU));
-      petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
-      petsc_call(PCSetType(fino.pc, PCCHOLESKY));
+#if PETSC_VERSION_GT(3,8,0)
+//  petsc_call(PCSetType(fino.pc, PCLU));
+    petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
+    petsc_call(PCSetType(fino.pc, PCCHOLESKY));
 
-      petsc_call(PCFactorSetMatSolverType(fino.pc, MATSOLVERMUMPS));
-      petsc_call(PCFactorSetUpMatSolverType(fino.pc)); /* call MatGetFactor() to create F */
-//      petsc_call(PCFactorGeMatrix(pc, &F));    
+    petsc_call(PCFactorSetMatSolverType(fino.pc, MATSOLVERMUMPS));
+    petsc_call(PCFactorSetUpMatSolverType(fino.pc)); /* call MatGetFactor() to create F */
+//  petsc_call(PCFactorGetMatrix(pc, &F));    
+#else
+    wasora_push_error_message("solver MUMPS needs at least PETSc 3.8");
+#endif
   }
   
   petsc_call(PCGetType(fino.pc, &pc_type));

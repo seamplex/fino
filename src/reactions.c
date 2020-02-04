@@ -73,10 +73,10 @@ int fino_instruction_reaction(void *arg) {
     // el de las filas depende del dofs
     petsc_call(ISCreateGeneral(PETSC_COMM_WORLD, k, rows[g], PETSC_USE_POINTER, &set_rows[g]));
     // intente hacer un solo K_row y reusarlo para los G dofs pero daba mal en paralelo
-#if PETSC_VERSION_LT(3,7,0)
-    petsc_call(MatGetSubMatrix(fino.K_nobc, set_rows[g], set_cols, MAT_INITIAL_MATRIX, &K_row[g]));
-#else
+#if PETSC_VERSION_GT(3,8,0)
     petsc_call(MatCreateSubMatrix(fino.K_nobc, set_rows[g], set_cols, MAT_INITIAL_MATRIX, &K_row[g]));
+#else
+    petsc_call(MatGetSubMatrix(fino.K_nobc, set_rows[g], set_cols, MAT_INITIAL_MATRIX, &K_row[g]));
 #endif
     petsc_call(MatCreateVecs(K_row[g], PETSC_NULL, &K_row_u[g]));
     petsc_call(MatMult(K_row[g], fino.phi, K_row_u[g]));
