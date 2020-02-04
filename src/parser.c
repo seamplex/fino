@@ -70,6 +70,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage [
 ///kw+FINO_PROBLEM+usage AXISYMMETRIC
 ///kw+FINO_PROBLEM+usage |
+///kw+FINO_PROBLEM+detail @
 ///kw+FINO_PROBLEM+detail If the `AXISYMMETRIC` keyword is given, the mesh is expected to be two-dimensional in the $x$-$y$ plane
 ///kw+FINO_PROBLEM+detail and the problem is assumed to be axi-symmetric around the axis given by `SYMMETRY_AXIS` (default is $y$). 
         } else if (strcasecmp(token, "AXISYMMETRIC") == 0) {
@@ -214,7 +215,7 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_SOLVER+usage FINO_SOLVER
-///kw+FINO_SOLVER+desc Sets options related to the eigen-solver.
+///kw+FINO_SOLVER+desc Sets options related to the solver and the computation of gradients.
 ///kw+FINO_SOLVER+detail 
     } else if (strcasecmp(token, "FINO_SOLVER") == 0) {
 
@@ -231,24 +232,29 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
 
+///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]@
+///kw+FINO_SOLVER+detail If the keyword `PROGRESS_ASCII` is given, three ASCII lines will show in the terminal the
+///kw+FINO_SOLVER+detail progress of the ensamble of the stiffness matrix, the solution of the linear system and the
+///kw+FINO_SOLVER+detail computation of gradients (stresses).          
+        } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
+          fino.progress_ascii = 1;
+
 ///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]@
-///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.  @
-///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+detail The preconditioner, linear and non-linear solver might be any of those available in PETSc:
+///kw+FINO_SOLVER+detail @          
+///kw+FINO_SOLVER+detail  * List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.  @
         } else if (strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | bcgs | bicg | richardson | chebyshev | ... } ]@
-///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.  @
-///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]@
+///kw+FINO_SOLVER+detail  * List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.  @
         } else if (strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.ksp_type));
 
 ///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
+///kw+FINO_SOLVER+detail * List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.  @
 ///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.  @
-///kw+FINO_SOLVER+detail @
+///kw+FINO_SOLVER+detail If `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used instead.
         } else if (strcasecmp(token, "SNES_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.snes_type));
 
@@ -275,10 +281,6 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]@
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
-
-///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]@
-        } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
-          fino.progress_ascii = 1;
 
 ///kw+FINO_SOLVER+usage [ GRADIENT {
         } else if (strcasecmp(token, "GRADIENT") == 0) {
@@ -316,7 +318,7 @@ int plugin_parse_line(char *line) {
           fino.rough = 1;
           
 
-///kw+FINO_SOLVER+usage [ GRADIENT_SMOOTHING {
+///kw+FINO_SOLVER+usage [ GRADIENT_ELEMENT_WEIGHT {
         } else if (strcasecmp(token, "GRADIENT_ELEMENT_WEIGHT") == 0) {
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   volume |
@@ -444,7 +446,7 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_REACTION+usage FINO_REACTION
-///kw+FINO_REACTION+desc Compute the reaction at the selected physical entity.
+///kw+FINO_REACTION+desc Computes the reaction at the selected physical entity.
 ///kw+FINO_REACTION+detail The result is stored in the variable or vector provided, depending on the number of degrees of freedoms of the problem. 
 ///kw+FINO_REACTION+detail If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
 ///kw+FINO_REACTION+detail For the elastic problem, the components of the total reaction force are stored in the result vector.
@@ -533,8 +535,8 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_LINEARIZE+usage {
 ///kw+FINO_LINEARIZE+usage PHYSICAL_ENTITY <physical_entity_name>
-///kw+FINO_LINEARIZE+desc If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
-///kw+FINO_LINEARIZE+desc independently of the dimension of the problem.
+///kw+FINO_LINEARIZE+detail If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+///kw+FINO_LINEARIZE+detail independently of the dimension of the problem.
         
         if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
@@ -545,10 +547,10 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_LINEARIZE+usage |
 ///kw+FINO_LINEARIZE+usage START_POINT <x1> <y1> <z1>
-///kw+FINO_LINEARIZE+desc If the SCL is given with `START_POINT` and `END_POINT`, the number of coordinates given should
-///kw+FINO_LINEARIZE+desc match the problem dimension (i.e three coordinates for full\ 3D problems and two coordinates for
-///kw+FINO_LINEARIZE+desc axisymmetric or plane problems).
-///kw+FINO_LINEARIZE+desc Coordinates can be given algebraic expressions that will be evaluated at the time of the linearization.
+///kw+FINO_LINEARIZE+detail If the SCL is given with `START_POINT` and `END_POINT`, the number of coordinates given should
+///kw+FINO_LINEARIZE+detail match the problem dimension (i.e three coordinates for full\ 3D problems and two coordinates for
+///kw+FINO_LINEARIZE+detail axisymmetric or plane problems).
+///kw+FINO_LINEARIZE+detail Coordinates can be given algebraic expressions that will be evaluated at the time of the linearization.
         } else if (strcasecmp(token, "START_POINT") == 0) {
           if (fino.dimensions == 0) {
             wasora_push_error_message("need to know the problem dimension before LINEARIZE START_POINT");
@@ -578,10 +580,10 @@ int plugin_parse_line(char *line) {
           }
           
           
-///kw+FINO_LINEARIZE+desc If either a `FILE` or a `FILE_PATH` is given, the total, membrane and membrane plus bending
-///kw+FINO_LINEARIZE+desc stresses are written as a function of a scalar $t \in [0,1]$.
-///kw+FINO_LINEARIZE+desc Moreover, the individual elements of the membrane and bending stress tensors are written
-///kw+FINO_LINEARIZE+desc within comments (i.e. lines starting with the hash symbol `#`).
+///kw+FINO_LINEARIZE+detail If either a `FILE` or a `FILE_PATH` is given, the total, membrane and membrane plus bending
+///kw+FINO_LINEARIZE+detail stresses are written as a function of a scalar $t \in [0,1]$.
+///kw+FINO_LINEARIZE+detail Moreover, the individual elements of the membrane and bending stress tensors are written
+///kw+FINO_LINEARIZE+detail within comments (i.e. lines starting with the hash symbol `#`).
 //TODO: decir como se plotea y como se hace un PDF
 
 ///kw+FINO_LINEARIZE+usage [ FILE <file_id> | 
@@ -592,8 +594,8 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&linearize->file, "w"));
 
-///kw+FINO_LINEARIZE+desc By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
-///kw+FINO_LINEARIZE+desc The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
+///kw+FINO_LINEARIZE+detail By default, the linearization uses the Von\ Mises criterion for the composition of stresses.
+///kw+FINO_LINEARIZE+detail The definition of what _total stress_ means can be changed using the `TOTAL` keyword.
 ///kw+FINO_LINEARIZE+usage [ TOTAL {
         } else if (strcasecmp(token, "TOTAL") == 0) {
           char *keywords[] = {
@@ -612,11 +614,11 @@ int plugin_parse_line(char *line) {
           int values[] = {linearize_vonmises, linearize_tresca, linearize_principal1, linearize_principal2, linearize_principal3, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&linearize->total));
                  
-///kw+FINO_LINEARIZE+desc The membrane, bending and peak stress tensor elements are combined using the
-///kw+FINO_LINEARIZE+desc Von\  Mises criterion and stored as variables.
-///kw+FINO_LINEARIZE+desc If no name for any of the variables is given, they are stored in
-///kw+FINO_LINEARIZE+desc `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
-///kw+FINO_LINEARIZE+desc Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
+///kw+FINO_LINEARIZE+detail The membrane, bending and peak stress tensor elements are combined using the
+///kw+FINO_LINEARIZE+detail Von\  Mises criterion and stored as variables.
+///kw+FINO_LINEARIZE+detail If no name for any of the variables is given, they are stored in
+///kw+FINO_LINEARIZE+detail `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
+///kw+FINO_LINEARIZE+detail Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
             
 ///kw+FINO_LINEARIZE+usage [ M <variable> ]@
         } else if (strcasecmp(token, "M") == 0) {

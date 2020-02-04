@@ -3,27 +3,21 @@
   <highlighting>
     <list name="prim_keywords">
       <item>FINO_PROBLEM</item>
-      <item>BAKE</item>
-      <item>HEAT</item>
-      <item>THERMAL</item>
-      <item>SHAKE</item>
-      <item>MODAL</item>
-      <item>BREAK</item>
-      <item>ELASTIC</item>
-      <item>MECHANICAL</item>
-      <item>HEAT_AXISYMMETRIC</item>
+      <item>AXISYMMETRIC</item>
       <item>PLANE_STRESS</item>
       <item>PLANE_STRAIN</item>
-      <item>ELASTIC_AXISYMMETRIC</item>
-      <item>DIMENSIONS</item>
       <item>SYMMETRY_AXIS</item>
+      <item>LINEAR</item>
+      <item>NON_LINEAR</item>
+      <item>DIMENSIONS</item>
       <item>MESH</item>
       <item>N_MODES</item>
       <item>N_EIGEN</item>
       <item>FINO_SOLVER</item>
       <item>ROUTINE</item>
-      <item>KSP_TYPE</item>
       <item>PC_TYPE</item>
+      <item>KSP_TYPE</item>
+      <item>SNES_TYPE</item>
       <item>SET_NEAR_NULLSPACE</item>
       <item>SET_NEAR_NULL_SPACE</item>
       <item>DO_NOT_SET_BLOCK_SIZE</item>
