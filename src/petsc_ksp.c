@@ -157,22 +157,11 @@ int fino_ksp_set_pc(Mat A) {
   Vec          *nullvec;  
   PetscReal    *coords;
   Vec          vec_coords;
-  
-  // el precondicionador
+
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
-  if (fino.pc_type != NULL) {
-    // si nos dieron uno, lo ponemos
-    petsc_call(PCSetType(fino.pc, fino.pc_type));
-  } else {
-    // si no nos dieron y estamos en mechanical, ponemos GAMG 
-    if (fino.problem_family == problem_family_mechanical) {
-      petsc_call(PCSetType(fino.pc, PCGAMG));
-    }
-    // sino que quede el default
-  }
   
   // si nos pidieron mumps, hay que usar LU o cholesky y poner MatSolverType
-  if (fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) {
+  if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) || (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
 #if PETSC_VERSION_GT(3,8,0)
 //  petsc_call(PCSetType(fino.pc, PCLU));
     petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
@@ -184,7 +173,20 @@ int fino_ksp_set_pc(Mat A) {
 #else
     wasora_push_error_message("solver MUMPS needs at least PETSc 3.8");
 #endif
-  }
+  } else {
+
+    if (fino.pc_type != NULL) {
+      // si nos dieron uno, lo ponemos
+      petsc_call(PCSetType(fino.pc, fino.pc_type));
+    } else {
+      // si no nos dieron y estamos en mechanical, ponemos GAMG 
+      if (fino.problem_family == problem_family_mechanical) {
+        petsc_call(PCSetType(fino.pc, PCGAMG));
+      }
+      // sino que quede el default
+    }
+  }  
+  
   
   petsc_call(PCGetType(fino.pc, &pc_type));
   if (pc_type != NULL && strcmp(pc_type, PCGAMG) == 0) {
