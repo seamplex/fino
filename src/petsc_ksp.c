@@ -45,8 +45,8 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
 
-  wasora_call(fino_ksp_set());
-  wasora_call(fino_ksp_set_pc(A));
+  wasora_call(fino_set_pc(A));
+  wasora_call(fino_set_ksp());
 
   // el monitor
   if (fino.progress_ascii) {  
@@ -130,7 +130,7 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_ksp_set"
-int fino_ksp_set(void) {
+int fino_set_ksp(void) {
 
   // el KSP
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) || (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
@@ -141,12 +141,14 @@ int fino_ksp_set(void) {
   }
   // si no nos dieron nada, dejamos el default gmres, que no esta mal
 
+  petsc_call(KSPSetUp(fino.ksp));
+  
   return WASORA_RUNTIME_OK;
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_ksp_set_pc"
-int fino_ksp_set_pc(Mat A) {
+#define __FUNCT__ "fino_set_pc"
+int fino_set_pc(Mat A) {
 
   PetscInt i, j, d;
   PCType pc_type;
@@ -273,6 +275,8 @@ int fino_ksp_set_pc(Mat A) {
       break;
     }
   }
+  
+  petsc_call(PCSetUp(fino.pc));
   
   return WASORA_RUNTIME_OK;
 }

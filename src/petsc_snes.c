@@ -79,8 +79,8 @@ int fino_solve_nonlinear_petsc(void) {
     petsc_call(SNESSetType(fino.snes, fino.snes_type));
   }
   
-  wasora_call(fino_ksp_set());
-  wasora_call(fino_ksp_set_pc(fino.K));
+  wasora_call(fino_set_ksp());
+  wasora_call(fino_set_pc(fino.K));
   
   petsc_call(SNESSetFromOptions(fino.snes));
 
