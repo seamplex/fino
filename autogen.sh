@@ -77,12 +77,12 @@ echo "\\" >> ../$am
 find ../wasora/src -maxdepth 2 \( -name "*.c" -o -name "*.h" \) | xargs echo >> ../$am
 cd ..
 
-cat << EOF >> $am
-
-version.\$(OBJEXT): version.h
-version.h: Makefile
-	./version.sh
-EOF
+# cat << EOF >> $am
+# 
+# version.\$(OBJEXT): version.h
+# version.h: Makefile
+# 	./version.sh
+# EOF
 echo "ok"
 
 echo -n "autogen: autoreconfiguring... "
