@@ -79,13 +79,7 @@ int fino_solve_nonlinear_petsc(void) {
     petsc_call(SNESSetType(fino.snes, fino.snes_type));
   }
   
-  // el KSP
-  petsc_call(SNESGetKSP(fino.snes, &fino.ksp));
-  if (fino.ksp_type != NULL) {
-    // si nos dieron lo ponemos, sino dejamos el default
-    petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-  }
-  
+  wasora_call(fino_ksp_set());
   wasora_call(fino_ksp_set_pc(fino.K));
   
   petsc_call(SNESSetFromOptions(fino.snes));

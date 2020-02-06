@@ -544,6 +544,7 @@ extern void fino_license(FILE *);
 // petsc_ksp.c
 extern int fino_solve_petsc_linear(Mat, Vec);
 extern PetscErrorCode fino_ksp_monitor(KSP, PetscInt, PetscReal, void *);
+extern int fino_ksp_set(void);
 extern int fino_ksp_set_pc(Mat);
 
 // petsc_snes.c

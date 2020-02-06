@@ -239,7 +239,7 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
 
-///kw+FINO_SOLVER+usage [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]@
+///kw+FINO_SOLVER+usage [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]@
 ///kw+FINO_SOLVER+detail The preconditioner, linear and non-linear solver might be any of those available in PETSc:
 ///kw+FINO_SOLVER+detail @          
 ///kw+FINO_SOLVER+detail  * List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.  @
@@ -254,7 +254,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
 ///kw+FINO_SOLVER+detail * List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.  @
 ///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail If `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used instead.
+///kw+FINO_SOLVER+detail If either `PC_TYPE` or `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
         } else if (strcasecmp(token, "SNES_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.snes_type));
 

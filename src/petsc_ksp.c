@@ -45,18 +45,7 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
 
-  // el KSP
-  // si no nos dieron nada, dejamos el default gmres, que no esta mal
-  if (fino.ksp_type != NULL) {
-    if (strcasecmp(fino.ksp_type, "mumps") == 0) {
-      // mumps es un caso particular, hay que poner pre-only aca y en el pc otras cosas
-      KSPSetType(fino.ksp, KSPPREONLY);
-    } else {
-      petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-    }  
-  }
-
-  // el precondicionador lo usamos tanto aca como en snes
+  wasora_call(fino_ksp_set());
   wasora_call(fino_ksp_set_pc(A));
 
   // el monitor
@@ -138,6 +127,22 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 }
 
 
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_ksp_set"
+int fino_ksp_set(void) {
+
+  // el KSP
+  if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) || (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
+    // mumps es un caso particular, hay que poner pre-only aca y en el pc otras cosas
+    KSPSetType(fino.ksp, KSPPREONLY);
+  } else if (fino.ksp_type != NULL) {
+    petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
+  }
+  // si no nos dieron nada, dejamos el default gmres, que no esta mal
+
+  return WASORA_RUNTIME_OK;
+}
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_ksp_set_pc"
