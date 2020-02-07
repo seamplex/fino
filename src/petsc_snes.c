@@ -41,6 +41,7 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   wasora_call(fino_assembly());
   
   MatMult(fino.K, phi, r);
+  VecCopy(r, fino.r);
   printf("residual\n");
 //  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
 //  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
@@ -57,7 +58,7 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   // pasamos phi a la solucion porque K puede depender de phi
   double xi;
   double K, dKdT;
-  double T;
+  double ri, Tj;
   int i, j;
 /*  
   wasora_call(fino_assembly());
@@ -70,18 +71,27 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   wasora_call(fino_assembly());
 */  
   MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
-  
+  MatSetOption(J, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+
+
   for (i = 0; i < fino.mesh->n_nodes; i++) {
     for (j = 0; j < fino.mesh->n_nodes; j++) {
-      VecGetValues(phi, j, &T);
-      K = 1+10*T;
-      dKdT = 10;
-      xi = 1/K * dKdT * 
+      VecGetValues(fino.r, 1, &i, &ri);
+      Tj = fino.mesh->node[j].phi[0];
+      K = 1+Tj;
+      dKdT = 1;
+      xi = 1/K * dKdT * ri;
+      if (xi != 0) {
+        MatSetValues(J, 1, &i, 1, &j, &xi, ADD_VALUES);
+      }  
     }
   }
-  
+
+  MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
+      
   printf("jacobiano\n");
-//  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
    
@@ -99,6 +109,7 @@ int fino_solve_nonlinear_petsc(void) {
   if (fino.snes == NULL) {
     petsc_call(SNESCreate(PETSC_COMM_WORLD, &fino.snes));
   }
+  petsc_call(VecDuplicate(fino.phi, &fino.r));
   petsc_call(VecDuplicate(fino.phi, &r));
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &J));
   

@@ -277,6 +277,8 @@ struct {
   Mat dotM;
   Vec m;
   
+  Vec r; // residuo de snes
+  
   // contexto de solvers de PETSc
   SNES snes;
   KSP ksp;
