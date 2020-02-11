@@ -28,8 +28,9 @@
 #include "fino.h"
 
 
-PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
+PetscErrorCode fino_newton_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   
+  Vec Kphi;
   // pasamos phi a la solucion porque K puede depender de phi
   wasora_call(fino_assembly());
   wasora_call(fino_phi_to_solution(phi));
@@ -40,9 +41,13 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   wasora_call(fino_set_essential_bc(fino.K, fino.b));
   wasora_call(fino_assembly());
   
-  MatMult(fino.K, phi, r);
+  VecDuplicate(phi, &Kphi);
+  MatMult(fino.K, phi, Kphi);
+  VecCopy(fino.b, r);
+  VecAYPX(r, -1.0, Kphi);
+  
   VecCopy(r, fino.r);
-  printf("residual\n");
+//  printf("residual\n");
 //  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
 //  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
   
@@ -53,7 +58,7 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   return 0;
 }
 
-PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
+PetscErrorCode fino_newton_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
   // pasamos phi a la solucion porque K puede depender de phi
   double xi;
@@ -90,15 +95,67 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
       
-  printf("jacobiano\n");
-  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+//  printf("jacobiano\n");
+//  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
    
 }
 
+PetscErrorCode fino_picard_b(SNES snes, Vec phi, Vec b, void *ctx) {
+  
+  wasora_call(fino_phi_to_solution(phi));
+  if (fino.problem_family == problem_family_mechanical) {
+    wasora_call(fino_break_compute_stresses());
+  }  
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+
+  VecCopy(fino.b, b);
+
+  VecAssemblyBegin(b);
+  VecAssemblyEnd(b);
+  
+//  printf("phi\n");
+//  fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
+//  printf("b\n");
+//  fino_print_petsc_vector(b, PETSC_VIEWER_STDOUT_SELF);
+  
+  return 0;
+   
+}
+
+PetscErrorCode fino_picard_K(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
+
+
+  wasora_call(fino_phi_to_solution(phi));
+  if (fino.problem_family == problem_family_mechanical) {
+    wasora_call(fino_break_compute_stresses());
+  }  
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+
+  MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+  MatDuplicate(fino.K, MAT_COPY_VALUES, &P);
+
+  MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
+
+  MatAssemblyBegin(P, MAT_FINAL_ASSEMBLY);
+  MatAssemblyEnd(P, MAT_FINAL_ASSEMBLY);
+
+//  printf("jacobiano\n");
+//  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+//  printf("precond\n");
+//  fino_print_petsc_matrix(P, PETSC_VIEWER_STDOUT_SELF);
+  
+  return 0;
+   
+}
+
+
 #undef  __FUNCT__
-#define __FUNCT__ "fino_solve_nonlinear_petsc"
+#define __FUNCT__ "fino_newton_nonlinear_petsc"
 int fino_solve_nonlinear_petsc(void) {
 
   SNESConvergedReason reason;
@@ -106,15 +163,23 @@ int fino_solve_nonlinear_petsc(void) {
   Vec            r;    // residuo
   PetscInt       its;    
 
+  PetscInt picard = 0;
+  
   if (fino.snes == NULL) {
     petsc_call(SNESCreate(PETSC_COMM_WORLD, &fino.snes));
   }
+
   petsc_call(VecDuplicate(fino.phi, &fino.r));
   petsc_call(VecDuplicate(fino.phi, &r));
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &J));
+
+  if (picard) {
+    SNESSetPicard(fino.snes, r, fino_picard_b, J, J, fino_picard_K, NULL);
+  } else {
+    petsc_call(SNESSetFunction(fino.snes, r, fino_newton_residual, NULL));
+    petsc_call(SNESSetJacobian(fino.snes, J, J, fino_newton_jacobian, NULL));
+  }
   
-  petsc_call(SNESSetFunction(fino.snes, r, fino_solve_residual, NULL));
-  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_solve_jacobian, NULL));
   petsc_call(SNESSetTolerances(fino.snes, wasora_var(fino.vars.abstol),
                                           wasora_var(fino.vars.reltol),
                                           PETSC_DEFAULT,
@@ -144,7 +209,7 @@ int fino_solve_nonlinear_petsc(void) {
   petsc_call(SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0));
   
   // solve
-  petsc_call(SNESSolve(fino.snes, fino.b, fino.phi));
+  petsc_call(SNESSolve(fino.snes, NULL, fino.phi));
   
   // chequeamos que haya convergido
   petsc_call(SNESGetConvergedReason(fino.snes, &reason));

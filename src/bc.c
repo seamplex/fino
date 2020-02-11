@@ -649,7 +649,8 @@ int fino_set_essential_bc(Mat A, Vec b) {
   
   petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
   petsc_call(VecSetValues(vec_rhs, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, b));
+//  petsc_call(MatZeroRowsColumns(A, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, b));
+  petsc_call(MatZeroRows(A, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, b));
   petsc_call(VecDestroy(&vec_rhs));
   
   if (fino.math_type == math_type_eigen) {
