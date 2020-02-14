@@ -258,7 +258,8 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "SNES_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.snes_type));
 
-///kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]@
+//kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]@
+/*          
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
           token = wasora_get_next_token(NULL);
           if (token != NULL) {
@@ -274,14 +275,14 @@ int plugin_parse_line(char *line) {
             }
           }
 
-///kw+FINO_SOLVER+usage [ DO_NOT_SET_BLOCK_SIZE 
+//kw+FINO_SOLVER+usage [ DO_NOT_SET_BLOCK_SIZE 
         } else if (strcasecmp(token, "DO_NOT_SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 1;
           
-///kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]@
+//kw+FINO_SOLVER+usage | SET_BLOCK_SIZE ]@
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
-
+*/
 ///kw+FINO_SOLVER+usage [ GRADIENT {
         } else if (strcasecmp(token, "GRADIENT") == 0) {
           char *keywords[] = {
@@ -325,7 +326,7 @@ int plugin_parse_line(char *line) {
                          "volume",
 ///kw+FINO_SOLVER+usage   flat |
                          "flat",
-///kw+FINO_SOLVER+usage   quality
+///kw+FINO_SOLVER+usage   quality |
                          "quality",
 ///kw+FINO_SOLVER+usage   volume_times_quality
                          "volume_times_quality",

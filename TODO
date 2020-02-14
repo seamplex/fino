@@ -2,11 +2,12 @@
     - initial guess como en thermal T0
     - optimizar assemblies
     - elastoplastic materials - E_xyz(e_xyz)
+    - NETWON | PICARD
+ * choose --mumps from commandline
  * manual
  * rewrite DEBUG
  * rewrite --version output: compact, standard & extended
  * BC type radiation
- * unify problem types
  * compute heat fluxes
  * put mat2sng in a different code
  * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
@@ -22,7 +23,8 @@
        * total lagrangain
     - contact
        * hertz?
-       
+
+ * write a toolbox for FreeCAD
  * test suite
     - transient heat
     - shake

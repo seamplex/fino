@@ -15,6 +15,7 @@
       <item>N_EIGEN</item>
       <item>FINO_SOLVER</item>
       <item>ROUTINE</item>
+      <item>PROGRESS_ASCII</item>
       <item>PC_TYPE</item>
       <item>KSP_TYPE</item>
       <item>SNES_TYPE</item>
@@ -22,7 +23,6 @@
       <item>SET_NEAR_NULL_SPACE</item>
       <item>DO_NOT_SET_BLOCK_SIZE</item>
       <item>SET_BLOCK_SIZE</item>
-      <item>PROGRESS_ASCII</item>
       <item>GRADIENT</item>
       <item>GRADIENT_HIGHER</item>
       <item>SMOOTH</item>
