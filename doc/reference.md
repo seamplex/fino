@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.81-g2eb952d
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.88-g90f0ab5
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -166,15 +166,13 @@ For the thermal problem, the total power passing through the entity is computed 
 
 ~~~wasora
 FINO_SOLVER [ PROGRESS_ASCII ]
- [ PC_TYPE { lu | gamg | hypre | sor | bjacobi | cholesky | ... } ]
+ [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
  [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
  [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
- [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]
- [ DO_NOT_SET_BLOCK_SIZE | SET_BLOCK_SIZE ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes | } ]
  [ SMOOTH | ROUGH ]
- [ GRADIENT_ELEMENT_WEIGHT { volume | flat | quality volume_times_quality } ]
+ [ GRADIENT_ELEMENT_WEIGHT { volume | flat | quality | volume_times_quality } ]
  [ GRADIENT_QUALITY_THRESHOLD <expr> ]
 
 ~~~
@@ -189,7 +187,7 @@ The preconditioner, linear and non-linear solver might be any of those available
  * List of `KSP_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>. 
 * List of `SNES_TYPE`s <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>. 
 
-If `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used instead.
+If either `PC_TYPE` or `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
 
 ##  FINO_STEP
 
