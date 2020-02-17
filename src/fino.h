@@ -163,6 +163,22 @@ struct {
   fino_linearize_t *linearizes;
   
   fino_debug_t *debugs;
+
+  // esto capaz que deberia ir en otro lado
+  PetscClassId petsc_classid;
+
+  PetscLogStage petsc_stage_build;
+  PetscLogStage petsc_stage_solve;
+  PetscLogStage petsc_stage_stress;
+  
+  PetscLogEvent petsc_event_build;
+  PetscLogEvent petsc_event_solve;
+  PetscLogEvent petsc_event_stress;
+  
+  PetscLogDouble petsc_flops_build;
+  PetscLogDouble petsc_flops_solve;
+  PetscLogDouble petsc_flops_stress;
+
   
   // variables internas
   struct {
@@ -289,6 +305,7 @@ struct {
   loadable_routine_t *user_provided_linearsolver;
   
   // strings con tipos
+  PetscBool commandline_mumps; // esta sobre-escribe todo
   SNESType snes_type;
   KSPType ksp_type;
   PCType pc_type;

@@ -3,7 +3,7 @@
     - optimizar assemblies
     - elastoplastic materials - E_xyz(e_xyz)
     - NETWON | PICARD
- * choose --mumps from commandline
+ * log stages
  * manual
  * rewrite DEBUG
  * rewrite --version output: compact, standard & extended

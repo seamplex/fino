@@ -34,7 +34,17 @@ const char finoname[] = "Fino";
 const char finodescription[] = "a free finite-element thermo-mechanical solver";
 char finoshortversion[128];
 char finolongversion[2048];
-const char finousage[] = "no commandline options needed";
+const char finousage[] = "\
+  --mumps           use the MUMPS direct solver (if available)\n\
+  --petsc <option[=argument]>\n\
+                    pass \"-option argument\" directly to PETSc/SLEPc, e.g.\n\
+    $ fino tensile-test.fin --petsc ksp_view\n\
+\n\
+The option --petsc is provided to avoid clashes with PETSc' non-POSIX arguments.\
+Note that options are passed directly to PETSc/SLEPc if they do not clash with Fino/wasora.\
+The same command as above could have been called as \
+    $ fino tensile-test.fin -ksp_view\n\
+";
 
 const char finocopyright[] = "\
 Fino is copyright (c) 2015--2020 jeremy theler\n\

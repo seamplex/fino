@@ -23,6 +23,14 @@
 #include <signal.h>
 #include "fino.h"
 
+// maneje por el cambio de PetscOptionsHasName en 3.7.0
+#if PETSC_VERSION_LT(3,7,0)
+ #define PetscOptionsHasNameWrapper(a, b, c) PetscOptionsHasName(a, b, c)
+#else
+ #define PetscOptionsHasNameWrapper(a, b, c) PetscOptionsHasName(PETSC_NULL, a, b, c)
+#endif
+
+
 #define NAME_SIZE 32
 
 #undef  __FUNCT__
@@ -74,7 +82,7 @@ int plugin_init_before_parser(void) {
       i++;
     }
   }
-
+  
 #ifdef HAVE_SLEPC  
   // inicializamos la slepc (que a su vez inicializa la petsc)
   // le pasamos la linea de comandos que acabamos de amasar
@@ -93,8 +101,22 @@ int plugin_init_before_parser(void) {
   petsc_call(MPI_Comm_rank(MPI_COMM_WORLD, &wasora.rank));
 
   // instalamos nuestro error handler para errores la petsc 
-  PetscPushErrorHandler(&fino_handler, NULL);
+  petsc_call(PetscPushErrorHandler(&fino_handler, NULL));
 
+  // registramos nuestros eventos
+  petsc_call(PetscClassIdRegister("Fino", &fino.petsc_classid));
+
+  petsc_call(PetscLogStageRegister("Assembly", &fino.petsc_stage_build));
+  petsc_call(PetscLogStageRegister("Solution", &fino.petsc_stage_solve));
+  petsc_call(PetscLogStageRegister("Stress", &fino.petsc_stage_solve));
+  
+  petsc_call(PetscLogEventRegister("fino_build", fino.petsc_classid, &fino.petsc_event_build));
+  petsc_call(PetscLogEventRegister("fino_solve", fino.petsc_classid, &fino.petsc_event_solve));
+  petsc_call(PetscLogEventRegister("fino_stress", fino.petsc_classid, &fino.petsc_event_solve));
+
+  // vemos si nos pidieron mumps por linea de comando
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &fino.commandline_mumps));
+  
   // inicializamos mesh
   if (!wasora_mesh.initialized) {
     wasora_call(wasora_mesh_init_before_parser());
