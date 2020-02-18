@@ -576,7 +576,7 @@ int fino_init_rough_mesh(void) {
   
   
   // primera pasada, copiamos lo que podemos, alocamos y contamos la cantidad de nodos
-  fino.mesh_rough = calloc(1, sizeof(mesh_t));
+  // ya la alocamos en parser
   fino.mesh_rough->bulk_dimensions = fino.mesh->bulk_dimensions;
   fino.mesh_rough->spatial_dimensions = fino.mesh->spatial_dimensions;
   fino.mesh_rough->n_elements = fino.mesh->n_elements;

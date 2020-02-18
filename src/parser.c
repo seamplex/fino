@@ -437,6 +437,11 @@ int plugin_parse_line(char *line) {
 
       }
       
+      if (fino.rough) {
+        fino.mesh_rough = calloc(1, sizeof(mesh_t));
+        fino.mesh_rough->name = strdup("rough");
+        HASH_ADD_KEYPTR(hh, wasora_mesh.meshes, fino.mesh_rough->name, strlen(fino.mesh_rough->name), fino.mesh_rough);
+      }
       
       instruction = wasora_define_instruction(fino_instruction_step, fino_step);
       // esto no me gusta pero es para callar al valgrind

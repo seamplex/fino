@@ -5,6 +5,9 @@
     - NETWON | PICARD
  * log stages
  * manual
+ * refinement
+    - stressrefine
+    - sparselizard
  * rewrite DEBUG
  * rewrite --version output: compact, standard & extended
  * BC type radiation
@@ -33,6 +36,5 @@
     - multimaterial (two-cubes)
     - multifreedom (radial, conic)
     - linearization
-    - axisymmmetric (elephant)
     - space-dependent properties
     - plane stress/strain (nafems challenge)
