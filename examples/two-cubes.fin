@@ -1,37 +1,20 @@
-FINO_SOLVER GRADIENT_EVALUATION node_average_all
+DEFAULT_ARGUMENT_VALUE 1 smooth
+FINO_SOLVER PROGRESS_ASCII $1
 MESH FILE_PATH two-cubes.msh DIMENSIONS 3
 
-# MATERIAL solid1   E 205e3   nu 0.28
-# MATERIAL solid2   E 230e3   nu 0.35
+MATERIAL solid2   E 10e3    nu 0.35
+MATERIAL solid1   E 100e3   nu 0.25
 
-# PARAMETRIC xi MIN 1e3 MAX 100e3 STEP 2.5e3
+PHYSICAL_ENTITY NAME fixed BC fixed
+PHYSICAL_ENTITY NAME load  BC p=-20 # compression
 
-MATERIAL solid2   E 10e3    nu 0.3
-MATERIAL solid1   E 100e3   nu 0.3
-
-# MATERIAL solid1   E 205000    nu 0.28    rho 7870    yield 400
-# MATERIAL solid2   E 210000    nu 0.3     rho 7800    yield 275
-
-
-
-# PHYSICAL_ENTITY NAME fixed BC fixed
-# PHYSICAL_ENTITY NAME load  BC p=-20 # compression
-
-PHYSICAL_ENTITY ID 1 BC fixed
-PHYSICAL_ENTITY ID 2 BC p=-20 # compression
-# PHYSICAL_ENTITY ID 2 BC Tz=1000 # compression
-
-# PRINT %g xi*1e-3 NONEWLINE
 FINO_STEP
 
-MESH_POST FILE_PATH two-cubes.vtk dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx sigma sigma1 sigma2 sigma3 E VECTOR u v w
-
-# FINO_DEBUG MATRICES_X
-# PRINT_FUNCTION FILE_PATH two-cubes-displacements.dat u v w
-
-PRINT_FUNCTION u dudx E MIN 0 0 0 MAX 20 0 0 STEP 0.01 1 1
-# PRINT %g sigmax(20,0,0) sigmay(20,0,0) sigmaz(20,0,0) tauxy(20,0,0) tauyz(20,0,0) tauzx(20,0,0)
-# PRINT %g sigma(20,0,0) c1(20,0,0) c3(20,0,0)+c4(20,0,0)*cos(phi(20,0,0)-4.0*pi/3.0) sigma3(20,0,0) pepe(20,0,0) pepe3(20,0,0)
-# PRINT %g E(0,0,0) E(20,0,0) c1(0,0,0) c1(20,0,0) sigmax(0,0,0) sigmax(20,0,0)
-# PRINT %g sigma(0,0,0) sigma(9.9,0,0) sigma(10,0,0) sigma(10.1,0,0) sigma(20,0,0)
-
+MESH_POST FILE_PATH two-cubes-$1.vtk \
+  dudx dudy dudz \
+  dvdx dvdy dvdz \
+  dwdx dwdy dwdz \
+  sigmax sigmay sigmaz \
+  tauxy tauyz tauzx \
+  sigma sigma1 sigma2 sigma3 \
+  E VECTOR u v w

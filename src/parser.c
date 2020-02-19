@@ -313,11 +313,17 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ SMOOTH |
         } else if (strcasecmp(token, "SMOOTH") == 0) {
           fino.rough = 0;
+          fino.roughish = 0;
           
-///kw+FINO_SOLVER+usage ROUGH ]@
+///kw+FINO_SOLVER+usage ROUGH |
         } else if (strcasecmp(token, "ROUGH") == 0) {
           fino.rough = 1;
+          fino.roughish = 0;
           
+///kw+FINO_SOLVER+usage ROUGHISH ]@
+        } else if (strcasecmp(token, "ROUGHISH") == 0) {
+          fino.rough = 1;
+          fino.roughish = 1;
 
 ///kw+FINO_SOLVER+usage [ GRADIENT_ELEMENT_WEIGHT {
         } else if (strcasecmp(token, "GRADIENT_ELEMENT_WEIGHT") == 0) {

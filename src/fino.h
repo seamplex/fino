@@ -102,7 +102,7 @@ typedef struct fino_times_t fino_times_t;
 typedef struct fino_reaction_t fino_reaction_t;
 typedef struct fino_linearize_t fino_linearize_t;
 typedef struct fino_debug_t fino_debug_t;
-
+typedef struct fino_roughish_avg_t fino_roughish_avg_t;
 
 
 typedef struct {
@@ -154,7 +154,8 @@ struct {
   int dimensions;
   
   int global_size;
-  int rough;
+  int rough;             // con esto se mantienen las contribuciones de cada elemento a las derivadas
+  int roughish;          // con esto se promedian por entidad fisica 
   
   mesh_t *mesh;
   mesh_t *mesh_rough;   // esta es una malla donde cada node pertenece solo a un elemento
@@ -495,6 +496,13 @@ struct fino_times_t {
   PetscLogDouble solve_begin;
   PetscLogDouble solve_end;
 };
+
+struct fino_roughish_avg_t {
+  int smooth_element;
+  int local_node;
+  fino_roughish_avg_t *next;
+};
+
 
 // fino.c
 extern int fino_instruction_step(void *);

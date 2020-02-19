@@ -47,15 +47,6 @@
         fino.fun_nam->data_argument = fino.fun_nam->mesh->nodes_argument;   \
         fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
         fino.fun_nam->data_value = calloc(fino.fun_nam->mesh->n_nodes, sizeof(double));}
-/*
-#define fino_fill_result_function(fun_nam) {\
-        fino.fun_nam->mesh = fino.rough==0?fino.mesh:fino.mesh_rough; \
-        fino.fun_nam->var_argument = fino.solution[0]->var_argument; \
-        fino.fun_nam->type = type_pointwise_mesh_node; \
-        fino.fun_nam->data_argument = fino.solution[0]->data_argument;   \
-        fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
-        fino.fun_nam->data_value = calloc(fino.mesh->n_nodes, sizeof(double));}
-*/
         
 fino_distribution_t distribution_E;     // modulo de young
 fino_distribution_t distribution_nu;    // coef de poisson
@@ -789,6 +780,167 @@ int fino_break_compute_stresses(void) {
     }
   }
 
+  // paso intermedio: roughish
+  if (fino.roughish) {
+    int k;
+    double dudx, dudy, dudz;
+    double dvdx, dvdy, dvdz;
+    double dwdx, dwdy, dwdz;
+    double sigmax, sigmay, sigmaz;
+    double tauxy, tauyz, tauzx;
+    double den;
+    node_t *node;
+    element_list_item_t *associated_element = NULL;
+    element_t *element_smooth;
+    element_t *element_rough;
+    fino_roughish_avg_t *item, *tmp;
+    fino_roughish_avg_t **avg = calloc(fino.mesh->physical_tag_max+1, sizeof(fino_roughish_avg_t *));
+
+    for (j = 0; j < fino.mesh->n_nodes; j++) {
+      // para cada nodo de la mall original barro los elementos asociados y hago una linked list
+      // para cada physical entity mas o menos asi
+      //   nodo original j_global
+      //     physical entity 1: elemento i1, nodo local j1
+      //                        elemento i2, nodo local j2
+      //                        elemento i3, nodo local j3
+      //     physical entity 2: elemento i4, nodo local j4
+      //                        elemento i5, nodo local j5
+      LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element) {
+        element_smooth = associated_element->element;
+        if (element_smooth != NULL &&
+            element_smooth->type->dim == fino.dimensions &&
+            element_smooth->physical_entity != NULL) {
+
+          item = calloc(1, sizeof(fino_roughish_avg_t));
+          item->smooth_element = element_smooth->tag;
+          item->local_node = mesh_compute_local_node_index(element_smooth, j);
+          LL_APPEND(avg[element_smooth->physical_entity->tag], item);
+        }
+      }
+
+      // ahora tengo que buscar todos los ids de los nodo de la malla rough que correspondan
+      // al j global de la mall smooth y promediarlos por physical entity
+      
+      
+      for (k = 0; k < fino.mesh->physical_tag_max+1; k++) {
+        dudx = 0;
+        dudy = 0;
+        dvdx = 0;
+        dvdy = 0;
+        
+        sigmax = 0;
+        sigmay = 0;
+        tauxy = 0;
+
+        if (fino.dimensions == 3) {
+          dudz = 0;
+          dvdz = 0;
+          
+          dwdx = 0;
+          dwdy = 0;
+          dwdz = 0;
+          
+          sigmaz = 0;
+          tauyz = 0;
+          tauzx = 0;
+        }  
+        
+        den = 0;
+        LL_FOREACH(avg[k], item) {
+          // la malla rough solamente tiene elementos volumetricos, pero los tiene en orden
+          // asi que hay un offset igual al tag del primer elemento rough menos uno
+          element_smooth = &fino.mesh->element[item->smooth_element - 1];
+          element_rough = &fino.mesh_rough->element[item->smooth_element - fino.mesh_rough->element[0].tag];
+          if (element_smooth->tag != element_rough->tag) {
+            wasora_push_error_message("numbering mismatch when computing roughish derivatives");
+            return WASORA_RUNTIME_ERROR;
+          }
+          node = element_rough->node[item->local_node];
+          
+          dudx += gsl_matrix_get(node->dphidx, 0, 0);
+          dudy += gsl_matrix_get(node->dphidx, 0, 1);
+          dvdx += gsl_matrix_get(node->dphidx, 1, 0);
+          dvdy += gsl_matrix_get(node->dphidx, 1, 1);
+          
+          sigmax += node->f[SIGMAX];
+          sigmay += node->f[SIGMAY];
+          tauxy += node->f[TAUXY];
+
+          if (fino.dimensions == 3) {
+            dudz = gsl_matrix_get(node->dphidx, 0, 2);
+            dvdz = gsl_matrix_get(node->dphidx, 1, 2);
+          
+            dwdx = gsl_matrix_get(node->dphidx, 2, 0);
+            dwdy = gsl_matrix_get(node->dphidx, 2, 1);
+            dwdz = gsl_matrix_get(node->dphidx, 2, 2);
+          
+            sigmaz += node->f[SIGMAZ];
+            tauyz += node->f[TAUYZ];
+            tauzx += node->f[TAUZX];
+          }  
+
+          den += 1.0;
+        }
+        
+        if (den != 0) {
+          dudx /= den;
+          dudy /= den;
+          dvdx /= den;
+          dvdy /= den;
+          
+          sigmax /= den;
+          sigmay /= den;
+          tauxy /= den;
+
+          if (fino.dimensions == 3) {
+            dudz /= den;
+            dvdz /= den;
+          
+            dwdx /= den;
+            dwdy /= den;
+            dwdz /= den;
+          
+            sigmaz /= den;
+            tauyz /= den;
+            tauzx /= den;
+          }  
+        }  
+        
+        LL_FOREACH(avg[k], item) {
+          element_rough = &fino.mesh_rough->element[item->smooth_element - fino.mesh_rough->element[0].tag];
+          node = element_rough->node[item->local_node];
+          
+          gsl_matrix_set(node->dphidx, 0, 0, dudx);
+          gsl_matrix_set(node->dphidx, 0, 1, dudy);
+          gsl_matrix_set(node->dphidx, 1, 0, dvdx);
+          gsl_matrix_set(node->dphidx, 1, 1, dvdy);
+          
+          node->f[SIGMAX] = sigmax;
+          node->f[SIGMAY] = sigmay;
+          node->f[TAUXY] = tauxy;
+
+          if (fino.dimensions == 3) {
+            gsl_matrix_set(node->dphidx, 0, 2, dudz);
+            gsl_matrix_set(node->dphidx, 1, 2, dvdz);
+
+            gsl_matrix_set(node->dphidx, 2, 0, dwdx);
+            gsl_matrix_set(node->dphidx, 2, 1, dwdy);
+            gsl_matrix_set(node->dphidx, 2, 2, dwdz);
+          
+            node->f[SIGMAZ] = sigmaz;
+            node->f[TAUYZ] = tauyz;
+            node->f[TAUZX] = tauzx;
+          }  
+        }
+        
+        LL_FOREACH_SAFE(avg[k], item, tmp) {
+          LL_DELETE(avg[k], item);
+          free(item);
+        }  
+      }
+    }
+    free(avg);
+  }
 
   // paso 2. barremos nodos de la malla de salida (la misma en smooth, rough en rough)
   for (j_global = 0; j_global < mesh->n_nodes; j_global++) {
@@ -854,7 +1006,7 @@ int fino_break_compute_stresses(void) {
     fino.gradient[1][0]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 0);
     fino.gradient[1][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 1);
 
-    if (fino.dimensions > 2) {
+    if (fino.dimensions == 3) {
       fino.gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 2);
       fino.gradient[1][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 2);
 
@@ -866,11 +1018,12 @@ int fino_break_compute_stresses(void) {
     
     fino.sigmax->data_value[j_global] = node->f[SIGMAX];
     fino.sigmay->data_value[j_global] = node->f[SIGMAY];
-    fino.sigmaz->data_value[j_global] = node->f[SIGMAZ];
 
     fino.tauxy->data_value[j_global] = node->f[TAUXY];
 
     if (fino.dimensions == 3) {
+      fino.sigmaz->data_value[j_global] = node->f[SIGMAZ];
+      
       fino.tauyz->data_value[j_global] = node->f[TAUYZ];
       fino.tauzx->data_value[j_global] = node->f[TAUZX];
     }
