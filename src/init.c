@@ -185,6 +185,10 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+fino_residual_norm+desc by the solver. It is set after `FINO_STEP`.
   fino.vars.residual_norm= wasora_define_variable("fino_residual_norm");
 
+///va+nodes_rough+name nodes_rough
+///va+nodes_rough+desc The number of nodes of the mesh in `ROUGH` mode.
+  fino.vars.nodes_rough = wasora_define_variable("nodes_rough");
+  
   // estas son para las expresiones algebraicas implicitamente
   // las definimos en mayusculas porque ya hay funciones que se llaman asi en minuscula
   // antes de parsear la expresion algebraica les cambiamos el case en bc.
@@ -257,7 +261,6 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+T_min+desc The minimum temperature\ $T_\text{min}$ of the thermal problem.
   fino.vars.T_min = wasora_define_variable("T_min");
 
-  // variables internas
 ///va+lambda+name lambda
 ///va+lambda+desc 
 ///va+lambda+desc Requested eigenvalue. It is equal to 1.0 until
@@ -637,7 +640,8 @@ int fino_init_rough_mesh(void) {
     }
   }
   
-  
+  // ponemos a disposicion la cantidad de nodos rough
+  wasora_var_value(fino.vars.nodes_rough) = fino.mesh_rough->n_nodes;
   
   return WASORA_RUNTIME_OK;
 

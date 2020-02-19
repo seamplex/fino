@@ -191,7 +191,7 @@ struct {
     var_t *residual_norm;
     
     var_t *penalty_weight;
-  
+    var_t *nodes_rough;
     var_t *unknowns;
     
 //    var_t *error_estimate;
