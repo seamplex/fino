@@ -21,8 +21,8 @@ T0 = 400-20
 T(x,y,z) := T0*(1-(x^2+y^2)/(r^2))
 
 # boundary conditions (note that the cylinder can still rotate around z)
-PHYSICAL_ENTITY NAME inf      BC w=0
-PHYSICAL_ENTITY NAME origin   BC fixed
+PHYSICAL_GROUP NAME inf      BC w=0
+PHYSICAL_GROUP NAME origin   BC fixed
 
 # solve!
 FINO_STEP

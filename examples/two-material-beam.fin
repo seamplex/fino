@@ -3,9 +3,9 @@ MESH FILE_PATH two-material-beam2.msh DIMENSIONS 3
 MATERIAL left   E 200e3 nu 0.25
 MATERIAL right  E  70e3 nu 0.33
 
-PHYSICAL_ENTITY NAME fixed_left  BC fixed
-PHYSICAL_ENTITY NAME fixed_right BC fixed
-PHYSICAL_ENTITY NAME load        BC tz=-1
+PHYSICAL_GROUP NAME fixed_left  BC fixed
+PHYSICAL_GROUP NAME fixed_right BC fixed
+PHYSICAL_GROUP NAME load        BC tz=-1
 
 fino_gamg_threshold = 0.02
 

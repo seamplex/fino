@@ -6,14 +6,14 @@ E = 200e3   # [ MPa ] Young modulus = 200 GPa
 nu = 0.3    # Poisson’s ratio
 
 # boundary conditions ("left" and "right" come from the names in the mesh)
-PHYSICAL_ENTITY left  BC fixed       # fixed end
-PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
+PHYSICAL_GROUP left  BC fixed       # fixed end
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
 
 FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
 FINO_STEP                   # solve
 
 # compute reaction force at fixed end
-FINO_REACTION PHYSICAL_ENTITY left RESULT R
+FINO_REACTION PHYSICAL_GROUP left RESULT R
 
 # write results (Von Mises, principal and displacements) in a VTK file
 MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w

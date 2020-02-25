@@ -11,13 +11,13 @@ nu = 0.3       # Poisson ratio
 # nu = 0
 
 
-PHYSICAL_ENTITY NAME fixed   BC fixed
+PHYSICAL_GROUP NAME fixed   BC fixed
 
-# PHYSICAL_ENTITY NAME left   BC fixed
-# PHYSICAL_ENTITY NAME front  BC v=0
-# PHYSICAL_ENTITY NAME bottom BC w=0
+# PHYSICAL_GROUP NAME left   BC fixed
+# PHYSICAL_GROUP NAME front  BC v=0
+# PHYSICAL_GROUP NAME bottom BC w=0
 
-PHYSICAL_ENTITY NAME bulk
+PHYSICAL_GROUP NAME bulk
 
 FINO_STEP
 

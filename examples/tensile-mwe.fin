@@ -5,8 +5,8 @@ E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
 nu = 0.3    # Poisson ratio
 
 # boundary conditions ("left" and "right" come from the names in the mesh)
-PHYSICAL_ENTITY left  BC fixed
-PHYSICAL_ENTITY right BC Fx=1e4      # [ N ] load in x+
+PHYSICAL_GROUP left  BC fixed
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
 
 FINO_STEP   # solve
 

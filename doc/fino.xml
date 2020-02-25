@@ -26,8 +26,7 @@
       <item>GRADIENT</item>
       <item>GRADIENT_HIGHER</item>
       <item>SMOOTH</item>
-      <item>ROUGH</item>
-      <item>GRADIENT_ELEMENT_WEIGHT</item>
+      <item>ELEMENT_WEIGHT</item>
       <item>GRADIENT_QUALITY_THRESHOLD</item>
       <item>FINO_STEP</item>
       <item>JUST_BUILD</item>
@@ -189,9 +188,9 @@
       <item>DELTA_X</item>
       <item>DELTA_Y</item>
       <item>DELTA_Z</item>
-      <item>READ_FUNCTION</item>
       <item>READ_DATA</item>
       <item>READ_SCALAR</item>
+      <item>READ_FUNCTION</item>
       <item>MESH_MAIN</item>
       <item>MESH_POST</item>
       <item>NOMESH</item>
@@ -201,9 +200,9 @@
       <item>EXPRESSION</item>
       <item>EXPR</item>
       <item>OVER</item>
-      <item>GAUSS_POINTS</item>
       <item>MESH_FILL_VECTOR</item>
       <item>MESH_FIND_MINMAX</item>
+      <item>PHYSICAL_GROUP</item>
       <item>I_MIN</item>
       <item>INDEX_MIN</item>
       <item>X_MIN</item>
@@ -217,8 +216,8 @@
       <item>DIMENSION</item>
       <item>DIM</item>
       <item>MATERIAL</item>
-      <item>BOUNDARY</item>
       <item>BC</item>
+      <item>BOUNDARY_CONDITION</item>
       <item>PHYSICAL_PROPERTY</item>
       <item>NONE</item>
       <item>ALLOWED</item>
@@ -322,6 +321,8 @@
       <item>ncores_0</item>
       <item>nodes</item>
       <item>nodes_0</item>
+      <item>nodes_rough</item>
+      <item>nodes_rough_0</item>
       <item>nx</item>
       <item>nx_0</item>
       <item>ny</item>

@@ -43,7 +43,7 @@ int plugin_parse_line(char *line) {
         
 ///kw+FINO_PROBLEM+usage mechanical
 ///kw+FINO_PROBLEM+usage |
-///kw+FINO_PROBLEM+detail  * `mechanical` (or `elastic` or `break`) solves the mechanical elastic problem (default).        
+///kw+FINO_PROBLEM+detail  * `mechanical` (or `elastic` or `break`, default) solves the mechanical elastic problem (default).        
         if (strcasecmp(token, "mechanical") == 0 || strcasecmp(token, "elastic") == 0 || strcasecmp(token, "break") == 0) {
           fino.problem_family = problem_family_mechanical;
 ///kw+FINO_PROBLEM+usage thermal
@@ -234,8 +234,8 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]@
 ///kw+FINO_SOLVER+detail If the keyword `PROGRESS_ASCII` is given, three ASCII lines will show in the terminal the
-///kw+FINO_SOLVER+detail progress of the ensamble of the stiffness matrix, the solution of the linear system and the
-///kw+FINO_SOLVER+detail computation of gradients (stresses).          
+///kw+FINO_SOLVER+detail progress of the ensamble of the stiffness matrix (or matrices), the solution of the system of equations
+///kw+FINO_SOLVER+detail and the computation of gradients (stresses).
         } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = 1;
 
@@ -254,10 +254,14 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
 ///kw+FINO_SOLVER+detail  * List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
 ///kw+FINO_SOLVER+detail @
-///kw+FINO_SOLVER+detail If either `PC_TYPE` or `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
         } else if (strcasecmp(token, "SNES_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.snes_type));
 
+///kw+FINO_SOLVER+detail If either `PC_TYPE` or `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
+///kw+FINO_SOLVER+detail For the mechanical problem, the default is to use GAMG as the preconditioner and PETSc’s default solver (GMRES).
+///kw+FINO_SOLVER+detail For the thermal problem, the default is to use the default PETSc settings.
+///kw+FINO_SOLVER+detail For the modal problem, the default is to use the default SLEPc settings.
+          
 //kw+FINO_SOLVER+usage [ SET_NEAR_NULLSPACE { rigidbody | fino | none } ]@
 /*          
         } else if (strcasecmp(token, "SET_NEAR_NULLSPACE") == 0 || strcasecmp(token, "SET_NEAR_NULL_SPACE") == 0) {
@@ -283,68 +287,103 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "SET_BLOCK_SIZE") == 0) {
           fino.do_not_set_block_size = 0;
 */
+          
 ///kw+FINO_SOLVER+usage [ GRADIENT {
         } else if (strcasecmp(token, "GRADIENT") == 0) {
+///kw+FINO_SOLVER+detail The `GRADIENT` keyword controls how the derivatives (i.e. strains) at the first-order nodes
+///kw+FINO_SOLVER+detail are to be computed out of the primary unknowns (i.e. displacements).
+///kw+FINO_SOLVER+detail @
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   gauss |
                          "gauss",
+///kw+FINO_SOLVER+detail  * `gauss` (default) computes the derivatives at the gauss points and the extrapolates the values to the nodes
 ///kw+FINO_SOLVER+usage   nodes |
                          "nodes",
+///kw+FINO_SOLVER+detail  * `nodes` computes the derivatives direcetly at the nodes
 ///kw+FINO_SOLVER+usage   none
                          "none",
+///kw+FINO_SOLVER+detail  * `none` does not compute any derivative at all
                          ""};
           int values[] = {gradient_gauss_extrapolated, gradient_at_nodes, gradient_none, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_evaluation));
 ///kw+FINO_SOLVER+usage } ]@
+///kw+FINO_SOLVER+detail @
           
 ///kw+FINO_SOLVER+usage [ GRADIENT_HIGHER {
         } else if (strcasecmp(token, "GRADIENT_HIGHER") == 0) {
+///kw+FINO_SOLVER+detail The way derivatives are computed at high-order nodes (i.e. those at the middle of edges or faces)
+///kw+FINO_SOLVER+detail is controlled with `GRADIENT_HIGHER`:
+///kw+FINO_SOLVER+detail @
           char *keywords[] = {
 ///kw+FINO_SOLVER+usage   average |
                          "average",
-///kw+FINO_SOLVER+usage   nodes |
+///kw+FINO_SOLVER+detail  * `average` (default) assigns the plain average of the first-order nodes that surrond each high-order node
+///kw+FINO_SOLVER+usage   nodes
                          "nodes",
+///kw+FINO_SOLVER+detail  * `none` computes the derivatives at the location of the high-order nodes
                          ""};
           int values[] = {gradient_average, gradient_actual, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_highorder_nodes));
-
+///kw+FINO_SOLVER+usage } ]@
+///kw+FINO_SOLVER+detail @
+          
+///kw+FINO_SOLVER+usage [ SMOOTH {
+        } else if (strcasecmp(token, "SMOOTH") == 0) {
+///kw+FINO_SOLVER+detail The keyword `SMOOTH` controls how the gradient-based functions (i.e. strains, stresses, etc) are
+///kw+FINO_SOLVER+detail smoothed---or not---to obtain nodal values out of data which primarily comes from element-wise evaluations at the Gauss points.
+///kw+FINO_SOLVER+detail @
+          char *keywords[] = {
+///kw+FINO_SOLVER+usage   always |
+                         "always",
+///kw+FINO_SOLVER+detail  * `always` (default) computes a single value for each node by averaging the contributions of individual elements.
+///kw+FINO_SOLVER+usage   never |
+                         "never",
+///kw+FINO_SOLVER+detail  * `never` keeps the contribution of each individual element separate.
+///kw+FINO_SOLVER+detail This option implies that the output mesh is different from the input mesh as each element now
+///kw+FINO_SOLVER+detail has a “copy” of the original shared nodes.
+///kw+FINO_SOLVER+usage   material
+                         "material",
+///kw+FINO_SOLVER+detail  * `material` averages element contribution only for those elements that belong to the same material (i.e. physical group).
+///kw+FINO_SOLVER+detail As with `never`, a new output mesh is created where the nodes are duplicated even for those elements which belong to the same physical group.
+                         ""};
+          int values[] = {0, 1, 2, 0};
+          wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.rough));
+          if (fino.rough == 2) {
+            fino.rough = 1;
+            fino.roughish = 1;
+          }
+///kw+FINO_SOLVER+detail @
 ///kw+FINO_SOLVER+usage } ]@
           
-///kw+FINO_SOLVER+usage [ SMOOTH |
-        } else if (strcasecmp(token, "SMOOTH") == 0) {
-          fino.rough = 0;
-          fino.roughish = 0;
-          
-///kw+FINO_SOLVER+usage ROUGH |
-        } else if (strcasecmp(token, "ROUGH") == 0) {
-          fino.rough = 1;
-          fino.roughish = 0;
-          
-///kw+FINO_SOLVER+usage ROUGHISH ]@
-        } else if (strcasecmp(token, "ROUGHISH") == 0) {
-          fino.rough = 1;
-          fino.roughish = 1;
-
-///kw+FINO_SOLVER+usage [ GRADIENT_ELEMENT_WEIGHT {
-        } else if (strcasecmp(token, "GRADIENT_ELEMENT_WEIGHT") == 0) {
+///kw+FINO_SOLVER+usage [ ELEMENT_WEIGHT {
+///kw+FINO_SOLVER+detail The way individual contributions of different elements to the same node are averaged is controlled by `ELEMENT_WEIGHT`:
+///kw+FINO_SOLVER+detail @
+        } else if (strcasecmp(token, "ELEMENT_WEIGHT") == 0) {
           char *keywords[] = {
-///kw+FINO_SOLVER+usage   volume |
-                         "volume",
-///kw+FINO_SOLVER+usage   flat |
-                         "flat",
-///kw+FINO_SOLVER+usage   quality |
-                         "quality",
 ///kw+FINO_SOLVER+usage   volume_times_quality
                          "volume_times_quality",
+///kw+FINO_SOLVER+detail  * `volume_times_quality` (default) weights each element by the product of its volume times its quality
+///kw+FINO_SOLVER+usage   volume |
+                         "volume",
+///kw+FINO_SOLVER+detail  * `volume` weights each element by the its volume
+///kw+FINO_SOLVER+usage   quality |
+                         "quality",
+///kw+FINO_SOLVER+detail  * `quality` weights each element by the its quality
+///kw+FINO_SOLVER+usage   flat
+                         "flat",
+///kw+FINO_SOLVER+detail  * `flat` performs plain averages (i.e. the same weight for all elements)
                          ""};
-          int values[] = {gradient_weight_flat, gradient_weight_volume, gradient_weight_quality, gradient_weight_volume_times_quality, 0};
+          int values[] = {gradient_weight_volume_times_quality, gradient_weight_volume, gradient_weight_quality, gradient_weight_flat, 0};
           wasora_call(wasora_parser_keywords_ints(keywords, values, (int *)&fino.gradient_element_weight));
 ///kw+FINO_SOLVER+usage } ]@
+///kw+FINO_SOLVER+detail @
           
-///kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]@
+//kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]@
+//kw+FINO_SOLVER+detail If the `GRADIENT_QUALITY_THRESHOLD` 
+/*          
         } else if (strcasecmp(token, "GRADIENT_QUALITY_THRESHOLD") == 0) {
           wasora_call(wasora_parser_expression_in_string(&fino.gradient_quality_threshold));
-
+*/
         } else {
           wasora_push_error_message("undefined keyword '%s'", token);
           return WASORA_PARSER_ERROR;
@@ -355,7 +394,10 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_STEP+usage FINO_STEP
-///kw+FINO_STEP+desc Solves the linear eigenvalue problem.
+///kw+FINO_STEP+desc Ask Fino to solve the problem and advance one step.
+///kw+FINO_STEP+detail The location of the `FINO_STEP` keyword within the input file marks the logical location where      
+///kw+FINO_STEP+detail the problem is solved and the result functions (displacements, temperatures, stresses, etc.) are available
+///kw+FINO_STEP+detail for output or further computation.
     } else if (strcasecmp(token, "FINO_STEP") == 0) {
 
       fino_step_t *fino_step = calloc(1, sizeof(fino_step_t));
@@ -478,9 +520,9 @@ int plugin_parse_line(char *line) {
       LL_APPEND(fino.reactions, reaction);
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
-///kw+FINO_REACTION+usage PHYSICAL_ENTITY <physical_entity_name>
+///kw+FINO_REACTION+usage PHYSICAL_GROUP <physical_group>
         
-        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
+        if (strcasecmp(token, "PHYSICAL_GROUP") == 0 || strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((reaction->physical_entity = wasora_get_physical_entity_ptr(name, fino.mesh)) == NULL) {
             reaction->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
@@ -526,9 +568,9 @@ int plugin_parse_line(char *line) {
 // ---------------------------------------------------------------------
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
 ///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
-///kw+FINO_LINEARIZE+desc Stress Classification Line given either as a one-dimensional physical entity in the
-///kw+FINO_LINEARIZE+desc mesh or as the (continuous) spatial coordinates of two end-points.
-      
+///kw+FINO_LINEARIZE+desc Stress Classification Line
+///kw+FINO_LINEARIZE+detail The Stress Classification Line (SCL) may be given either as a one-dimensional physical entity
+///kw+FINO_LINEARIZE+detail in the mesh or as the (continuous) spatial coordinates of two end-points.
     } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
       
       char *name;
@@ -546,11 +588,11 @@ int plugin_parse_line(char *line) {
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 
 ///kw+FINO_LINEARIZE+usage {
-///kw+FINO_LINEARIZE+usage PHYSICAL_ENTITY <physical_entity_name>
-///kw+FINO_LINEARIZE+detail If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+///kw+FINO_LINEARIZE+usage PHYSICAL_GROUP <physical_group>
+///kw+FINO_LINEARIZE+detail If the SCL is given as a `PHYSICAL_GROUP`, the entity should be one-dimensional (i.e a line)
 ///kw+FINO_LINEARIZE+detail independently of the dimension of the problem.
         
-        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
+        if (strcasecmp(token, "PHYSICAL_ENTITY") == 0 || strcasecmp(token, "PHYSICAL_GROUP") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((linearize->physical_entity = wasora_get_physical_entity_ptr(name, fino.mesh)) == NULL) {
             linearize->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
@@ -707,7 +749,7 @@ int plugin_parse_line(char *line) {
       }      
       
       if (linearize->physical_entity == NULL && linearize->x1.n_tokens == 0 && linearize->x2.n_tokens == 0) {
-        wasora_push_error_message("need to know what the SCL is either as a PHYSICAL_ENTITY or START_POINT and END_POINT");
+        wasora_push_error_message("need to know what the SCL is either as a PHYSICAL_GROUP or START_POINT and END_POINT");
         return WASORA_PARSER_ERROR;
       }
       
@@ -716,8 +758,8 @@ int plugin_parse_line(char *line) {
       return WASORA_PARSER_OK;
       
 // ---------------------------------------------------------------------
-///kw+FINO_DEBUG+usage FINO_DEBUG
-///kw+FINO_DEBUG+desc Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
+//kw+FINO_DEBUG+usage FINO_DEBUG
+//kw+FINO_DEBUG+desc Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
     } else if ((strcasecmp(token, "FINO_DEBUG") == 0)) {
       
       fino_debug_t *debug;
@@ -726,55 +768,55 @@ int plugin_parse_line(char *line) {
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
         
-///kw+FINO_DEBUG+usage [ FILE <file_id> | 
+//kw+FINO_DEBUG+usage [ FILE <file_id> | 
         if (strcasecmp(token, "FILE") == 0) {
           wasora_call(wasora_parser_file(&debug->file));
           
-///kw+FINO_DEBUG+usage FILE_PATH <file_path> ]@
+//kw+FINO_DEBUG+usage FILE_PATH <file_path> ]@
         } else if (strcasecmp(token, "FILE_PATH") == 0) {
             wasora_call(wasora_parser_file_path(&debug->file, "w"));
           
-///kw+FINO_DEBUG+usage [ MATRICES_ASCII ]@
+//kw+FINO_DEBUG+usage [ MATRICES_ASCII ]@
         } else if (strcasecmp(token, "MATRICES_ASCII") == 0) {
           debug->matrices |= DEBUG_MATRICES_ASCII;
-///kw+FINO_DEBUG+usage [ MATRICES_ASCII_STRUCTURE ]@
+//kw+FINO_DEBUG+usage [ MATRICES_ASCII_STRUCTURE ]@
         } else if (strcasecmp(token, "MATRICES_ASCII_STRUCTURE") == 0) {
           debug->matrices |= DEBUG_MATRICES_ASCII_STRUCT;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_BINARY ]@
+//kw+FINO_DEBUG+usage [ MATRICES_PETSC_BINARY ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_BINARY") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_BINARY;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_COMPRESSED_BINARY ]@
+//kw+FINO_DEBUG+usage [ MATRICES_PETSC_COMPRESSED_BINARY ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_COMPRESSED_BINARY") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_COMPRESSED_BINARY;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_ASCII ]@
+//kw+FINO_DEBUG+usage [ MATRICES_PETSC_ASCII ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_ASCII") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_ASCII;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_OCTAVE ]@
+//kw+FINO_DEBUG+usage [ MATRICES_PETSC_OCTAVE ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_OCTAVE") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_OCTAVE;
-///kw+FINO_DEBUG+usage [ MATRICES_PETSC_DENSE ]@
+//kw+FINO_DEBUG+usage [ MATRICES_PETSC_DENSE ]@
         } else if (strcasecmp(token, "MATRICES_PETSC_DENSE") == 0) {
           debug->matrices |= DEBUG_MATRICES_PETSC_DENSE;
-///kw+FINO_DEBUG+usage [ MATRICES_X ]@
+//kw+FINO_DEBUG+usage [ MATRICES_X ]@
         } else if (strcasecmp(token, "MATRICES_X") == 0) {
           debug->matrices |= DEBUG_MATRICES_X;
-///kw+FINO_DEBUG+usage [ MATRICES_SNG ]@
+//kw+FINO_DEBUG+usage [ MATRICES_SNG ]@
         } else if (strcasecmp(token, "MATRICES_SNG") == 0) {
           debug->matrices |= DEBUG_MATRICES_SNG;
-///kw+FINO_DEBUG+usage [ MATRICES_SNG_STRUCT ]@
+//kw+FINO_DEBUG+usage [ MATRICES_SNG_STRUCT ]@
         } else if (strcasecmp(token, "MATRICES_SNG_STRUCT") == 0) {
           debug->matrices |= DEBUG_MATRICES_SNG_STRUCT;
 
-///kw+FINO_DEBUG+usage [ MATRICES_SIZE <expr> ]@
+//kw+FINO_DEBUG+usage [ MATRICES_SIZE <expr> ]@
         } else if (strcasecmp(token, "MATRICES_SIZE") == 0 || strcasecmp(token, "MATRICES_X_SIZE") == 0) {
           wasora_call(wasora_parser_expression(&debug->matrices_size));
           
-///kw+FINO_DEBUG+usage [ MATRICES_STRIDE <expr> ]@
+//kw+FINO_DEBUG+usage [ MATRICES_STRIDE <expr> ]@
         } else if (strcasecmp(token, "MATRICES_STRIDE") == 0) {
           wasora_call(wasora_parser_expression(&debug->matrices_stride));
 
           
-///kw+FINO_DEBUG+usage [ INCLUDE_INPUT ]@
+//kw+FINO_DEBUG+usage [ INCLUDE_INPUT ]@
         } else if (strcasecmp(token, "INCLUDE_INPUT") == 0) {
           debug->include_input = 1;
         } else {

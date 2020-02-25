@@ -23,6 +23,9 @@ two-material-beam.msh
 two-material-beam2.msh
 two-material-beam.vtk
 
+two-cubes*.msh
+two-cubes*.vtk
+
 beam-quads*.msh
 beam-quads.vtk
 

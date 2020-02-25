@@ -13,8 +13,8 @@ T_cool = 0
 
 T_0(x,y,z) := T_cool
 
-PHYSICAL_ENTITY NAME hot       BC T=T_hot
-PHYSICAL_ENTITY NAME cool      BC Tref=T_cool h=1
+PHYSICAL_GROUP NAME hot       BC T=T_hot
+PHYSICAL_GROUP NAME cool      BC Tref=T_cool h=1
 
 FINO_STEP
 

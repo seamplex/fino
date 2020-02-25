@@ -8,9 +8,9 @@ T0 = 0         # Reference temperature
 alpha = 1e-3   # Thermal expansion coefficient
 
 # the prism is fixed on these planes
-PHYSICAL_ENTITY NAME "xy" BC  w=0
-PHYSICAL_ENTITY NAME "yz" BC  u=0
-PHYSICAL_ENTITY NAME "zx" BC  v=0
+PHYSICAL_GROUP NAME "xy" BC  w=0
+PHYSICAL_GROUP NAME "yz" BC  u=0
+PHYSICAL_GROUP NAME "zx" BC  v=0
 
 FINO_STEP
 

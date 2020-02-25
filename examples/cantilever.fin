@@ -28,9 +28,9 @@ P = 1000   # load in [ N ]
 E = 200e3  # Young modulus in [ MPa ]
 nu = 0.3   # Poisson’s ratio
 
-PHYSICAL_ENTITY NAME bulk
-PHYSICAL_ENTITY NAME left  BC fixed
-PHYSICAL_ENTITY NAME right BC Fz=-1000
+PHYSICAL_GROUP NAME bulk
+PHYSICAL_GROUP NAME left  BC fixed
+PHYSICAL_GROUP NAME right BC Fz=-1000
 
 
 FINO_STEP
@@ -46,7 +46,7 @@ FINO_STEP
 # )}
 # MESH_INTEGRATE FUNCTION energy_density OVER bulk RESULT integrated_energy
 
-FINO_REACTION PHYSICAL_ENTITY left RESULT R
+FINO_REACTION PHYSICAL_GROUP left RESULT R
 
 # reference max deflection according to Euler-Bernoulli
 # https://en.wikipedia.org/wiki/Euler%E2%80%93Bernoulli_beam_theory#Cantilever_beams

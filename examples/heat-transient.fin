@@ -20,10 +20,10 @@ FUNCTION Tin(t) DATA {
 # either give an initial condition or let fino compute the steady-state
 # T_0(x,y) := Tin(0)
 
-PHYSICAL_ENTITY NAME left      BC h=0.003 Tref=Tin(t)
-PHYSICAL_ENTITY NAME right     BC h=0.003 Tref=Tin(t)
-PHYSICAL_ENTITY NAME bottom    BC h=0.003 Tref=Tin(t)
-PHYSICAL_ENTITY NAME top       BC h=0.003 Tref=Tin(t)
+PHYSICAL_GROUP NAME left      BC h=0.003 Tref=Tin(t)
+PHYSICAL_GROUP NAME right     BC h=0.003 Tref=Tin(t)
+PHYSICAL_GROUP NAME bottom    BC h=0.003 Tref=Tin(t)
+PHYSICAL_GROUP NAME top       BC h=0.003 Tref=Tin(t)
 
 FINO_STEP
 

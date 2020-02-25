@@ -7,11 +7,38 @@ See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
 
 include(reference-toc.md)
 
-# Keywords
+
+# Fino keywords
 
 esyscmd([!../wasora/doc/reference.sh parser kw!])
 
-# Variables
+
+# Mesh keywords
+
+esyscmd([!../wasora/doc/reference.sh parser kw ../wasora/src/mesh!])
+
+
+# Special input distributions
+
+TBD.
+
+
+# Boundary conditions
+
+TBD.
+
+
+# Result functions
+
+TBD.
+
+
+# Wasora keywords
+
+esyscmd([!../wasora/doc/reference.sh parser kw ../wasora/src!])
+
+
+# Fino variables
 
 esyscmd([!../wasora/doc/reference.sh init va!])
 

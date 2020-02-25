@@ -389,7 +389,7 @@ struct {
     gradient_actual
   } gradient_highorder_nodes;
   
-  double gradient_quality_threshold;
+//  double gradient_quality_threshold;
   
   // tensor de tensiones
   function_t *sigmax;

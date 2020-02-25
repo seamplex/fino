@@ -125,68 +125,68 @@ int plugin_init_before_parser(void) {
   
   // variables especiales de fino
 ///va+fino_abstol+name fino_abstol
-///va+fino_abstol+desc Absolute tolerance of the linear solver,
-///va+fino_abstol+desc as passed to PETSc’s
-///va+fino_abstol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
+///va+fino_abstol+detail Absolute tolerance of the linear solver,
+///va+fino_abstol+detail as passed to PETSc’s
+///va+fino_abstol+detail [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html)
   fino.vars.abstol = wasora_define_variable("fino_abstol");
   // TODO: poner el default automaticamente
-///va+fino_abstol+desc Default `1e-50`.
+///va+fino_abstol+detail Default `1e-50`.
   wasora_var(fino.vars.abstol) = 1e-50;   // igual al de PETSc
  
 ///va+fino_reltol+name fino_reltol
-///va+fino_reltol+desc Relative tolerance of the linear solver,
-///va+fino_reltol+desc as passed to PETSc’s
-///va+fino_reltol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+///va+fino_reltol+detail Relative tolerance of the linear solver,
+///va+fino_reltol+detail as passed to PETSc’s
+///va+fino_reltol+detail [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
 fino.vars.reltol = wasora_define_variable("fino_reltol");
-///va+fino_reltol+desc Default `1e-6`.
+///va+fino_reltol+detail Default `1e-6`.
   wasora_var(fino.vars.reltol) = 1e-6;    // el de PETSc es 1e-5
   
 ///va+fino_divtol+name fino_divtol
-///va+fino_divtol+desc Divergence tolerance,
-///va+fino_divtol+desc as passed to PETSc’s
-///va+fino_divtol+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+///va+fino_divtol+detail Divergence tolerance,
+///va+fino_divtol+detail as passed to PETSc’s
+///va+fino_divtol+detail [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.divtol = wasora_define_variable("fino_divtol");
-///va+fino_divtol+desc Default `1e+4`.  
+///va+fino_divtol+detail Default `1e+4`.  
   wasora_var(fino.vars.divtol) = 1e+4;  // igual al de PETSc
   
 ///va+fino_max_iterations+name fino_max_iterations
-///va+fino_max_iterations+desc Number of maximum iterations before diverging,
-///va+fino_max_iterations+desc as passed to PETSc’s
-///va+fino_max_iterations+desc [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
+///va+fino_max_iterations+detail Number of maximum iterations before diverging,
+///va+fino_max_iterations+detail as passed to PETSc’s
+///va+fino_max_iterations+detail [`KSPSetTolerances`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPSetTolerances.html).
   fino.vars.max_iterations = wasora_define_variable("fino_max_iterations");
-///va+fino_max_iterations+desc Default `10000`.
+///va+fino_max_iterations+detail Default `10000`.
   wasora_var(fino.vars.max_iterations) = 10000;   // igual al de PETSc
 
 ///va+fino_gamg_threshold+name fino_gamg_threshold
-///va+fino_gamg_threshold+desc Relative threshold to use for dropping edges in aggregation graph for the
-///va+fino_gamg_threshold+desc [Geometric Algebraic Multigrid Preconditioner](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)
-///va+fino_gamg_threshold+desc as passed to PETSc’s
-///va+fino_gamg_threshold+desc [`PCGAMGSetThreshold`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMGSetThreshold.html).
-///va+fino_gamg_threshold+desc A value of 0.0 means keep all nonzero entries in the graph; negative means keep even zero entries in the graph.
+///va+fino_gamg_threshold+detail Relative threshold to use for dropping edges in aggregation graph for the
+///va+fino_gamg_threshold+detail [Geometric Algebraic Multigrid Preconditioner](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)
+///va+fino_gamg_threshold+detail as passed to PETSc’s
+///va+fino_gamg_threshold+detail [`PCGAMGSetThreshold`](http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMGSetThreshold.html).
+///va+fino_gamg_threshold+detail A value of 0.0 means keep all nonzero entries in the graph; negative means keep even zero entries in the graph.
   fino.vars.gamg_threshold = wasora_define_variable("fino_gamg_threshold");
-///va+fino_gamg_threshold+desc Default `0.01`.  
+///va+fino_gamg_threshold+detail Default `0.01`.  
   wasora_var(fino.vars.gamg_threshold) = 0.01;
   
 ///va+fino_penalty_weight+name fino_penalty_weight
-///va+fino_penalty_weight+desc The weight $w$ used when setting multi-freedom boundary conditions.
-///va+fino_penalty_weight+desc Higher values mean better precision in the constrain but distort
-///va+fino_penalty_weight+desc the matrix condition number. 
+///va+fino_penalty_weight+detail The weight $w$ used when setting multi-freedom boundary conditions.
+///va+fino_penalty_weight+detail Higher values mean better precision in the constrain but distort
+///va+fino_penalty_weight+detail the matrix condition number. 
   fino.vars.penalty_weight = wasora_define_variable("fino_penalty_weight");
-///va+fino_penalty_weight+desc Default is `1e8`.
+///va+fino_penalty_weight+detail Default is `1e8`.
   wasora_var(fino.vars.penalty_weight) = 1e8;  
   
 ///va+fino_iterations+name fino_iterations
-///va+fino_iterations+desc This variable contains the actual number of iterations used
-///va+fino_iterations+desc by the solver. It is set after `FINO_STEP`.
+///va+fino_iterations+detail This variable contains the actual number of iterations used
+///va+fino_iterations+detail by the solver. It is set after `FINO_STEP`.
   fino.vars.iterations = wasora_define_variable("fino_iterations");
   
 ///va+fino_residual_norm+name fino_residual_norm
-///va+fino_residual_norm+desc This variable contains the residual obtained
-///va+fino_residual_norm+desc by the solver. It is set after `FINO_STEP`.
+///va+fino_residual_norm+detail This variable contains the residual obtained
+///va+fino_residual_norm+detail by the solver. It is set after `FINO_STEP`.
   fino.vars.residual_norm= wasora_define_variable("fino_residual_norm");
 
 ///va+nodes_rough+name nodes_rough
-///va+nodes_rough+desc The number of nodes of the mesh in `ROUGH` mode.
+///va+nodes_rough+detail The number of nodes of the mesh in `ROUGH` mode.
   fino.vars.nodes_rough = wasora_define_variable("nodes_rough");
   
   // estas son para las expresiones algebraicas implicitamente
@@ -197,145 +197,143 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   fino.vars.U[2]= wasora_define_variable("W");
 
 ///va+strain_energy+name strain_energy
-///va+strain_energy+desc The strain energy stored in the solid, computed as
-///va+strain_energy+desc 
-///va+strain_energy+desc [\ \frac{1}{2} \vec{u}^T \cdot K \cdot \vec{u}]
-///va+strain_energy+desc 
-///va+strain_energy+desc where $\vec{u}$ is the displacements vector and $K$ is the stiffness matrix.
+///va+strain_energy+detail The strain energy stored in the solid, computed as
+///va+strain_energy+detail $1/2 \cdot \mathbf{u}^T  K \mathbf{u}$
+///va+strain_energy+detail where $\mathbf{u}$ is the displacements vector and $K$ is the stiffness matrix.
   fino.vars.strain_energy = wasora_define_variable("strain_energy");
 
   ///va+displ_max+name displ_max
-///va+displ_max+desc The module of the maximum displacement of the elastic problem.
+///va+displ_max+detail The module of the maximum displacement of the elastic problem.
   fino.vars.displ_max = wasora_define_variable("displ_max");
 
 ///va+displ_max_x+name displ_max_x
-///va+displ_max_x+desc The\ $x$ coordinate of the maximum displacement of the elastic problem.
+///va+displ_max_x+detail The\ $x$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_x = wasora_define_variable("displ_max_x");
 ///va+displ_max_y+name displ_max_y
-///va+displ_max_y+desc The\ $y$ coordinate of the maximum displacement of the elastic problem.
+///va+displ_max_y+detail The\ $y$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_y = wasora_define_variable("displ_max_y");
 ///va+displ_max_z+name displ_max_z
-///va+displ_max_z+desc The\ $z$ coordinate of the maximum displacement of the elastic problem.
+///va+displ_max_z+detail The\ $z$ coordinate of the maximum displacement of the elastic problem.
   fino.vars.displ_max_z = wasora_define_variable("displ_max_z");
 
 ///va+u_at_displ_max+name u_at_displ_max
-///va+u_at_displ_max+desc The\ $x$ component\ $u$ of the maximum displacement of the elastic problem.
+///va+u_at_displ_max+detail The\ $x$ component\ $u$ of the maximum displacement of the elastic problem.
   fino.vars.u_at_displ_max = wasora_define_variable("u_at_displ_max");
 ///va+v_at_displ_max+name v_at_displ_max
-///va+v_at_displ_max+desc The\ $y$ component\ $v$ of the maximum displacement of the elastic problem.
+///va+v_at_displ_max+detail The\ $y$ component\ $v$ of the maximum displacement of the elastic problem.
   fino.vars.v_at_displ_max = wasora_define_variable("v_at_displ_max");
 ///va+w_at_displ_max+name w_at_displ_max
-///va+w_at_displ_max+desc The\ $z$ component\ $w$ of the maximum displacement of the elastic problem.
+///va+w_at_displ_max+detail The\ $z$ component\ $w$ of the maximum displacement of the elastic problem.
   fino.vars.w_at_displ_max = wasora_define_variable("w_at_displ_max");
   
 ///va+sigma_max+name sigma_max
-///va+sigma_max+desc The maximum von Mises stress\ $\sigma$ of the elastic problem.
+///va+sigma_max+detail The maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max = wasora_define_variable("sigma_max");
 
 ///va+sigma_max_x+name sigma_max_x
-///va+sigma_max_x+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+///va+sigma_max_x+detail The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_x = wasora_define_variable("sigma_max_x");
 ///va+sigma_max_y+name sigma_max_y
-///va+sigma_max_y+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+///va+sigma_max_y+detail The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_y = wasora_define_variable("sigma_max_y");
 ///va+sigma_max_z+name sigma_max_z
-///va+sigma_max_z+desc The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
+///va+sigma_max_z+detail The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_z = wasora_define_variable("sigma_max_z");
   
 ///va+u_at_sigma_max+name u_at_sigma_max
-///va+u_at_sigma_max+desc The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
+///va+u_at_sigma_max+detail The\ $x$ component\ $u$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.u_at_sigma_max = wasora_define_variable("u_at_sigma_max");
 ///va+v_at_sigma_max+name v_at_sigma_max
-///va+v_at_sigma_max+desc The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
+///va+v_at_sigma_max+detail The\ $y$ component\ $v$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.v_at_sigma_max = wasora_define_variable("v_at_sigma_max");
 ///va+w_at_sigma_max+name w_at_sigma_max
-///va+w_at_sigma_max+desc The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
+///va+w_at_sigma_max+detail The\ $z$ component\ $w$ of the displacement where the maximum von Mises stress\ $\sigma$ of the elastic problem is located.
   fino.vars.w_at_sigma_max = wasora_define_variable("w_at_sigma_max");
   
 
 ///va+T_max+name T_max
-///va+T_max+desc The maximum temperature\ $T_\text{max}$ of the thermal problem.
+///va+T_max+detail The maximum temperature\ $T_\text{max}$ of the thermal problem.
   fino.vars.T_max = wasora_define_variable("T_max");
 
 ///va+T_min+name T_min
-///va+T_min+desc The minimum temperature\ $T_\text{min}$ of the thermal problem.
+///va+T_min+detail The minimum temperature\ $T_\text{min}$ of the thermal problem.
   fino.vars.T_min = wasora_define_variable("T_min");
 
 ///va+lambda+name lambda
-///va+lambda+desc 
-///va+lambda+desc Requested eigenvalue. It is equal to 1.0 until
-///va+lambda+desc `FINO_STEP` is executed.  
+///va+lambda+detail 
+///va+lambda+detail Requested eigenvalue. It is equal to 1.0 until
+///va+lambda+detail `FINO_STEP` is executed.  
   fino.vars.lambda = wasora_define_variable("lambda");
   wasora_var(fino.vars.lambda) = 1.0;
   
 ///va+time_wall_build+name time_wall_build
-///va+time_wall_build+desc Wall time insumed to build the problem matrices, in seconds.
+///va+time_wall_build+detail Wall time insumed to build the problem matrices, in seconds.
   fino.vars.time_wall_build = wasora_define_variable("time_wall_build");
 
 ///va+time_wall_solve+name time_wall_solve
-///va+time_wall_solve+desc Wall time insumed to solve the problem, in seconds.
+///va+time_wall_solve+detail Wall time insumed to solve the problem, in seconds.
   fino.vars.time_wall_solve = wasora_define_variable("time_wall_solve");
 
 ///va+time_wall_stress+name time_wall_stress
-///va+time_wall_stress+desc Wall time insumed to compute the stresses, in seconds.
+///va+time_wall_stress+detail Wall time insumed to compute the stresses, in seconds.
   fino.vars.time_wall_stress = wasora_define_variable("time_wall_stress");
 
 ///va+time_wall_total+name time_wall_total
-///va+time_wall_total+desc Wall time insumed to initialize, build and solve, in seconds.
+///va+time_wall_total+detail Wall time insumed to initialize, build and solve, in seconds.
   fino.vars.time_wall_total = wasora_define_variable("time_wall_total");
   
 ///va+time_cpu_build+name time_cpu_build
-///va+time_cpu_build+desc CPU time insumed to build the problem matrices, in seconds.
+///va+time_cpu_build+detail CPU time insumed to build the problem matrices, in seconds.
   fino.vars.time_cpu_build = wasora_define_variable("time_cpu_build");
 
 ///va+time_cpu_solve+name time_cpu_solve
-///va+time_cpu_solve+desc CPU time insumed to solve the problem, in seconds.
+///va+time_cpu_solve+detail CPU time insumed to solve the problem, in seconds.
   fino.vars.time_cpu_solve = wasora_define_variable("time_cpu_solve");
 
 ///va+time_cpu_stress+name time_cpu_stress
-///va+time_cpu_stress+desc CPU time insumed to compute the stresses from the displacements, in seconds.
+///va+time_cpu_stress+detail CPU time insumed to compute the stresses from the displacements, in seconds.
   fino.vars.time_cpu_stress = wasora_define_variable("time_cpu_stress");
   
 ///va+time_wall_total+name time_cpu_total
-///va+time_wall_total+desc CPU time insumed to initialize, build and solve, in seconds.
+///va+time_wall_total+detail CPU time insumed to initialize, build and solve, in seconds.
   fino.vars.time_cpu_total = wasora_define_variable("time_cpu_total");
   
 ///va+time_petsc_build+name time_petsc_build
-///va+time_petsc_build+desc CPU time insumed by PETSc to build the problem matrices, in seconds.
+///va+time_petsc_build+detail CPU time insumed by PETSc to build the problem matrices, in seconds.
   fino.vars.time_petsc_build = wasora_define_variable("time_petsc_build");
 
 ///va+time_petsc_solve+name time_petsc_solve
-///va+time_petsc_solve+desc CPU time insumed by PETSc to solve the eigen-problem, in seconds.
+///va+time_petsc_solve+detail CPU time insumed by PETSc to solve the eigen-problem, in seconds.
   fino.vars.time_petsc_solve = wasora_define_variable("time_petsc_solve");
 
 ///va+time_petsc_stress+name time_petsc_solve
-///va+time_petsc_stress+desc CPU time insumed by PETSc to compute the stresses, in seconds.
+///va+time_petsc_stress+detail CPU time insumed by PETSc to compute the stresses, in seconds.
   fino.vars.time_petsc_stress = wasora_define_variable("time_petsc_stress");
   
 ///va+time_wall_total+name time_wall_total
-///va+time_wall_total+desc CPU time insumed by PETSc to initialize, build and solve, in seconds.
+///va+time_wall_total+detail CPU time insumed by PETSc to initialize, build and solve, in seconds.
   fino.vars.time_petsc_total = wasora_define_variable("time_petsc_total");
 
   ///va+petsc_flops+name petsc_flops
-///va+petsc_flops+desc Number of floating point operations performed by PETSc/SLEPc.
+///va+petsc_flops+detail Number of floating point operations performed by PETSc/SLEPc.
   fino.vars.flops_petsc = wasora_define_variable("flops_petsc");
          
 ///va+memory_available+name memory_available
-///va+memory_available+desc Total available memory, in bytes.
+///va+memory_available+detail Total available memory, in bytes.
   fino.vars.memory_available = wasora_define_variable("memory_available");
   wasora_value(fino.vars.memory_available) = sysconf(_SC_PHYS_PAGES)*sysconf(_SC_PAGESIZE);
 
 ///va+memory+name memory
-///va+memory+desc Maximum resident set size (global memory used), in bytes.
+///va+memory+detail Maximum resident set size (global memory used), in bytes.
   fino.vars.memory = wasora_define_variable("memory");
   
 ///va+memory_petsc+name memory_petsc
-///va+memory_petsc+desc Maximum resident set size (memory used by PETSc), in bytes.
+///va+memory_petsc+detail Maximum resident set size (memory used by PETSc), in bytes.
   fino.vars.memory_petsc = wasora_define_variable("memory_petsc");
   
   
   // empezamos con un valor muy negativo, si nadie lo toca ni calculamos la calidad
-  fino.gradient_quality_threshold = DEFAULT_GRADIENT_JACOBIAN_THRESHOLD;
+//  fino.gradient_quality_threshold = DEFAULT_GRADIENT_JACOBIAN_THRESHOLD;
 
   return WASORA_PARSER_OK;
 }

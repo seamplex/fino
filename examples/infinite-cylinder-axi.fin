@@ -8,9 +8,9 @@ a = 1
 b = 2
 p = 10
 
-PHYSICAL_ENTITY NAME inner  BC p=-p
-# PHYSICAL_ENTITY NAME outer  BC u=0
-PHYSICAL_ENTITY NAME infinite   BC v=0
+PHYSICAL_GROUP NAME inner  BC p=-p
+# PHYSICAL_GROUP NAME outer  BC u=0
+PHYSICAL_GROUP NAME infinite   BC v=0
 
 FINO_STEP
 

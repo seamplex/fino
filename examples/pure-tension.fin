@@ -1,8 +1,8 @@
 MESH FILE_PATH beam-quads.msh DIMENSIONS 3
 FINO_SOLVER PROGRESS_ASCII
 
-PHYSICAL_ENTITY NAME fixed  BC u=0 radial
-PHYSICAL_ENTITY NAME load   BC Tx=1000
+PHYSICAL_GROUP NAME fixed  BC u=0 radial
+PHYSICAL_GROUP NAME load   BC Tx=1000
 
 E = 100e3
 nu = 0.3
@@ -12,7 +12,7 @@ FINO_STEP
 MESH_POST FILE_PATH pure-tension.vtk VECTOR u v w  dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz sigmax sigmay sigmaz tauxy tauyz tauzx
 
 MESH_INTEGRATE FUNCTION sigmax OVER load RESULT R1
-FINO_REACTION PHYSICAL_ENTITY load RESULT R2
+FINO_REACTION PHYSICAL_GROUP load RESULT R2
 
 PRINT R1
 PRINT R2

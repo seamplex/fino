@@ -8,8 +8,8 @@ w(x,y) := 0
 E = 200e3
 nu = 0.3
 
-PHYSICAL_ENTITY NAME left   BC fixed
-PHYSICAL_ENTITY NAME right  BC p=1
+PHYSICAL_GROUP NAME left   BC fixed
+PHYSICAL_GROUP NAME right  BC p=1
 
 FINO_STEP #JUST_BUILD
 

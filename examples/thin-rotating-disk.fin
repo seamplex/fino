@@ -3,9 +3,9 @@ R = 20
 
 MESH FILE_PATH thin-rotating-disk.msh
 
-PHYSICAL_ENTITY NAME 00  BC fixed
-PHYSICAL_ENTITY NAME 01  BC u=0 v=0
-PHYSICAL_ENTITY NAME 10  BC v=0 w=0
+PHYSICAL_GROUP NAME 00  BC fixed
+PHYSICAL_GROUP NAME 01  BC u=0 v=0
+PHYSICAL_GROUP NAME 10  BC v=0 w=0
 
 omega = 1000*(2*pi/60)  # rpm -> rad/seg
 rho = 7800*1e-9         # kg/m^3 -> kg/mm^3

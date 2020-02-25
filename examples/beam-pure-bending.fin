@@ -2,18 +2,18 @@
 
 MESH FILE_PATH beam-quads.msh DIMENSIONS 3
 
-PHYSICAL_ENTITY NAME fixed  BC tangential radial
+PHYSICAL_GROUP NAME fixed  BC tangential radial
 
 # tension
-# PHYSICAL_ENTITY NAME load BC Tx=1
-# PHYSICAL_ENTITY NAME load BC tx=1
+# PHYSICAL_GROUP NAME load BC Tx=1
+# PHYSICAL_GROUP NAME load BC tx=1
 
 # torsion
-# PHYSICAL_ENTITY NAME load BC Mx=1
+# PHYSICAL_GROUP NAME load BC Mx=1
 
 # bending
-# PHYSICAL_ENTITY NAME load BC Fx=1 #Fy=1 Fz=1
-PHYSICAL_ENTITY NAME load BC My=1
+# PHYSICAL_GROUP NAME load BC Fx=1 #Fy=1 Fz=1
+PHYSICAL_GROUP NAME load BC My=1
 
 E = 100
 nu = 0
@@ -22,6 +22,6 @@ FINO_STEP
 
 MESH_POST FILE_PATH beam-pure-bending.vtk VECTOR u v w sigma sigma1 sigma2 sigma3
 
-FINO_REACTION PHYSICAL_ENTITY fixed RESULT R
+FINO_REACTION PHYSICAL_GROUP fixed RESULT R
 # PRINT R
 # PRINT sigma(0,0,0)

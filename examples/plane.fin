@@ -10,8 +10,8 @@ a = 1
 b = 2
 p = 10
 
-PHYSICAL_ENTITY NAME bottom  BC fixed
-PHYSICAL_ENTITY NAME top     BC Mz=1
+PHYSICAL_GROUP NAME bottom  BC fixed
+PHYSICAL_GROUP NAME top     BC Mz=1
 
 FINO_STEP
 
