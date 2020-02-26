@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.92-g74d5879
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.93-g643fa2c
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -115,7 +115,7 @@ See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
 Stress Classification Line
 
 ~~~wasora
-FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> }
+FINO_LINEARIZE { PHYSICAL_GROUP <physical_group> | START_POINT <x1> <y1> <z1> END_POINT <x2> <y2> <z2> }
  [ FILE <file_id> | FILE_PATH <file_path> ]
  [ TOTAL { vonmises tresca | tresca | principal1 | principal2 | principal3 }
  [ M <variable> ]
@@ -127,7 +127,7 @@ FINO_LINEARIZE { PHYSICAL_ENTITY <physical_entity_name> | START_POINT <x1> <y1> 
 
 The Stress Classification Line (SCL) may be given either as a one-dimensional physical entity
 in the mesh or as the (continuous) spatial coordinates of two end-points.
-If the SCL is given as a `PHYSICAL_ENTITY`, the entity should be one-dimensional (i.e a line)
+If the SCL is given as a `PHYSICAL_GROUP`, the entity should be one-dimensional (i.e a line)
 independently of the dimension of the problem.
 If the SCL is given with `START_POINT` and `END_POINT`, the number of coordinates given should
 match the problem dimension (i.e three coordinates for full\ 3D problems and two coordinates for
@@ -180,7 +180,7 @@ The number of modes to be computed in the modal problem. The default is DEFAULT_
 > Computes the reaction at the selected physical entity.
 
 ~~~wasora
-FINO_REACTION PHYSICAL_ENTITY <physical_entity_name> [ RESULT { <variable> | <vector> } ]
+FINO_REACTION PHYSICAL_GROUP <physical_group> [ RESULT { <variable> | <vector> } ]
 ~~~
 
 
@@ -401,7 +401,7 @@ PHYSICAL_GROUP <name> [ MESH <name> ] [ DIMENSION <expr> ]
 
 
 A name is mandatory for each physical group defined within the input file.
-If there is no physical group in the mesh, this instruction makes no effect.
+If there is no physical group with the provided name in the mesh, this instruction makes no effect.
 If there are many meshes, an explicit mesh can be given with `MESH`.
 Otherwise, the physical group is defined on the main mesh.
 An explicit dimension of the physical group can be provided with `DIMENSION`.
