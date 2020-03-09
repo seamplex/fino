@@ -11,7 +11,7 @@ runfino piston.fin > piston.dat
 if [ ! -e piston.dat ]; then
   exit 99
 fi
-temp=`grep -v \# piston.dat`
+temp=`tail -n1 piston.dat`
 
 if (( $temp > 590 )) && (( $temp < 600 )); then
   outcome=0
