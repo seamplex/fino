@@ -18,6 +18,8 @@
  * use TS for heat transient
  * extrapolate matrix for quads/prisms
  * optimize memory usage with massif
+    - instead of having max_neighbours try to get the actual number of neighbors per node
+    - preallocation
  * non-linearities
     - material:
        * bi-linear elastoplastic 

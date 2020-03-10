@@ -342,7 +342,6 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 #define __FUNCT__ "plugin_init_after_parser"
 int plugin_init_after_parser(void) {
 
-//  int m;
   int g;
   
   wasora_call(fino_bc_string2parsed());  
@@ -427,6 +426,7 @@ int fino_problem_init(void) {
 
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
 /*    
+ * TODO: poner una variable para elegir esto
     if (physical_entity->bc_type_math != bc_math_undefined && physical_entity->n_elements == 0) {
       wasora_push_error_message("physical entity '%s' has a BC but no associated elements", physical_entity->name);
       return WASORA_RUNTIME_ERROR;
