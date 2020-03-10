@@ -44,7 +44,6 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
                                         wasora_var(fino.vars.abstol),
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
-
   wasora_call(fino_set_pc(A));
   wasora_call(fino_set_ksp());
 
@@ -52,9 +51,6 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
   if (fino.progress_ascii) {  
     petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
   }
-  
-  // sobreescribimos con la linea de comandos
-  petsc_call(KSPSetFromOptions(fino.ksp));
   
   // do the work!
   petsc_call(KSPSolve(fino.ksp, b, fino.phi));
@@ -143,6 +139,10 @@ int fino_set_ksp(void) {
   }
   // si no nos dieron nada, dejamos el default gmres, que no esta mal
 
+  // sobreescribimos con la linea de comandos
+  petsc_call(KSPSetFromOptions(fino.ksp));
+
+  // set up  
   petsc_call(KSPSetUp(fino.ksp));
   
   return WASORA_RUNTIME_OK;
@@ -161,7 +161,8 @@ int fino_set_pc(Mat A) {
   Vec          *nullvec;  
   PetscReal    *coords;
   Vec          vec_coords;
-
+//  PetscViewer viewer;
+  
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
   
   // si nos pidieron mumps, hay que usar LU o cholesky y poner MatSolverType
@@ -178,6 +179,7 @@ int fino_set_pc(Mat A) {
 //  petsc_call(PCFactorGetMatrix(pc, &F));    
 #else
     wasora_push_error_message("solver MUMPS needs at least PETSc 3.8");
+    return WASORA_RUNTIME_ERROR;
 #endif
   } else {
 
@@ -226,10 +228,13 @@ int fino_set_pc(Mat A) {
         }
 
         petsc_call(VecRestoreArray(vec_coords, &coords));
+//        petsc_call(PetscViewerBinaryOpen(PETSC_COMM_WORLD, "coords.bin", FILE_MODE_WRITE, &viewer));
+//        petsc_call(VecView(vec_coords, viewer));
+//        petsc_call(PetscViewerDestroy(&viewer));
         petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
         petsc_call(MatSetNearNullSpace(A, nullsp));
         petsc_call(MatNullSpaceDestroy(&nullsp));
-        petsc_call(VecDestroy(&vec_coords));      
+        petsc_call(VecDestroy(&vec_coords));
       break;
 
       case set_near_nullspace_fino:
@@ -280,7 +285,10 @@ int fino_set_pc(Mat A) {
     }
   }
   
-  petsc_call(PCSetUp(fino.pc));
+  // esta linea trae problemas con GAMG en versiones viejas de PETSc y la verdad no hace falta
+#if PETSC_VERSION_GT(3,8,0)
+    petsc_call(PCSetUp(fino.pc));
+#endif
   
   return WASORA_RUNTIME_OK;
 }
