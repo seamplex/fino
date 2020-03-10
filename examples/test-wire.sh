@@ -5,10 +5,15 @@
 
 checkgmsh
 
+# if Fino is not linked against SLEPc skip the test
+${finobin} -i | grep -i slepc | grep -v none > /dev/null
+if [ $? -eq 1 ]; then
+  exit 77
+fi  
 
 outcome=0
 gmsh -v 0 -3 wire-general.geo
-if [ $? != 0 ]; then
+if [ $? -ne 0 ]; then
   exit 99
 fi
 

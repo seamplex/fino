@@ -23,10 +23,10 @@ fi
 
 # runs fino
 function runfino {
- $finobin ${testdir}${1} ${2} ${3} ${4} ${5} ${6}
+ ${finobin} ${testdir}${1} ${2} ${3} ${4} ${5} ${6}
  outcome=$?
- if [ $outcome -ne 0 ]; then
-   exit $outcome
+ if [ ${outcome} -ne 0 ]; then
+   exit ${outcome}
  fi
 }
 
