@@ -169,7 +169,7 @@ int fino_set_pc(Mat A) {
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
       (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
       fino.commandline_mumps == PETSC_TRUE) {
-#if PETSC_VERSION_GT(3,8,0)
+#if PETSC_VERSION_GT(3,9,0)
 //  petsc_call(PCSetType(fino.pc, PCLU));
     petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
     petsc_call(PCSetType(fino.pc, PCCHOLESKY));
@@ -178,7 +178,7 @@ int fino_set_pc(Mat A) {
     petsc_call(PCFactorSetUpMatSolverType(fino.pc)); /* call MatGetFactor() to create F */
 //  petsc_call(PCFactorGetMatrix(pc, &F));    
 #else
-    wasora_push_error_message("solver MUMPS needs at least PETSc 3.8");
+    wasora_push_error_message("solver MUMPS needs at least PETSc 3.9.x");
     return WASORA_RUNTIME_ERROR;
 #endif
   } else {
