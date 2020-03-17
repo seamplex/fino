@@ -216,6 +216,7 @@ struct {
     var_t *sigma_max_x;
     var_t *sigma_max_y;
     var_t *sigma_max_z;
+    var_t *delta_sigma_max;
 
     var_t *u_at_sigma_max;
     var_t *v_at_sigma_max;

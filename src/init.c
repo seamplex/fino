@@ -230,6 +230,11 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+sigma_max+detail The maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max = wasora_define_variable("sigma_max");
 
+///va+delta_sigma_max+name delta_sigma_max
+///va+delta_sigma_max+detail The uncertainty of the maximum Von Mises stress\ $\sigma$ of the elastic problem.
+///va+delta_sigma_max+detail Not to be confused with the maximum uncertainty of the Von Mises stress.
+  fino.vars.delta_sigma_max = wasora_define_variable("delta_sigma_max");
+  
 ///va+sigma_max_x+name sigma_max_x
 ///va+sigma_max_x+detail The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic problem.
   fino.vars.sigma_max_x = wasora_define_variable("sigma_max_x");
