@@ -501,12 +501,21 @@ int fino_break_compute_stresses(void) {
   double sigma3 = 0;
   double tresca = 0;
   
+  double dsigma_normal = 0;
+  double dsigma_shear = 0;
+  double delta_sigma = 0;
+  
   double displ2 = 0;
   double max_displ2 = 0;
   
-//  double weight_total;
-//  double weight_normalized;
-  
+  double dudx, dudy, dudz;
+  double dvdx, dvdy, dvdz;
+  double dwdx, dwdy, dwdz;
+
+  double delta_dudx, delta_dudy, delta_dudz;
+  double delta_dvdx, delta_dvdy, delta_dvdz;
+  double delta_dwdx, delta_dwdy, delta_dwdz;
+
   int v, V;
   int i, j, g, m, n;
   int j_global, j_global_prime;
@@ -565,6 +574,7 @@ int fino_break_compute_stresses(void) {
 
     // von mises
     fino_fill_result_function(sigma);
+    fino_fill_result_function(delta_sigma);
     
     // tresca
     fino_fill_result_function(tresca);
@@ -788,9 +798,6 @@ int fino_break_compute_stresses(void) {
   // paso intermedio: roughish
   if (fino.roughish) {
     int k;
-    double dudx, dudy, dudz;
-    double dvdx, dvdy, dvdz;
-    double dwdx, dwdy, dwdz;
     double sigmax, sigmay, sigmaz;
     double tauxy, tauyz, tauzx;
     double den;
@@ -1010,39 +1017,69 @@ int fino_break_compute_stresses(void) {
       
     }
     
-    // ya tenemos los promedios ahora, rellenamos las funciones    
-    fino.gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 0);
-    fino.gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 1);
-    
-    fino.gradient[1][0]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 0);
-    fino.gradient[1][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 1);
+    // ya tenemos los promedios ahora, rellenamos las funciones
+    // nombres lindos porque los volvemos a usar para calcular la incerteza de von mises
+    dudx = gsl_matrix_get(node->dphidx, 0, 0);
+    dudy = gsl_matrix_get(node->dphidx, 0, 1);
+
+    dvdx = gsl_matrix_get(node->dphidx, 1, 0);
+    dvdy = gsl_matrix_get(node->dphidx, 1, 1);
 
     if (fino.dimensions == 3) {
-      fino.gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 2);
-      fino.gradient[1][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 1, 2);
+      dudz = gsl_matrix_get(node->dphidx, 0, 2);
+      dvdz = gsl_matrix_get(node->dphidx, 1, 2);
 
-      fino.gradient[2][0]->data_value[j_global] = gsl_matrix_get(node->dphidx, 2, 0);
-      fino.gradient[2][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 2, 1);
-      fino.gradient[2][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 2, 2);
+      dwdx = gsl_matrix_get(node->dphidx, 2, 0);
+      dwdy = gsl_matrix_get(node->dphidx, 2, 1);
+      dwdz = gsl_matrix_get(node->dphidx, 2, 2);
+    }
+    
+    delta_dudx = gsl_matrix_get(node->delta_dphidx, 0, 0);
+    delta_dudy = gsl_matrix_get(node->delta_dphidx, 0, 1);
+
+    delta_dvdx = gsl_matrix_get(node->delta_dphidx, 1, 0);
+    delta_dvdy = gsl_matrix_get(node->delta_dphidx, 1, 1);
+
+    if (fino.dimensions == 3) {
+      delta_dudz = gsl_matrix_get(node->delta_dphidx, 0, 2);
+      delta_dvdz = gsl_matrix_get(node->delta_dphidx, 1, 2);
+
+      delta_dwdx = gsl_matrix_get(node->delta_dphidx, 2, 0);
+      delta_dwdy = gsl_matrix_get(node->delta_dphidx, 2, 1);
+      delta_dwdz = gsl_matrix_get(node->delta_dphidx, 2, 2);
+    }
+    
+    
+    fino.gradient[0][0]->data_value[j_global] = dudx;
+    fino.gradient[0][1]->data_value[j_global] = dudy;
+    
+    fino.gradient[1][0]->data_value[j_global] = dvdx;
+    fino.gradient[1][1]->data_value[j_global] = dvdy;
+
+    if (fino.dimensions == 3) {
+      fino.gradient[0][2]->data_value[j_global] = dudz;
+      fino.gradient[1][2]->data_value[j_global] = dvdz;
+
+      fino.gradient[2][0]->data_value[j_global] = dwdx;
+      fino.gradient[2][1]->data_value[j_global] = dwdy;
+      fino.gradient[2][2]->data_value[j_global] = dwdz;
     }
     
     // las incertezas
-    fino.delta_gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 0);
-    fino.delta_gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 1);
+    fino.delta_gradient[0][0]->data_value[j_global] = delta_dudx;
+    fino.delta_gradient[0][1]->data_value[j_global] = delta_dudy;
     
-    fino.delta_gradient[1][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 0);
-    fino.delta_gradient[1][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 1);
+    fino.delta_gradient[1][0]->data_value[j_global] = delta_dvdx;
+    fino.delta_gradient[1][1]->data_value[j_global] = delta_dvdy;
 
     if (fino.dimensions == 3) {
-      fino.delta_gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 2);
-      fino.delta_gradient[1][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 2);
+      fino.delta_gradient[0][2]->data_value[j_global] = delta_dudz;
+      fino.delta_gradient[1][2]->data_value[j_global] = delta_dvdz;
 
-      fino.delta_gradient[2][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 0);
-      fino.delta_gradient[2][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 1);
-      fino.delta_gradient[2][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 2);
+      fino.delta_gradient[2][0]->data_value[j_global] = delta_dwdx;
+      fino.delta_gradient[2][1]->data_value[j_global] = delta_dwdy;
+      fino.delta_gradient[2][2]->data_value[j_global] = delta_dwdz;
     }
-    
-    
     
     fino.sigmax->data_value[j_global] = node->f[SIGMAX];
     fino.sigmay->data_value[j_global] = node->f[SIGMAY];
@@ -1071,6 +1108,21 @@ int fino_break_compute_stresses(void) {
     // von mises
     sigma = fino_compute_vonmises_from_principal(sigma1, sigma2, sigma3);
     
+    // incerteza
+    // viene de maxima
+    dsigma_normal = (2*(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+8*dudx*gsl_pow_2(mu))/(2*sqrt(gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)+3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu)));
+    dsigma_shear = (3*(dvdx+dudy)*gsl_pow_2(mu))/sqrt(gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)+3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu));
+    delta_sigma = sqrt(gsl_pow_2(dsigma_normal*delta_dudx) +
+                       gsl_pow_2(dsigma_normal*delta_dvdy) +
+                       gsl_pow_2(dsigma_normal*delta_dwdz) +
+                       gsl_pow_2(dsigma_shear*delta_dudy) +
+                       gsl_pow_2(dsigma_shear*delta_dudz) +
+                       gsl_pow_2(dsigma_shear*delta_dvdx) +
+                       gsl_pow_2(dsigma_shear*delta_dvdz) +
+                       gsl_pow_2(dsigma_shear*delta_dwdx) +
+                       gsl_pow_2(dsigma_shear*delta_dwdy));
+    fino.delta_sigma->data_value[j_global] = delta_sigma;
+        
     if ((fino.sigma->data_value[j_global] = sigma) > wasora_var(fino.vars.sigma_max)) {
       wasora_var(fino.vars.sigma_max) = fino.sigma->data_value[j_global];
       

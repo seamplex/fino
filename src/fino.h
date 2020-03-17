@@ -401,10 +401,11 @@ struct {
   function_t *tauyz;
   function_t *tauzx;
 
-  function_t *sigma1;    // principales
+  function_t *sigma1;      // principales
   function_t *sigma2;
   function_t *sigma3;
-  function_t *sigma;     // von misses
+  function_t *sigma;       // von misses
+  function_t *delta_sigma; // incerteza
   function_t *tresca;
 
   // cosas del eigensolver

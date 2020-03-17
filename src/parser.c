@@ -964,6 +964,7 @@ int fino_define_functions(void) {
     wasora_call(fino_define_result_function("sigma2", &fino.sigma2));
     wasora_call(fino_define_result_function("sigma3", &fino.sigma3));
     wasora_call(fino_define_result_function("sigma", &fino.sigma));
+    wasora_call(fino_define_result_function("delta_sigma", &fino.delta_sigma));
     wasora_call(fino_define_result_function("tresca", &fino.tresca));
         
   }
