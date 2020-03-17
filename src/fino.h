@@ -365,6 +365,8 @@ struct {
   function_t **solution;
   // las derivadas de la solucion con respecto al espacio;
   function_t ***gradient;
+  // la incerteza (i.e la desviacion estandar de la contribucion de cada elemento)
+  function_t ***delta_gradient;  
   // los modos de vibracion
   function_t ***mode;
   

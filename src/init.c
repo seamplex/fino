@@ -658,6 +658,10 @@ int fino_problem_free(void) {
           free(fino.gradient[g][d]->data_value);
           fino.gradient[g][d]->data_value = NULL;
         }  
+        if (fino.delta_gradient != NULL && fino.delta_gradient[g] != NULL) {  
+          free(fino.delta_gradient[g][d]->data_value);
+          fino.delta_gradient[g][d]->data_value = NULL;
+        }  
       }
       
       free(fino.solution[g]->data_value);

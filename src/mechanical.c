@@ -504,7 +504,8 @@ int fino_break_compute_stresses(void) {
   double displ2 = 0;
   double max_displ2 = 0;
   
-  double weight_total, weight_normalized;
+//  double weight_total;
+//  double weight_normalized;
   
   int v, V;
   int i, j, g, m, n;
@@ -542,18 +543,19 @@ int fino_break_compute_stresses(void) {
       for (m = 0; m < fino.dimensions; m++) {
         // derivada del grado de libertad g con respecto a la dimension m
         fino_fill_result_function(gradient[g][m]);
+        fino_fill_result_function(delta_gradient[g][m]);
       }
     }
     
     // tensor de tensiones
     fino_fill_result_function(sigmax);
     fino_fill_result_function(sigmay);
-    fino_fill_result_function(sigmaz);
     fino_fill_result_function(tauxy);
     
     if (fino.dimensions == 3) {
       fino_fill_result_function(tauyz);
       fino_fill_result_function(tauzx);
+      fino_fill_result_function(sigmaz);
     }
 
     // tensiones principales
@@ -616,11 +618,14 @@ int fino_break_compute_stresses(void) {
           element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
           mesh_compute_dhdx_at_gauss(element, v);
 
+          // aca habria que hacer una matriz con los phi globales
+          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
+          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j = 0; j < element->type->nodes; j++) {
-                j_global_prime = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global_prime].phi[g]);
+                j_global = element->node[j]->index_mesh;
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
               }
             }
           }
@@ -645,6 +650,7 @@ int fino_break_compute_stresses(void) {
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
+          // ok, this looks odd but still I’d rather use C than C++
           element->type->element_volume(element);
           element->weight = element->volume;
         } else if (fino.gradient_element_weight == gradient_weight_quality) {
@@ -711,6 +717,7 @@ int fino_break_compute_stresses(void) {
           mesh_compute_dhdx(element, element->type->node_coords[j], NULL, dhdx);
           
           // las nueve derivadas (o menos)
+          // TODO: como arriba, aunque hay que pelar ojo si hay menos DOFs
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
@@ -719,9 +726,7 @@ int fino_break_compute_stresses(void) {
               }
             }
           }
-          
           gsl_matrix_free(dhdx);
-          
         }
         
 
@@ -953,50 +958,56 @@ int fino_break_compute_stresses(void) {
     node = &mesh->node[j_global];
     
     if (fino.rough == 0) {
+      double *mean;
+      double *current;
+      double delta;
+      double sum_weight = 0;
+      double rel_weight = 0;
+      gsl_matrix *m2 = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      
       node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
-
-      weight_total = 0;
+      
       n = 0;
-      LL_FOREACH(mesh->node[j_global].associated_elements, associated_element) {
-        if (associated_element->element->dphidx_node != NULL) {
-          weight_total += associated_element->element->weight;
-          n++;
-        }
-      }
-
       LL_FOREACH(mesh->node[j_global].associated_elements, associated_element) {
         element = associated_element->element;
         if (element->dphidx_node != NULL) {
-          if (weight_total != 0) {
-            weight_normalized = element->weight / weight_total;
-          } else {
-            weight_normalized = 1.0/(double)n;
-          }  
           for (j = 0; j < element->type->nodes; j++) {
             if (element->node[j]->index_mesh == j_global) {
 
-              // las derivadas
-              // TODO: blas level2
+              n++;
+              sum_weight += element->weight;
+              rel_weight = element->weight / sum_weight;
+              
+              // las derivadas con sus incertezas segun weldford
               for (g = 0; g < fino.degrees; g++) {
                 for (m = 0; m < fino.dimensions; m++) {
-                  gsl_matrix_add_to_element(node->dphidx, g, m, weight_normalized * gsl_matrix_get(element->dphidx_node[j], g, m));
+                  mean = gsl_matrix_ptr(node->dphidx, g, m);
+                  current = gsl_matrix_ptr(element->dphidx_node[j], g, m);
+                  delta = *current - *mean;
+                  *mean += rel_weight * delta;
+                  gsl_matrix_add_to_element(m2, g, m, element->weight * delta * ((*current)-(*mean)));
+                  gsl_matrix_set(node->delta_dphidx, g, m, gsl_matrix_get(m2, g, m)/sum_weight);
                 }
               }
 
               fino_break_compute_nodal_stresses(element, j, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
 
-              node->f[SIGMAX] += weight_normalized * sigmax;
-              node->f[SIGMAY] += weight_normalized * sigmay;
-              node->f[SIGMAZ] += weight_normalized * sigmaz;
-              node->f[TAUXY] += weight_normalized * tauxy;
-              node->f[TAUYZ] += weight_normalized * tauyz;
-              node->f[TAUZX] += weight_normalized * tauzx;
-
+              node->f[SIGMAX] += rel_weight*(sigmax-node->f[SIGMAX]);
+              node->f[SIGMAY] += rel_weight*(sigmay-node->f[SIGMAY]);
+              node->f[SIGMAZ] += rel_weight*(sigmaz-node->f[SIGMAZ]);
+              node->f[TAUXY] += rel_weight*(tauxy-node->f[TAUXY]);
+              node->f[TAUYZ] += rel_weight*(tauyz-node->f[TAUYZ]);
+              node->f[TAUZX] += rel_weight*(tauzx-node->f[TAUZX]);
+              
             }
           }
         }
       }
+      
+      gsl_matrix_free(m2);
+      
     }
     
     // ya tenemos los promedios ahora, rellenamos las funciones    
@@ -1014,6 +1025,23 @@ int fino_break_compute_stresses(void) {
       fino.gradient[2][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 2, 1);
       fino.gradient[2][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 2, 2);
     }
+    
+    // las incertezas
+    fino.delta_gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 0);
+    fino.delta_gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 1);
+    
+    fino.delta_gradient[1][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 0);
+    fino.delta_gradient[1][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 1);
+
+    if (fino.dimensions == 3) {
+      fino.delta_gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 2);
+      fino.delta_gradient[1][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 1, 2);
+
+      fino.delta_gradient[2][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 0);
+      fino.delta_gradient[2][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 1);
+      fino.delta_gradient[2][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 2, 2);
+    }
+    
     
     
     fino.sigmax->data_value[j_global] = node->f[SIGMAX];

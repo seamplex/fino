@@ -857,7 +857,7 @@ int fino_define_functions(void) {
   char *name;
   char *gradname;
   char *modename;
-  int i, g, d;
+  int i, g, m;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
   if (fino.dimensions == 0 || fino.degrees == 0) {
@@ -867,6 +867,7 @@ int fino_define_functions(void) {
 
   fino.solution = calloc(fino.degrees, sizeof(function_t *));
   fino.gradient = calloc(fino.degrees, sizeof(function_t *));
+  fino.delta_gradient = calloc(fino.degrees, sizeof(function_t *));
   if (fino.nev > 0) {
     fino.mode = calloc(fino.degrees, sizeof(function_t *));
   }
@@ -896,19 +897,34 @@ int fino_define_functions(void) {
     if (fino.nev == 0) {
       // las derivadas de las soluciones con respecto al espacio solo si no es modal
       fino.gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
-      for (d = 0; d < fino.dimensions; d++) {
-        fino.solution[g]->var_argument[d] = wasora_mesh.vars.arr_x[d];
+      fino.delta_gradient[g] = calloc(fino.dimensions, sizeof(function_t *));
       
-        if (asprintf(&gradname, "d%sd%s", name, wasora_mesh.vars.arr_x[d]->name) == -1) {
+      for (m = 0; m < fino.dimensions; m++) {
+        fino.solution[g]->var_argument[m] = wasora_mesh.vars.arr_x[m];
+      
+        if (asprintf(&gradname, "d%sd%s", name, wasora_mesh.vars.arr_x[m]->name) == -1) {
           wasora_push_error_message("cannot asprintf");
           return WASORA_RUNTIME_ERROR;
         }
-        if ((fino.gradient[g][d] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
+        if ((fino.gradient[g][m] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
           return WASORA_PARSER_ERROR;
         }
-        fino.gradient[g][d]->mesh = fino.solution[g]->mesh;
-        fino.gradient[g][d]->var_argument = fino.solution[g]->var_argument;
-        fino.gradient[g][d]->type = type_pointwise_mesh_node;
+        fino.gradient[g][m]->mesh = fino.solution[g]->mesh;
+        fino.gradient[g][m]->var_argument = fino.solution[g]->var_argument;
+        fino.gradient[g][m]->type = type_pointwise_mesh_node;
+        
+        // lo mismo para la incerteza
+        if (asprintf(&gradname, "delta_d%sd%s", name, wasora_mesh.vars.arr_x[m]->name) == -1) {
+          wasora_push_error_message("cannot asprintf");
+          return WASORA_RUNTIME_ERROR;
+        }
+        if ((fino.delta_gradient[g][m] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
+          return WASORA_PARSER_ERROR;
+        }
+        fino.delta_gradient[g][m]->mesh = fino.solution[g]->mesh;
+        fino.delta_gradient[g][m]->var_argument = fino.solution[g]->var_argument;
+        fino.delta_gradient[g][m]->type = type_pointwise_mesh_node;
+        
         free(gradname);
       }
       
