@@ -61,6 +61,8 @@ fino_distribution_t distribution_T;     // temperatura
 fino_distribution_t distribution_T0;    // temperatura de referencia (i.e. sin deformacion)
 double T0;  // este es el escalar que usamos para evaluar
 
+int uniform_properties;  // flag global para saber si hay que evaluar cada vez o no
+
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_build_element"
@@ -151,6 +153,7 @@ int fino_break_build_element(element_t *element, int v) {
     
     // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+      uniform_properties = 1;
       if ((E = fino_distribution_evaluate(&distribution_E, material, NULL)) <= 0) {
         wasora_push_error_message("E is not positive (%g)", E);
         return WASORA_RUNTIME_ERROR;
@@ -254,7 +257,7 @@ int fino_break_build_element(element_t *element, int v) {
   
   // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
   // pero si alguna es una propiedad o una funcion, es otro cantar
-  if (distribution_E.variable == NULL || distribution_nu.variable == NULL) {
+  if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v);
     wasora_call(fino_break_compute_C(C,
         fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
@@ -301,7 +304,7 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   
   PetscFunctionBegin;
   
-  // esto es mas elegante pero la referencia es tabla 4.3 pag 194 Bathe
+  // esto es mas elegante (y eficiente) pero la referencia posta es tabla 4.3 pag 194 Bathe
   lambda = E*nu/((1+nu)*(1-2*nu));
   mu = 0.5*E/(1+nu);
   lambda2mu = lambda + 2*mu;
@@ -371,7 +374,7 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_break_compute_nodal_stresses"
-int fino_break_compute_nodal_stresses(element_t *element, int j, double *sigmax, double *sigmay, double *sigmaz, double *tauxy, double *tauyz, double *tauzx) {
+int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, double mu, double alpha, double *sigmax, double *sigmay, double *sigmaz, double *tauxy, double *tauyz, double *tauzx) {
   
   double dudx = 0;
   double dudy = 0;
@@ -395,9 +398,6 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double *sigmax,
   double nu = 0;
   double E = 0;
   double DT = 0;
-  double alpha = 0;
-  double lambda = 0;
-  double mu = 0;
   
   double xi = 0;
   
@@ -444,13 +444,15 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double *sigmax,
   }
 
   // ya tenemos derivadas y strains, ahora las tensiones
+/*  
   // primero vemos si tenemos que recalcular E y/o nu
+  
   if (element->property_node != NULL) {
     lambda = element->property_node[j][LAMBDA];
     mu = element->property_node[j][MU];
     alpha = element->property_node[j][ALPHA];
   }
-
+*/
   // tensiones normales
   xi = ex + ey + ez;
   *sigmax = lambda * xi + 2*mu * ex;
@@ -521,6 +523,9 @@ int fino_break_compute_stresses(void) {
   double alpha = 0;
   double lambda = 0;
   double mu = 0;
+  
+  double lambda_max = 0;
+  double mu_max = 0;
   
   int v, V;
   int i, j, g, m, n;
@@ -607,7 +612,7 @@ int fino_break_compute_stresses(void) {
     alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
   }
   
-  if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+  if (uniform_properties) {
     // esto ya sirve para toda la cosecha  
     lambda = E*nu/((1+nu)*(1-2*nu));
     mu = 0.5*E/(1+nu);
@@ -682,9 +687,7 @@ int fino_break_compute_stresses(void) {
       }
       
       // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
-      if (distribution_E.function != NULL || distribution_E.physical_property != NULL ||
-          distribution_nu.function != NULL || distribution_nu.physical_property != NULL ||
-          distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
+      if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
         element->property_node = calloc(element->type->nodes, sizeof(double *));
       }
       
@@ -748,37 +751,41 @@ int fino_break_compute_stresses(void) {
 
         
         // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
-        if (distribution_E.function != NULL || distribution_E.physical_property != NULL ||
-            distribution_nu.function != NULL || distribution_nu.physical_property != NULL ||
-            distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
+        if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
           
           element->property_node[j] = calloc(ELASTIC_PROPERTIES, sizeof(double));
           wasora_var_value(wasora_mesh.vars.x) = mesh->node[j_global].x[0];
           wasora_var_value(wasora_mesh.vars.y) = mesh->node[j_global].x[1];
           wasora_var_value(wasora_mesh.vars.z) = mesh->node[j_global].x[2];
           
-          if (distribution_E.variable == NULL) {
-            if ((E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, element->node[j]->x)) <= 0) {
-              wasora_push_error_message("E is not positive (%g)", E);
-              return WASORA_RUNTIME_ERROR;
-            }      
-          }
-          if (distribution_nu.variable == NULL ) {
-            nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, element->node[j]->x);
-            if (nu > 0.499) {
-              wasora_push_error_message("nu is greater than 1/2");
-              return WASORA_RUNTIME_ERROR;
-            } else if (nu < 0) {
-              wasora_push_error_message("nu is negative");
-              return WASORA_RUNTIME_ERROR;
+          if (uniform_properties == 0) {
+            if (distribution_E.variable == NULL) {
+              if ((E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, element->node[j]->x)) <= 0) {
+                wasora_push_error_message("E is not positive (%g)", E);
+                return WASORA_RUNTIME_ERROR;
+              }      
             }
+            if (distribution_nu.variable == NULL ) {
+              nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, element->node[j]->x);
+              if (nu > 0.499) {
+                wasora_push_error_message("nu is greater than 1/2");
+                return WASORA_RUNTIME_ERROR;
+              } else if (nu < 0) {
+                wasora_push_error_message("nu is negative");
+                return WASORA_RUNTIME_ERROR;
+              }
+            }
+            
+            lambda = E*nu/((1+nu)*(1-2*nu));
+            mu = 0.5*E/(1+nu);
           }
+          
           if (distribution_alpha.variable == NULL && (distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL)) {
             alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, element->node[j]->x);
           }
 
-          element->property_node[j][LAMBDA] = E*nu/((1+nu)*(1-2*nu));
-          element->property_node[j][MU] = 0.5*E/(1+nu);
+          element->property_node[j][LAMBDA] = lambda;
+          element->property_node[j][MU] = mu;
           element->property_node[j][ALPHA] = alpha;
           
         }
@@ -789,7 +796,7 @@ int fino_break_compute_stresses(void) {
           element->node[j]->dphidx = element->dphidx_node[j];
 
           element->node[j]->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
-          fino_break_compute_nodal_stresses(element, j, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
+          fino_break_compute_nodal_stresses(element, j, lambda, mu, alpha, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
           element->node[j]->f[SIGMAX] = sigmax;
           element->node[j]->f[SIGMAY] = sigmay;
           element->node[j]->f[SIGMAZ] = sigmaz;
@@ -984,8 +991,10 @@ int fino_break_compute_stresses(void) {
       node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
       
       n = 0;
-      lambda = 0;
-      mu = 0;
+      // esto lo hacemos asi para quedarnos con los mayores lambda y mu
+      // por si llegamos a tener que calcular dispersion en una interfaz
+      lambda_max = 0;
+      mu_max = 0;
       LL_FOREACH(mesh->node[j_global].associated_elements, associated_element) {
         element = associated_element->element;
         if (element->dphidx_node != NULL) {
@@ -1009,8 +1018,14 @@ int fino_break_compute_stresses(void) {
                   gsl_matrix_set(node->delta_dphidx, g, m, sqrt(gsl_matrix_get(m2, g, m)/sum_weight));
                 }
               }
+              
+              if (element->property_node != NULL) {
+                lambda = element->property_node[j][LAMBDA];
+                mu = element->property_node[j][MU];
+                alpha = element->property_node[j][ALPHA];
+              }
 
-              fino_break_compute_nodal_stresses(element, j, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
+              fino_break_compute_nodal_stresses(element, j, lambda, mu, alpha, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
 
               node->f[SIGMAX] += rel_weight*(sigmax-node->f[SIGMAX]);
               node->f[SIGMAY] += rel_weight*(sigmay-node->f[SIGMAY]);
@@ -1020,12 +1035,14 @@ int fino_break_compute_stresses(void) {
               node->f[TAUZX] += rel_weight*(tauzx-node->f[TAUZX]);
               
               // necesitamos el peor lambda y el peor mu para calcular el delta de von mises
-              if (distribution_E.variable == NULL && element->property_node[j][LAMBDA] > lambda) {
-                lambda = element->property_node[j][LAMBDA];
-              }
-              if (distribution_nu.variable == NULL && element->property_node[j][MU] > mu) {
-                mu = element->property_node[j][MU];
-              }
+              if (uniform_properties == 0) {
+                if (lambda > lambda_max) {
+                  lambda_max = lambda;
+                }
+                if (mu > mu_max) {
+                  mu_max = mu;
+                }
+              }  
               
             }
           }
@@ -1090,8 +1107,7 @@ int fino_break_compute_stresses(void) {
       fino.tauzx->data_value[j_global] = tauzx;
     }
 
-    wasora_call(fino_compute_principal_stress(node->f[SIGMAX], node->f[SIGMAY], node->f[SIGMAZ],
-                                              node->f[TAUXY], node->f[TAUYZ], node->f[TAUZX],
+    wasora_call(fino_compute_principal_stress(sigmax, sigmay, sigmaz, tauxy, tauyz, tauzx,
                                               &sigma1, &sigma2, &sigma3));
     
     fino.sigma1->data_value[j_global] = sigma1;
@@ -1138,8 +1154,12 @@ int fino_break_compute_stresses(void) {
         fino.delta_gradient[2][2]->data_value[j_global] = delta_dwdz;
       }
       
+      if (uniform_properties == 0) {
+        // esto es para evaluar incertezas en interfaces
+        lambda = lambda_max;
+        mu = mu_max;
+      }  
       // viene de maxima
-//      dsigma_normal = (2*(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+8*dudx*gsl_pow_2(mu))/(2*sqrt(gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)+3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu)));
       dsigma_normal =     
 ((-6*(dwdz+dvdy+dudx)*gsl_pow_2(lambda))+2*(dwdz+dvdy+dudx)*lambda
                                        *(3*lambda+4*mu)
@@ -1151,7 +1171,6 @@ int fino_break_compute_stresses(void) {
            -4*(dvdy*dwdz+dudx*dwdz+dudx*dvdy)*gsl_pow_2(mu)
            +3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu)));
       
-//      dsigma_shear = (3*(dvdx+dudy)*gsl_pow_2(mu))/sqrt(gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda)*(3*lambda+4*mu)+4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)+3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu));
       dsigma_shear =
 (3*(dwdy+dvdz)*gsl_pow_2(mu))/sqrt((-3*gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda))
                                   +gsl_pow_2(dwdz+dvdy+dudx)*lambda*(3*lambda+4*mu)
