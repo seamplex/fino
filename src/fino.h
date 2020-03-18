@@ -602,9 +602,13 @@ extern int fino_break_compute_reactions(void);
 extern int fino_break_set_moment(element_t *, bc_t *);
 extern int fino_compute_principal_stress(double, double, double, double, double, double, double *, double *, double *);
 extern double fino_compute_vonmises_from_principal(double, double, double);
-extern double fino_compute_vonmises_from_tensor(double, double, double, double, double, double);
+extern double fino_compute_vonmises_from_stress_tensor(double, double, double, double, double, double);
+extern double fino_compute_vonmises_from_strains(double, double,
+                                          double, double, double,
+                                          double, double, double,
+                                          double, double, double);
 extern double fino_compute_tresca_from_principal(double, double, double);
-extern double fino_compute_tresca_from_tensor(double, double, double, double, double, double);
+extern double fino_compute_tresca_from_stress_tensor(double, double, double, double, double, double);
 extern int fino_compute_strain_energy(void);
 
 // bake.c

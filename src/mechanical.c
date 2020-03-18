@@ -1120,6 +1120,7 @@ int fino_break_compute_stresses(void) {
 
     // von mises
     sigma = fino_compute_vonmises_from_principal(sigma1, sigma2, sigma3);
+//    sigma = fino_compute_vonmises_from_strains(lambda, mu, dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz);
     
     // incertezas
     // las incertezas
@@ -1159,20 +1160,19 @@ int fino_break_compute_stresses(void) {
         lambda = lambda_max;
         mu = mu_max;
       }  
-      // viene de maxima
-      dsigma_normal =     
-((-6*(dwdz+dvdy+dudx)*gsl_pow_2(lambda))+2*(dwdz+dvdy+dudx)*lambda
+      
+      // derivadas de fino_compute_vonmises_from_strains() calculadas con maxima
+      dsigma_normal =  ((-6*(dwdz+dvdy+dudx)*gsl_pow_2(lambda))+2*(dwdz+dvdy+dudx)*lambda
                                        *(3*lambda+4*mu)
                                      -8*(dwdz+dvdy+dudx)*mu*lambda
                                      -4*(dwdz+dvdy)*gsl_pow_2(mu)+8*dudx*gsl_pow_2(mu))
- /(2*sqrt((-3*gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda))
+                      /(2*sqrt((-3*gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda))
            +gsl_pow_2(dwdz+dvdy+dudx)*lambda*(3*lambda+4*mu)
            -4*gsl_pow_2(dwdz+dvdy+dudx)*mu*lambda+4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)
            -4*(dvdy*dwdz+dudx*dwdz+dudx*dvdy)*gsl_pow_2(mu)
            +3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)+gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu)));
       
-      dsigma_shear =
-(3*(dwdy+dvdz)*gsl_pow_2(mu))/sqrt((-3*gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda))
+      dsigma_shear = (3*(dwdy+dvdz)*gsl_pow_2(mu))/sqrt((-3*gsl_pow_2(dwdz+dvdy+dudx)*gsl_pow_2(lambda))
                                   +gsl_pow_2(dwdz+dvdy+dudx)*lambda*(3*lambda+4*mu)
                                   -4*gsl_pow_2(dwdz+dvdy+dudx)*mu*lambda
                                   +4*(gsl_pow_2(dwdz)+gsl_pow_2(dvdy)+gsl_pow_2(dudx))*gsl_pow_2(mu)
@@ -1180,6 +1180,7 @@ int fino_break_compute_stresses(void) {
                                   +3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)
                                                    +gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu));
           
+      // el libro de taylor de fisica experimental! se me pianta un lagrimoooon
       delta_sigma = sqrt(gsl_pow_2(dsigma_normal*delta_dudx) +
                          gsl_pow_2(dsigma_normal*delta_dvdy) +
                          gsl_pow_2(dsigma_normal*delta_dwdz) +
@@ -1444,13 +1445,29 @@ double fino_compute_vonmises_from_principal(double sigma1, double sigma2, double
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_compute_vonmises_from_tensor"
-double fino_compute_vonmises_from_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
+#define __FUNCT__ "fino_compute_vonmises_from_stress_tensor"
+double fino_compute_vonmises_from_stress_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
   
   return sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
                        6.0 * (gsl_pow_2(tauxy) + gsl_pow_2(tauyz) + gsl_pow_2(tauzx))));
   
 }
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_compute_vonmises_from_strains"
+double fino_compute_vonmises_from_strains(double lambda, double mu,
+                                          double dudx, double dudy, double dudz,
+                                          double dvdx, double dvdy, double dvdz,
+                                          double dwdx, double dwdy, double dwdz) {
+  
+  return sqrt(lambda*gsl_pow_2(dudx+dvdy+dwdz)*(3*lambda+4*mu)
+      + 4*gsl_pow_2(mu)*(gsl_pow_2(dudx)+gsl_pow_2(dvdy)+gsl_pow_2(dwdz))
+      - (3*gsl_pow_2(lambda*(dudx+dvdy+dwdz)) + 4*lambda*mu*gsl_pow_2(dudx+dvdy+dwdz)
+      + 4*gsl_pow_2(mu)*(dudx*dvdy+dvdy*dwdz+dwdz*dudx))
+      + 3*(gsl_pow_2(mu)*(gsl_pow_2(dudy+dvdx)+gsl_pow_2(dvdz+dwdy)+gsl_pow_2(dwdx+dudz))));
+  
+}
+
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_compute_tresca_from_principal"
@@ -1473,8 +1490,8 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_compute_tresca_from_tensor"
-double fino_compute_tresca_from_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
+#define __FUNCT__ "fino_compute_tresca_from_stress_tensor"
+double fino_compute_tresca_from_stress_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
 
   double sigma1, sigma2, sigma3;
 

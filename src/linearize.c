@@ -238,9 +238,9 @@ int fino_instruction_linearize(void *arg) {
     case linearize_vonmises:
       total_function = fino.sigma;
       total_name = strdup("Von Mises");
-      M = fino_compute_vonmises_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
-      MBplus = fino_compute_vonmises_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
-      MBminus = fino_compute_vonmises_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
+      M = fino_compute_vonmises_from_stress_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
+      MBplus = fino_compute_vonmises_from_stress_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
+      MBminus = fino_compute_vonmises_from_stress_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
       
       // OJO! esto no es asi, hay que hacer un tensor que sea la diferencia
       T1 = wasora_evaluate_function(fino.sigma, x1);
@@ -250,9 +250,9 @@ int fino_instruction_linearize(void *arg) {
     case linearize_tresca:
       total_function = fino.tresca;
       total_name = strdup("Tresca");
-      M = fino_compute_tresca_from_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
-      MBplus = fino_compute_tresca_from_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
-      MBminus = fino_compute_tresca_from_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
+      M = fino_compute_tresca_from_stress_tensor(sigmax_m, sigmay_m, sigmaz_m, tauxy_m, tauyz_m, tauzx_m);
+      MBplus = fino_compute_tresca_from_stress_tensor(sigmax_m+sigmax_b, sigmay_m+sigmay_b, sigmaz_m+sigmaz_b, tauxy_m+tauxy_b, tauyz_m+tauyz_b, tauzx_m+tauzx_b);
+      MBminus = fino_compute_tresca_from_stress_tensor(sigmax_m-sigmax_b, sigmay_m-sigmay_b, sigmaz_m-sigmaz_b, tauxy_m-tauxy_b, tauyz_m-tauyz_b, tauzx_m-tauzx_b);
       
       T1 = wasora_evaluate_function(fino.tresca, x1);
       T2 = wasora_evaluate_function(fino.tresca, x2);
