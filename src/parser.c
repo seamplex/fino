@@ -711,9 +711,15 @@ int plugin_parse_line(char *line) {
       
       if (linearize->M == NULL) {
         if (linearize->physical_entity != NULL) {
-          asprintf(&name, "M_%s", linearize->physical_entity->name);
+          if (asprintf(&name, "M_%s", linearize->physical_entity->name) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         } else {
-          asprintf(&name, "M_%d", n_linearizes);
+          if (asprintf(&name, "M_%d", n_linearizes) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         }
         if ((linearize->M = wasora_define_variable(name)) == NULL) {
           free(name);
@@ -724,9 +730,15 @@ int plugin_parse_line(char *line) {
       }
       if (linearize->MB == NULL) {
         if (linearize->physical_entity != NULL) {
-          asprintf(&name, "MB_%s", linearize->physical_entity->name);
+          if (asprintf(&name, "MB_%s", linearize->physical_entity->name) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         } else {
-          asprintf(&name, "MB_%d", n_linearizes);
+          if (asprintf(&name, "MB_%d", n_linearizes) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         }
         if ((linearize->MB = wasora_define_variable(name)) == NULL) {
           free(name);
@@ -736,9 +748,15 @@ int plugin_parse_line(char *line) {
       }
       if (linearize->P == NULL) {
         if (linearize->physical_entity != NULL) {
-          asprintf(&name, "P_%s", linearize->physical_entity->name);
+          if (asprintf(&name, "P_%s", linearize->physical_entity->name) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         } else {
-          asprintf(&name, "P_%d", n_linearizes);
+          if (asprintf(&name, "P_%d", n_linearizes) == -1) {
+            wasora_push_error_message("memory allocation error");
+            return WASORA_PARSER_ERROR;
+          }
         }
 
         if ((linearize->P = wasora_define_variable(name)) == NULL) {
@@ -875,12 +893,12 @@ int fino_define_functions(void) {
   for (g = 0; g < fino.degrees; g++) {
     if (fino.unknown_name == NULL) {
       if (asprintf(&name, "phi%d", g+1) == -1) {
-        wasora_push_error_message("cannot asprintf");
+        wasora_push_error_message("memory allocation error");
         return WASORA_RUNTIME_ERROR;
       }
     } else {
       if (asprintf(&name, "%s", fino.unknown_name[g]) == -1) {
-        wasora_push_error_message("cannot asprintf");
+        wasora_push_error_message("memory allocation error");
         return WASORA_RUNTIME_ERROR;
       }
     }
@@ -1039,7 +1057,7 @@ int fino_define_functions(void) {
     fino.vectors.phi = malloc(fino.nev * sizeof(vector_t *));
     for (i = 0; i < fino.nev; i++) {
       if (asprintf(&modename, "phi%d", i+1) == -1) {
-        wasora_push_error_message("cannot asprintf");
+        wasora_push_error_message("memory allocation error");
         return WASORA_RUNTIME_ERROR;
       }
       
