@@ -18,6 +18,9 @@ if [ $? -ne 0 ]; then
 fi
 
 runfino wire.fin | tee wire.dat
+if [ $? -eq 1 ]; then
+  exit 99
+fi
 if [ ! -e wire.dat ]; then
   exit 99
 fi
