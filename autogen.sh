@@ -52,7 +52,7 @@ EOF
 echo "ok"
 
 echo -n "autogen: building makefile.am... "
-touch ../petscslepc.mak
+touch petscslepc.mak
 am="src/Makefile.am"
 echo -n "building $am... "
 cat << EOF > $am
@@ -86,7 +86,6 @@ cd ..
 echo "ok"
 
 echo -n "autogen: autoreconfiguring... "
-touch petscslepc.mak
 autoreconf -i
 echo "ok"
 
