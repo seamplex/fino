@@ -930,6 +930,8 @@ int fino_define_functions(void) {
         fino.gradient[g][m]->mesh = fino.solution[g]->mesh;
         fino.gradient[g][m]->var_argument = fino.solution[g]->var_argument;
         fino.gradient[g][m]->type = type_pointwise_mesh_node;
+        fino.gradient[g][m]->spatial_derivative_of = fino.solution[g];
+        fino.gradient[g][m]->spatial_derivative_with_respect_to = m;
         
         // lo mismo para la incerteza
         if (asprintf(&gradname, "delta_d%sd%s", name, wasora_mesh.vars.arr_x[m]->name) == -1) {
