@@ -972,10 +972,10 @@ int fino_define_functions(void) {
     // TODO: describir las funciones para reference
     wasora_call(fino_define_result_function("sigmax", &fino.sigmax));
     wasora_call(fino_define_result_function("sigmay", &fino.sigmay));
-    wasora_call(fino_define_result_function("sigmaz", &fino.sigmaz));
     wasora_call(fino_define_result_function("tauxy", &fino.tauxy));
 
     if (fino.dimensions == 3) {
+      wasora_call(fino_define_result_function("sigmaz", &fino.sigmaz));
       wasora_call(fino_define_result_function("tauyz", &fino.tauyz));
       wasora_call(fino_define_result_function("tauzx", &fino.tauzx));
     }

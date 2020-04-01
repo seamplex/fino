@@ -677,9 +677,9 @@ int fino_problem_free(void) {
       free(fino.sigmax->data_value);
       if (fino.dimensions > 1) {
         free(fino.sigmay->data_value);
-        free(fino.sigmaz->data_value);
         free(fino.tauxy->data_value);
         if (fino.dimensions > 2) {
+          free(fino.sigmaz->data_value);
           free(fino.tauyz->data_value);
           free(fino.tauzx->data_value);
         }  
@@ -693,9 +693,9 @@ int fino_problem_free(void) {
       fino.sigmax->data_value = NULL;
       if (fino.dimensions > 1) {
         fino.sigmay->data_value = NULL;
-        fino.sigmaz->data_value = NULL;
         fino.tauxy->data_value = NULL;
         if (fino.dimensions > 2) {
+          fino.sigmaz->data_value = NULL;
           fino.tauyz->data_value = NULL;
           fino.tauzx->data_value = NULL;
         }
