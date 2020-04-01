@@ -217,7 +217,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   if (fino.problem_family == problem_family_mechanical) {
     
     // TODO: poner un flag si se necesita
-    if (element->type->dim == 2) {
+    if (element->type->dim == 1 || element->type->dim == 2) {
       mesh_compute_normal(element);
     }  
     
