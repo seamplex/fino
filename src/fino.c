@@ -113,7 +113,7 @@ int fino_instruction_step(void *arg) {
     time_checkpoint(solve_end);
     
   // ------------------------------------
-  // build
+  // stress
   // ------------------------------------
     
     time_checkpoint(stress_begin);

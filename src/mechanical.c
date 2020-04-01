@@ -444,21 +444,40 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
   }
 
   // ya tenemos derivadas y strains, ahora las tensiones
-/*  
-  // primero vemos si tenemos que recalcular E y/o nu
   
-  if (element->property_node != NULL) {
-    lambda = element->property_node[j][LAMBDA];
-    mu = element->property_node[j][MU];
-    alpha = element->property_node[j][ALPHA];
-  }
-*/
   // tensiones normales
-  xi = ex + ey + ez;
-  *sigmax = lambda * xi + 2*mu * ex;
-  *sigmay = lambda * xi + 2*mu * ey;
-  *sigmaz = lambda * xi + 2*mu * ez;  // esta es sigmatheta en axi
+  if (fino.problem_kind != problem_kind_plane_stress) {
+    xi = ex + ey + ez;
+    *sigmax = lambda * xi + 2*mu * ex;
+    *sigmay = lambda * xi + 2*mu * ey;
+    *sigmaz = lambda * xi + 2*mu * ez;  // esta es sigmatheta en axi
 
+    // esfuerzos de corte
+    *tauxy =  mu * gammaxy;
+    if (fino.dimensions == 3) {
+      *tauyz =  mu * gammayz;
+      *tauzx =  mu * gammazx;
+    } else {
+      *tauyz = 0;
+      *tauzx = 0;
+    }
+  } else {
+    
+    // plane stress es otra milonga
+    double c1, c2;
+    
+    E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
+    nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
+    
+    c1 = E/(1-nu*nu);
+    c2 = nu * c1;
+
+    *sigmax = c1 * ex + c2 * ey;
+    *sigmay = c2 * ex + c1 * ey;
+    *tauxy = c1*0.5*(1-nu) * gammaxy;
+    
+  }  
+  
   // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
   if (alpha != 0) {
     DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
@@ -470,17 +489,6 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
     *sigmay -= xi;
     *sigmaz -= xi;
   }
-
-  // esfuerzos de corte
-  *tauxy =  mu * gammaxy;
-  if (fino.dimensions == 3) {
-    *tauyz =  mu * gammayz;
-    *tauzx =  mu * gammazx;
-  } else {
-    *tauyz = 0;
-    *tauzx = 0;
-  }
-  
   
   
   return WASORA_RUNTIME_OK;
@@ -1027,12 +1035,12 @@ int fino_break_compute_stresses(void) {
 
               fino_break_compute_nodal_stresses(element, j, lambda, mu, alpha, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
 
-              node->f[SIGMAX] += rel_weight*(sigmax-node->f[SIGMAX]);
-              node->f[SIGMAY] += rel_weight*(sigmay-node->f[SIGMAY]);
-              node->f[SIGMAZ] += rel_weight*(sigmaz-node->f[SIGMAZ]);
-              node->f[TAUXY] += rel_weight*(tauxy-node->f[TAUXY]);
-              node->f[TAUYZ] += rel_weight*(tauyz-node->f[TAUYZ]);
-              node->f[TAUZX] += rel_weight*(tauzx-node->f[TAUZX]);
+              node->f[SIGMAX] += rel_weight*(sigmax - node->f[SIGMAX]);
+              node->f[SIGMAY] += rel_weight*(sigmay - node->f[SIGMAY]);
+              node->f[SIGMAZ] += rel_weight*(sigmaz - node->f[SIGMAZ]);
+              node->f[TAUXY] += rel_weight*(tauxy - node->f[TAUXY]);
+              node->f[TAUYZ] += rel_weight*(tauyz - node->f[TAUYZ]);
+              node->f[TAUZX] += rel_weight*(tauzx - node->f[TAUZX]);
               
               // necesitamos el peor lambda y el peor mu para calcular el delta de von mises
               if (uniform_properties == 0) {
@@ -1263,7 +1271,7 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
       return WASORA_RUNTIME_ERROR;
     }
   } else if (bc->type_phys == bc_phys_pressure_normal || bc->type_phys == bc_phys_pressure_real) {
-    if ((fino.dimensions-element->type->dim != 1)) {
+    if (((fino.dimensions - element->type->dim) != 1)) {
       wasora_push_error_message("pressure BCs can only be applied to surfaces");
       return WASORA_RUNTIME_ERROR;
     }
