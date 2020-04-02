@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.93-g643fa2c
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.116-g8d9ffae
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -310,6 +310,7 @@ If either `SCALE` or `OFFSET` are given, the node position if first shifted and 
 For each `READ_SCALAR` keyword, a point-wise defined function of space named `<function_name>` is
 defined and filled with the scalar data named `<name_in_mesh>` contained in the mesh file.
 The `READ_FUNCTION` keyword is a shortcut when the scalar name and the to-be-defined function are the same.
+If no `NAME` is given, the first mesh to be defined is called `first`.
 
 ##  MESH_FILL_VECTOR
 
@@ -963,6 +964,13 @@ See the `READ` keyword for usage details.
 
 
 # Fino variables
+
+##  delta_sigma_max
+
+> 
+
+The uncertainty of the maximum Von Mises stress\ $\sigma$ of the elastic problem.
+Not to be confused with the maximum uncertainty of the Von Mises stress.
 
 ##  displ_max
 

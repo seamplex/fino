@@ -198,8 +198,8 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 
 ///va+strain_energy+name strain_energy
 ///va+strain_energy+detail The strain energy stored in the solid, computed as
-///va+strain_energy+detail $1/2 \cdot \mathbf{u}^T  K \mathbf{u}$
-///va+strain_energy+detail where $\mathbf{u}$ is the displacements vector and $K$ is the stiffness matrix.
+///va+strain_energy+detail $1/2 \cdot \vec{u}^T  K \vec{u}$
+///va+strain_energy+detail where $\vec{u}$ is the displacements vector and $K$ is the stiffness matrix.
   fino.vars.strain_energy = wasora_define_variable("strain_energy");
 
   ///va+displ_max+name displ_max

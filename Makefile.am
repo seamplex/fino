@@ -1,6 +1,6 @@
 plugin = fino
 
-SUBDIRS = src
+SUBDIRS = src doc
 DIST_SUBDIRS = src wasora
 
 ACLOCAL_AMFLAGS = -I wasora/m4
