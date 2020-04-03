@@ -5,6 +5,7 @@ DIST_SUBDIRS = src wasora
 
 ACLOCAL_AMFLAGS = -I wasora/m4
 dist_doc_DATA = AUTHORS ChangeLog README TODO
+dist_man_MANS = doc/fino.1
 
 EXTRA_DIST = examples doc locateruntest.sh \
              src/version.sh

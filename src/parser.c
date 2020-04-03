@@ -360,7 +360,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+detail @
         } else if (strcasecmp(token, "ELEMENT_WEIGHT") == 0) {
           char *keywords[] = {
-///kw+FINO_SOLVER+usage   volume_times_quality
+///kw+FINO_SOLVER+usage   volume_times_quality |
                          "volume_times_quality",
 ///kw+FINO_SOLVER+detail  * `volume_times_quality` (default) weights each element by the product of its volume times its quality
 ///kw+FINO_SOLVER+usage   volume |
