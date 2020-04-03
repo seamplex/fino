@@ -336,16 +336,6 @@ TBD.
 
 ## Wasora keywords
 
-###  .=
-
-> Add an equation to the DAE system to be solved in the phase space spanned by `PHASE_SPACE`.
-
-~~~wasora
-{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
-~~~
-
-
-
 ###  =
 
 > Assign an expression to a variable, a vector or a matrix.
@@ -355,6 +345,16 @@ TBD.
 <expr_t> ] = <expr> <vector>(<expr_i>)[<expr_i_min, expr_i_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr> <matrix>(<expr_i>,<expr_j>)[<expr_i_min, expr_i_max; expr_j_min, expr_j_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr>
+~~~
+
+
+
+###  _.=
+
+> Add an equation to the DAE system to be solved in the phase space spanned by `PHASE_SPACE`.
+
+~~~wasora
+{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
 ~~~
 
 

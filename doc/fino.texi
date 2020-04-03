@@ -629,7 +629,7 @@ TBD.
 
 @menu
 * =::
-* =::
+* _=::
 * ABORT::
 * ALIAS::
 * CALL::
@@ -668,20 +668,8 @@ TBD.
 @end menu
 
 @node =
-@subsection .=
-@anchor{#section}
-@quotation
-Add an equation to the DAE system to be solved in the phase space
-spanned by @code{PHASE_SPACE}.
-@end quotation
-
-@verbatim
-{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
-@end verbatim
-
-@node =
 @subsection =
-@anchor{#section-1}
+@anchor{#section}
 @quotation
 Assign an expression to a variable, a vector or a matrix.
 @end quotation
@@ -691,6 +679,18 @@ Assign an expression to a variable, a vector or a matrix.
 <expr_t> ] = <expr> <vector>(<expr_i>)[<expr_i_min, expr_i_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr> <matrix>(<expr_i>,<expr_j>)[<expr_i_min, expr_i_max; expr_j_min, expr_j_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr>
+@end verbatim
+
+@node _=
+@subsection _.=
+@anchor{#section-1}
+@quotation
+Add an equation to the DAE system to be solved in the phase space
+spanned by @code{PHASE_SPACE}.
+@end quotation
+
+@verbatim
+{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
 @end verbatim
 
 @node ABORT
