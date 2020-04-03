@@ -84,7 +84,7 @@ modal analysis problems.
 The format for running the @code{fino} program is:
 
 @verbatim
-fino [options] inputfile [optional_extra_arguments]
+fino [options] inputfile [optional_extra_arguments]...
 @end verbatim
 
 The @code{fino} executable supports the following options:
@@ -148,6 +148,7 @@ passed as inputfile.
 * Fino keywords::
 * Mesh keywords::
 * Special input distributions::
+* Boundary conditions::
 * Boundary conditions::
 * Result functions::
 * Wasora keywords::
@@ -616,6 +617,10 @@ TBD.
 @node Boundary conditions
 @section Boundary conditions
 @anchor{#boundary-conditions}
+
+@node Boundary conditions
+@section Boundary conditions
+@anchor{#boundary-conditions-1}
 TBD.
 
 @node Result functions

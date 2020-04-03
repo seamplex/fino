@@ -28,7 +28,7 @@ Fino is a free and open source tool released under the terms of the GPLv3+ that 
 The format for running the `fino` program is:
 
 ```
-fino [options] inputfile [optional_extra_arguments]
+fino [options] inputfile [optional_extra_arguments]...
 ```
 
 The `fino` executable supports the following options:
@@ -38,38 +38,4 @@ include(help.md)
 
 # Reference
 
-## Fino keywords
-
-esyscmd([x../wasora/doc/reference.sh parser kw | sed 's/^#/##/' x])
-
-
-## Mesh keywords
-
-esyscmd([x../wasora/doc/reference.sh parser kw ../wasora/src/mesh  | sed 's/^#/##/' x])
-
-
-## Special input distributions
-
-TBD.
-
-
-## Boundary conditions
-
-TBD.
-
-
-## Result functions
-
-TBD.
-
-
-## Wasora keywords
-
-esyscmd([x../wasora/doc/reference.sh parser kw ../wasora/src  | sed 's/^#/##/' x])
-
-
-## Fino variables
-
-dnl el segundo sed es para reemplazar \text{} por \r{} que es algo de texinfo
-esyscmd([x../wasora/doc/reference.sh init va  | sed 's/^#/##/' | sed 's/\\text/\\r/' x])
-
+include(reference-manual.md)
