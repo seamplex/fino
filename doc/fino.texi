@@ -149,7 +149,6 @@ passed as inputfile.
 * Mesh keywords::
 * Special input distributions::
 * Boundary conditions::
-* Boundary conditions::
 * Result functions::
 * Wasora keywords::
 * Fino variables::
@@ -617,10 +616,6 @@ TBD.
 @node Boundary conditions
 @section Boundary conditions
 @anchor{#boundary-conditions}
-
-@node Boundary conditions
-@section Boundary conditions
-@anchor{#boundary-conditions-1}
 TBD.
 
 @node Result functions

@@ -326,8 +326,6 @@ TBD.
 
 ## Boundary conditions
 
-## Boundary conditions
-
 TBD.
 
 
