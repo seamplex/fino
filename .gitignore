@@ -33,19 +33,6 @@ wasora
 README
 INSTALL
 PLUGINS
-doc/INSTALL.html
-doc/INSTALL.pdf
-doc/README.html
-doc/README.pdf
-doc/PLUGINS.html
-doc/PLUGINS.pdf
-doc/mdate-sh
-doc/*.pdf
-doc/*.t2p
-doc/*.html
-doc/texinfo.tex
-doc/version.texi
-doc/plugin.texi
 
 src/.deps/
 src/.dirstamp
