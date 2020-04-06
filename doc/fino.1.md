@@ -32,9 +32,11 @@ The following is a MWE input file for Fino that reads a Gmsh-generated `.msh` fi
 include(../examples/tensile-mwe.fin)
 ```
 
+The `.geo` file that generates the mesh with Gmsh and the CAD file in `.step` format can be found in the `examples` directory.
+
 ## Extended annotated example
 
-The example can be extended to give more information as the following annotated input shows:
+The example above can be extended to give more information as the following annotated input shows:
 
 ```
 include(../examples/tensile-test.fin)
@@ -84,12 +86,13 @@ esyscmd([x../wasora/doc/reference.sh init va  | sed 's/^#/##/' x])
 
 # SEE ALSO
 
-`Gmsh` (1).
-
-`Paraview` (1).
+`gmsh`(1), `paraview`(1)
 
 The Fino Case files at <https://www.seamplex.com/fino/cases/> contains fully-discussed examples.
 
 The Fino web page contains full source code, updates, examples, V&V cases and full reference:
 <https://www.seamplex.com/fino>.
 
+# AUTHOR
+
+Jeremy Theler
