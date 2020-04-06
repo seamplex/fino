@@ -1,0 +1,26 @@
+# tensile test example for Fino, see https://caeplex.com/p/41dd1
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4.x)
+
+# uniform properties given as scalar variables
+E = 200e3   # [ MPa ] Young modulus = 200 GPa
+nu = 0.3    # Poisson’s ratio
+
+# boundary conditions ("left" and "right" come from the names in the mesh)
+PHYSICAL_GROUP left  BC fixed       # fixed end
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
+
+FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+FINO_STEP                   # solve
+
+# compute reaction force at fixed end
+FINO_REACTION PHYSICAL_GROUP left RESULT R
+
+# write results (Von Mises, principal and displacements) in a VTK file
+MESH_POST FILE_PATH tensile-test.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+# print some results (otherwise output will be null)
+PRINT "displ_max = " %.3f displ_max "mm"
+PRINT "sigma_max = " %.1f sigma_max "MPa"
+PRINT "principal1 at center = " %.8f sigma1(0,0,0) "MPa"
+PRINT "reaction  = [" %.3e R "] Newtons"
+PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)

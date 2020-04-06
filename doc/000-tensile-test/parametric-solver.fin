@@ -1,0 +1,11 @@
+FINO_SOLVER PC_TYPE $1    # either gamg, lu or mumps (read from commandline)
+PARAMETRIC c MIN 1 MAX 12 STEP 1
+lc = 10/c
+FILE msh parametric-%d.msh c
+MESH FILE msh
+E = 200e3
+nu = 0.3
+PHYSICAL_GROUP left  BC fixed
+PHYSICAL_GROUP right BC Fx=1e4
+FINO_STEP
+PRINT c lc nodes %e time_wall_total memory time_wall_build time_wall_solve time_wall_stress 

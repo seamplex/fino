@@ -92,7 +92,7 @@ FINO_SOLVER [ PROGRESS_ASCII ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
  [ SMOOTH { always | never | material } ]
- [ ELEMENT_WEIGHT { volume_times_quality volume | quality | flat } ]
+ [ ELEMENT_WEIGHT { volume_times_quality | volume | quality | flat } ]
 
 ~~~
 

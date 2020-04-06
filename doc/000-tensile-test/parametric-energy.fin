@@ -1,0 +1,12 @@
+PARAMETRIC c MIN 1 MAX 10 STEP 1
+lc = 10/c
+M4 INPUT_FILE_PATH parametric.geo.m4 OUTPUT_FILE_PATH parametric.geo EXPAND lc
+SHELL "gmsh -3 -v 0 parametric.geo"
+MESH FILE_PATH parametric.msh
+E = 200e3
+nu = 0.3
+PHYSICAL_GROUP left  BC fixed
+INCLUDE $1.fin     # include either load or displ boundary condition
+FINO_STEP
+FINO_REACTION PHYSICAL_GROUP left RESULT R
+PRINT c lc nodes %.4f strain_energy %.8f u(80,0,0) R(1) %.8f sigma1(0,0,0) %.3f time_wall_total %e memory

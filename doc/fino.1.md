@@ -18,6 +18,28 @@ Fino is a free and open source tool released under the terms of the GPLv3+ that 
  * steady-state thermo-mechanical problems, or
  * steady or transient heat conduction problems, or
  * modal analysis problems.
+
+It can a Gmsh(1) mesh file and can write results for post-processing in either `.msh` or `.vtk` files.
+
+ 
+# EXAMPLES
+
+## Minimum working example
+
+The following is a MWE input file for Fino that reads a Gmsh-generated `.msh` file, solves a linear elastic problem and wriets the results in a `.vtk` file which can be post-processed by Paraview:
+
+```
+include(../examples/tensile-mwe.fin)
+```
+
+## Extended annotated example
+
+The example can be extended to give more information as the following annotated input shows:
+
+```
+include(../examples/tensile-test.fin)
+```
+
  
 # OPTIONS
 
@@ -61,6 +83,12 @@ esyscmd([x../wasora/doc/reference.sh init va  | sed 's/^#/##/' x])
 
 
 # SEE ALSO
+
+`Gmsh` (1).
+
+`Paraview` (1).
+
+The Fino Case files at <https://www.seamplex.com/fino/cases/> contains fully-discussed examples.
 
 The Fino web page contains full source code, updates, examples, V&V cases and full reference:
 <https://www.seamplex.com/fino>.

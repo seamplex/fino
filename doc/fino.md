@@ -21,7 +21,7 @@ Fino is a free and open source tool released under the terms of the GPLv3+ that 
 ![Updates, examples, V&V cases and full reference: <https://www.seamplex.com/fino>](fino-logo)
 
 
-# Running `blackjack`
+# Running `fino`
 
 ## Invocation
 
@@ -35,6 +35,32 @@ The `fino` executable supports the following options:
 
 
 include(help.md)
+
+
+## Example input files
+
+### Minimum working example
+
+The following is a MWE input file for Fino that reads a Gmsh-generated `.msh` file, solves a linear elastic problem and wriets the results in a `.vtk` file which can be post-processed by Paraview:
+
+```
+include(../examples/tensile-mwe.fin)
+```
+
+### Extended annotated example
+
+The example can be extended to give more information as the following annotated input shows:
+
+```
+include(../examples/tensile-test.fin)
+```
+
+
+
+# Test case
+
+include(000-tensile-test.m4)
+
 
 # Reference
 

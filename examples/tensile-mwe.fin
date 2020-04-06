@@ -1,5 +1,4 @@
-# Minimum Working Example for Fino
-MESH FILE_PATH tensile-test.msh # mesh file in Gmsh format (either version 2.2 or 4)
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format
 
 E = 200e3   # [ MPa ] Young modulus ~ 200 GPa
 nu = 0.3    # Poisson ratio
@@ -12,4 +11,3 @@ FINO_STEP   # solve
 
 # write results (Von Mises, principal and displacements) in a VTK file
 MESH_POST FILE_PATH tensile-mwe.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
-PRINT HEADER  displ_max u_at_displ_max sigma(0,0,0) strain_energy

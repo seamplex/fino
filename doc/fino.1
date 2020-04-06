@@ -19,6 +19,66 @@ steady-state thermo-mechanical problems, or
 steady or transient heat conduction problems, or
 .IP \[bu] 2
 modal analysis problems.
+.SH EXAMPLES
+.SS Minimum working example
+.PP
+The following is a MWE input file for Fino that reads a Gmsh-generated
+\f[C].msh\f[R] file, solves a linear elastic problem and wriets the
+results in a \f[C].vtk\f[R] file which can be post-processed by
+Paraview:
+.IP
+.nf
+\f[C]
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format
+
+E = 200e3   # [ MPa ] Young modulus \[ti] 200 GPa
+nu = 0.3    # Poisson ratio
+
+# boundary conditions (\[dq]left\[dq] and \[dq]right\[dq] come from the names in the mesh)
+PHYSICAL_GROUP left  BC fixed
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
+
+FINO_STEP   # solve
+
+# write results (Von Mises, principal and displacements) in a VTK file
+MESH_POST FILE_PATH tensile-mwe.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
+\f[R]
+.fi
+.SS Extended annotated example
+.PP
+The example can be extended to give more information as the following
+annotated input shows:
+.IP
+.nf
+\f[C]
+# tensile test example for Fino, see https://caeplex.com/p/41dd1
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4.x)
+
+# uniform properties given as scalar variables
+E = 200e3   # [ MPa ] Young modulus = 200 GPa
+nu = 0.3    # Poisson\[cq]s ratio
+
+# boundary conditions (\[dq]left\[dq] and \[dq]right\[dq] come from the names in the mesh)
+PHYSICAL_GROUP left  BC fixed       # fixed end
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
+
+FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+FINO_STEP                   # solve
+
+# compute reaction force at fixed end
+FINO_REACTION PHYSICAL_GROUP left RESULT R
+
+# write results (Von Mises, principal and displacements) in a VTK file
+MESH_POST FILE_PATH tensile-test.vtk delta_sigma sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+# print some results (otherwise output will be null)
+PRINT SEP \[dq] \[dq] \[dq]displ_max =\[dq] %.3f displ_max \[dq]mm\[dq]
+PRINT SEP \[dq] \[dq] \[dq]sigma_max = (\[dq] %.1f sigma_max \[dq]\[t+-]\[dq] delta_sigma_max \[dq]) MPa\[dq]
+PRINT SEP \[dq] \[dq] \[dq]principal1 at center = (\[dq] %.5f sigma1(0,0,0) \[dq]\[t+-]\[dq] delta_sigma(0,0,0) \[dq]) MPa\[dq]
+PRINT SEP \[dq] \[dq] \[dq]reaction  = [\[dq] %.3e R \[dq]] Newtons\[dq]
+PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
+\f[R]
+.fi
 .SH OPTIONS
 .TP
 \f[B]\f[CB]-d\f[B]\f[R] or \f[B]\f[CB]--debug\f[B]\f[R]
@@ -198,7 +258,7 @@ FINO_SOLVER [ PROGRESS_ASCII ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
  [ SMOOTH { always | never | material } ]
- [ ELEMENT_WEIGHT { volume_times_quality volume | quality | flat } ]
+ [ ELEMENT_WEIGHT { volume_times_quality | volume | quality | flat } ]
 \f[R]
 .fi
 .PP

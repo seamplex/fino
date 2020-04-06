@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.116-g8d9ffae
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.122-gae35fb1
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -25,8 +25,8 @@ See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
 -   [Boundary conditions](#boundary-conditions)
 -   [Result functions](#result-functions)
 -   [Wasora keywords](#wasora-keywords)
-    -   [.=](#section)
-    -   [=](#section-1)
+    -   [=](#section)
+    -   [\_.=](#section-1)
     -   [ABORT](#abort)
     -   [ALIAS](#alias)
     -   [CALL](#call)
@@ -63,6 +63,7 @@ See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
     -   [VECTOR\_SORT](#vector_sort)
     -   [WRITE](#write)
 -   [Fino variables](#fino-variables)
+    -   [delta\_sigma\_max](#delta_sigma_max)
     -   [displ\_max](#displ_max)
     -   [displ\_max\_x](#displ_max_x)
     -   [displ\_max\_y](#displ_max_y)
@@ -201,7 +202,7 @@ FINO_SOLVER [ PROGRESS_ASCII ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
  [ SMOOTH { always | never | material } ]
- [ ELEMENT_WEIGHT { volume_times_quality volume | quality | flat } ]
+ [ ELEMENT_WEIGHT { volume_times_quality | volume | quality | flat } ]
 
 ~~~
 
@@ -445,16 +446,6 @@ TBD.
 
 # Wasora keywords
 
-##  .=
-
-> Add an equation to the DAE system to be solved in the phase space spanned by `PHASE_SPACE`.
-
-~~~wasora
-{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
-~~~
-
-
-
 ##  =
 
 > Assign an expression to a variable, a vector or a matrix.
@@ -464,6 +455,16 @@ TBD.
 <expr_t> ] = <expr> <vector>(<expr_i>)[<expr_i_min, expr_i_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr> <matrix>(<expr_i>,<expr_j>)[<expr_i_min, expr_i_max; expr_j_min, expr_j_max>] [ [<expr_tmin>, <expr_tmax>] | 
 <expr_t> ] = <expr>
+~~~
+
+
+
+##  _.=
+
+> Add an equation to the DAE system to be solved in the phase space spanned by `PHASE_SPACE`.
+
+~~~wasora
+{ 0[(i[,j]][<imin:imax[;jmin:jmax]>] | <expr1> } .= <expr2>
 ~~~
 
 
@@ -834,7 +835,7 @@ Matrices, vectors, scalar expressions, format modifiers and string literals can 
 Vectors are printed element-by-element in a single row. See `PRINT_VECTOR` to print vectors column-wise.
 Matrices are printed element-by-element in a single line using row-major ordering if mixed with other objects but in the natural row and column fashion if it is the only given object.
 If the `FILE` keyword is not provided, default is to write to stdout.
-If the `NONEWLINE` keyword is not provided, default is to write a newline '\n' character after all the objects are processed.
+If the `NONEWLINE` keyword is not provided, default is to write a newline `\n` character after all the objects are processed.
 The `SEP` keywords expects a string used to separate printed objects, the default is a tab 'DEFAULT_PRINT_SEPARATOR' character.
 Use the `NOSEP` keyword to define an empty string as object separator.
 If the `HEADER` keyword is given, a single line containing the literal text
@@ -1132,8 +1133,8 @@ The\ $x$ coordinate of the maximum von Mises stress\ $\sigma$ of the elastic pro
 > 
 
 The strain energy stored in the solid, computed as
-$1/2 \cdot \mathbf{u}^T K \mathbf{u}$
-where $\mathbf{u}$ is the displacements vector and $K$ is the stiffness matrix.
+$1/2 \cdot \vec{u}^T K \vec{u}$
+where $\vec{u}$ is the displacements vector and $K$ is the stiffness matrix.
 
 ##  time_cpu_build
 
