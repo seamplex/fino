@@ -5,12 +5,13 @@ DIST_SUBDIRS = src wasora
 
 ACLOCAL_AMFLAGS = -I wasora/m4
 dist_doc_DATA = AUTHORS ChangeLog README TODO \
-                doc/fino.texi doc/fino.pdf doc/fino.info doc/fino.svg doc/fino.xml doc/reference.md
+                doc/fino.texi doc/fino.info doc/fino.svg doc/fino.xml doc/reference.md
 
 dist_man_MANS = doc/fino.1
 
 EXTRA_DIST = examples locateruntest.sh \
-             src/version.sh
+             src/version.sh \
+             doc/fino.pdf
 
 TESTS = examples/test-tensile.sh \
         examples/test-piston.sh \
