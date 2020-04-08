@@ -1,22 +1,22 @@
-# touch reference-toc.md
-# m4 reference.m4 > reference.md
-# pandoc reference.md --toc --template=toc.template -o reference-toc.md
-# m4 reference.m4 > reference.md
-# 
-# m4 header.m4 reference-manual.m4 > reference-manual.md
-# 
-# if [ -z "`which pandoc`" ]; then 
-#  echo "error: pandoc not installed"
-#  exit 1
-# fi
-# 
-# pandoc help.md -t plain > help.txt
-# 
-# 
-# 
-# m4 header.m4 fino.1.md | pandoc -s -t man -o fino.1
-# 
-# 
+touch reference-toc.md
+m4 reference.m4 > reference.md
+pandoc reference.md --toc --template=toc.template -o reference-toc.md
+m4 reference.m4 > reference.md
+
+m4 header.m4 reference-manual.m4 > reference-manual.md
+
+if [ -z "`which pandoc`" ]; then 
+ echo "error: pandoc not installed"
+ exit 1
+fi
+
+pandoc help.md -t plain > help.txt
+
+
+
+m4 header.m4 fino.1.md | pandoc -s -t man -o fino.1
+
+
 
 
 for i in 0* 1*; do
@@ -30,7 +30,7 @@ for i in 0* 1*; do
     grep -v 'yaml_header' | \
     grep -v 'case_nav' | \
     grep -v 'case_header' | \
-    grep -v 'dnl online'> ${i}.m4
+    grep -v 'dnl online' > ${i}.m4
   fi  
 done
 

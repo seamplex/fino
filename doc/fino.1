@@ -19,6 +19,9 @@ steady-state thermo-mechanical problems, or
 steady or transient heat conduction problems, or
 .IP \[bu] 2
 modal analysis problems.
+.PP
+It can a Gmsh(1) mesh file and can write results for post-processing in
+either \f[C].msh\f[R] or \f[C].vtk\f[R] files.
 .SH EXAMPLES
 .SS Minimum working example
 .PP
@@ -44,10 +47,14 @@ FINO_STEP   # solve
 MESH_POST FILE_PATH tensile-mwe.vtk sigma sigma1 sigma2 sigma3 VECTOR u v w
 \f[R]
 .fi
+.PP
+The \f[C].geo\f[R] file that generates the mesh with Gmsh and the CAD
+file in \f[C].step\f[R] format can be found in the \f[C]examples\f[R]
+directory.
 .SS Extended annotated example
 .PP
-The example can be extended to give more information as the following
-annotated input shows:
+The example above can be extended to give more information as the
+following annotated input shows:
 .IP
 .nf
 \f[C]
@@ -126,7 +133,30 @@ $ fino tensile-test.fin -ksp_view
 .RE
 .PP
 Input file instructions are read from standard input if \f[C]-\f[R] is
-passed as inputfile.
+passed as input file.
+.PP
+Fino accepts \f[I]optional extra arguments\f[R] which are then
+verbatimly replaced in the input file as \f[C]$1\f[R], \f[C]$2\f[R], and
+so on.
+So for example if an input file has a line like this
+.IP
+.nf
+\f[C]
+MESH_FILE $1.msh
+[...]
+\f[R]
+.fi
+.PP
+Then two different meshes called \f[C]one.msh\f[R] and \f[C]two.msh\f[R]
+can successively be used in two runs with the same input file by calling
+Fino as
+.IP
+.nf
+\f[C]
+fino input.fin one
+fino input.fin two
+\f[R]
+.fi
 .SH REFERENCE
 .SS Fino keywords
 .SS FINO_LINEARIZE
@@ -1525,7 +1555,15 @@ maximum von Mises stress\ \f[I]\[*s]\f[R] of the elastic problem is
 located.
 .SH SEE ALSO
 .PP
+\f[C]gmsh\f[R](1), \f[C]paraview\f[R](1)
+.PP
+The Fino Case files at <https://www.seamplex.com/fino/cases/> contains
+fully-discussed examples.
+.PP
 The Fino web page contains full source code, updates, examples, V&V
 cases and full reference: <https://www.seamplex.com/fino>.
+.SH AUTHOR
+.PP
+Jeremy Theler
 .SH AUTHORS
 Jeremy Theler.

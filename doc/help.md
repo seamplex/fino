@@ -47,4 +47,19 @@
     $ fino tensile-test.fin -ksp_view
     ```
 
-Input file instructions are read from standard input if `-` is passed as inputfile.
+Input file instructions are read from standard input if `-` is passed as input file.
+
+Fino accepts _optional extra arguments_ which are then verbatimly replaced in the input file as `$1`, `$2`, and so on. So for example if an input file has a line like this
+
+```fino
+MESH_FILE $1.msh
+[...]
+```
+
+Then two different meshes called `one.msh` and `two.msh` can successively be used in two runs with the same input file by calling Fino as 
+
+```
+fino input.fin one
+fino input.fin two
+```
+

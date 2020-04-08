@@ -146,7 +146,29 @@ $ fino tensile-test.fin -ksp_view
 @end table
 
 Input file instructions are read from standard input if @code{-} is
-passed as inputfile.
+passed as input file.
+
+Fino accepts @emph{optional extra arguments} which are then verbatimly
+replaced in the input file as @code{$1}, @code{$2}, and so on. So for
+example if an input file has a line like this
+
+@smallformat
+@verbatim
+MESH_FILE $1.msh
+[...]
+@end verbatim
+@end smallformat
+
+Then two different meshes called @code{one.msh} and @code{two.msh} can
+successively be used in two runs with the same input file by calling
+Fino as
+
+@smallformat
+@verbatim
+fino input.fin one
+fino input.fin two
+@end verbatim
+@end smallformat
 
 @node Example input files
 @section Example input files
