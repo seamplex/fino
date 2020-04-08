@@ -314,8 +314,8 @@ int fino_bake_set_convection(element_t *element, bc_t *bc) {
 #define __FUNCT__ "fino_bake_compute_fluxes"
 int fino_bake_compute_fluxes(void) {
   
-  material_t *material = NULL;
-  element_list_item_t *associated_element = NULL;
+//  material_t *material = NULL;
+//  element_list_item_t *associated_element = NULL;
   
   double k;
   double T_max = -INFTY;
@@ -335,7 +335,7 @@ int fino_bake_compute_fluxes(void) {
   }
  
   for (j = 0; j < fino.mesh->n_nodes; j++) {
-    
+/*    
     wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
     wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
     wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
@@ -348,20 +348,20 @@ int fino_bake_compute_fluxes(void) {
           material = associated_element->element->physical_entity->material;
         }
       }
-      if (material == NULL) {
-        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].tag);
-        return WASORA_RUNTIME_ERROR;
-      }
+      if (material != NULL) {
+//        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].tag);
+//        return WASORA_RUNTIME_ERROR;
       
-      if (distribution_k.variable == NULL) {
-        k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
-      }  
-      if (k < 0) {
-        wasora_push_error_message("k is negative");
-        return WASORA_RUNTIME_ERROR;
+        if (distribution_k.variable == NULL) {
+          k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
+        }  
+        if (k < 0) {
+          wasora_push_error_message("k is negative");
+          return WASORA_RUNTIME_ERROR;
+        }  
       }      
     }
-    
+*/    
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
     if (fino.solution[0]->data_value[j] >= T_max) {
       T_max = fino.mesh->node[j].phi[0];
