@@ -47,7 +47,7 @@
     $ fino tensile-test.fin -ksp_view
     ```
 
-Input file instructions are read from standard input if `-` is passed as input file.
+Input file instructions are read from standard input if a dash `-` is passed as `input-file`.
 
 Fino accepts _optional extra arguments_ which are then verbatimly replaced in the input file as `$1`, `$2`, and so on. So for example if an input file has a line like this
 

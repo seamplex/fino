@@ -145,8 +145,8 @@ $ fino tensile-test.fin -ksp_view
 
 @end table
 
-Input file instructions are read from standard input if @code{-} is
-passed as input file.
+Input file instructions are read from standard input if a dash @code{-}
+is passed as @code{input-file}.
 
 Fino accepts @emph{optional extra arguments} which are then verbatimly
 replaced in the input file as @code{$1}, @code{$2}, and so on. So for

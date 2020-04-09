@@ -8,7 +8,7 @@ fino - a free finite-element thermo-mechanical solver
 
 # SYNOPSIS
 
-fino [*options*] inputfile [*optional_extra_arguments*]...
+fino [*options*] input-file [*optional_extra_arguments*]...
 
 
 # DESCRIPTION
@@ -95,4 +95,4 @@ The Fino web page contains full source code, updates, examples, V&V cases and fu
 
 # AUTHOR
 
-Jeremy Theler
+Jeremy Theler <https://www.seamplex.com>

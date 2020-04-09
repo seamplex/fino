@@ -7,7 +7,7 @@
 fino - a free finite-element thermo-mechanical solver
 .SH SYNOPSIS
 .PP
-fino [\f[I]options\f[R]] inputfile
+fino [\f[I]options\f[R]] input-file
 [\f[I]optional_extra_arguments\f[R]]\&...
 .SH DESCRIPTION
 .PP
@@ -132,8 +132,8 @@ $ fino tensile-test.fin -ksp_view
 .fi
 .RE
 .PP
-Input file instructions are read from standard input if \f[C]-\f[R] is
-passed as input file.
+Input file instructions are read from standard input if a dash
+\f[C]-\f[R] is passed as \f[C]input-file\f[R].
 .PP
 Fino accepts \f[I]optional extra arguments\f[R] which are then
 verbatimly replaced in the input file as \f[C]$1\f[R], \f[C]$2\f[R], and
@@ -1564,6 +1564,6 @@ The Fino web page contains full source code, updates, examples, V&V
 cases and full reference: <https://www.seamplex.com/fino>.
 .SH AUTHOR
 .PP
-Jeremy Theler
+Jeremy Theler <https://www.seamplex.com>
 .SH AUTHORS
 Jeremy Theler.
