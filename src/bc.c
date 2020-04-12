@@ -56,7 +56,22 @@ int fino_bc_string2parsed(void) {
     // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
     LL_FOREACH(physical_entity->bcs, bc) {
 
-      fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
+      // vemos si hay un "=>" que implica que la BC tiene una condicion
+      if ((name = strstr(bc->string, "=>")) != NULL) {
+        *name = '\0';
+        name += 2;
+        wasora_call(wasora_parse_expression(bc->string, &bc->condition));
+      } else {
+        name = bc->string;
+      }
+      
+      // si hay signo igual hay expresion, sino no
+      if ((equal_sign = strchr(name, '=')) != NULL) {
+       *equal_sign = '\0';
+       expr = equal_sign+1;
+      } else {
+        expr = NULL;
+      } 
 
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         fino_bc_process_mechanical(bc, name, expr);
@@ -337,7 +352,6 @@ int fino_bc_process_thermal(bc_t *bc, char *name, char *expr, char *equal_sign) 
 }
 
 
-
 #undef  __FUNCT__
 #define __FUNCT__ "fino_bc_read_name_expr"
 void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sign) {
@@ -377,14 +391,17 @@ int fino_set_essential_bc(Mat A, Vec b) {
 
   
 
-  if (fino.n_dirichlet_rows == 0) {
-    n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
-    current_size = n_bcs;
+  if (fino.n_dirichlet_rows != 0) {
+    free(fino.dirichlet_indexes);
+    free(fino.dirichlet_rhs);
+    free(fino.dirichlet_row);
+  }  
+  n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
+  current_size = n_bcs;
     
-    fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
-    fino.dirichlet_rhs = calloc(n_bcs, sizeof(PetscScalar));
-    fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
-  }
+  fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
+  fino.dirichlet_rhs = calloc(n_bcs, sizeof(PetscScalar));
+  fino.dirichlet_row = calloc(n_bcs, sizeof(dirichlet_row_t));
   
   for (j = fino.first_node; j < fino.last_node; j++) {
 
@@ -422,224 +439,228 @@ int fino_set_essential_bc(Mat A, Vec b) {
             wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
             wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
             wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+            
+            // si hay una condicion, la evaluamos ahora porque ya tenemos x y n
+            if (bc->condition.n_tokens == 0 || fabs(wasora_evaluate_expression(&bc->condition)) > 1e-3) {
 
-            // empezamos a ver que nos dieron
-            if (bc->type_phys == bc_phys_displacement_fixed) {
-              
-              for (d = 0; d < fino.degrees; d++) {
-                fino.dirichlet_row[k].physical_entity = physical_entity;
-                fino.dirichlet_row[k].dof = d;
-                fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[d];
-                fino.dirichlet_rhs[k] = 0;
-                k++;
-              }
+              // empezamos a ver que nos dieron
+              if (bc->type_phys == bc_phys_displacement_fixed) {  
 
-            } else if (bc->type_phys == bc_phys_displacement_mimic) {
-
-              gsl_matrix *c;
-              gsl_matrix *K;
-              int l[2];
-              int i, target_index;
-
-              c = gsl_matrix_calloc(1, 2);
-              K = gsl_matrix_calloc(2, 2);
-
-              gsl_matrix_set(c, 0, 0, +1);
-              gsl_matrix_set(c, 0, 1, -1);
-          
-              // lo que hay que mimicar
-              target_index = -1;
-              for (i = 0; i < fino.mesh->n_elements; i++) {
-                if (fino.mesh->element[i].physical_entity != NULL &&
-                fino.mesh->element[i].physical_entity == bc->slave) {
-                  target_index = fino.mesh->element[i].node[0]->index_dof[bc->dof];
-                  break;
-                }
-              }
-
-              if (target_index == -1) {
-                wasora_push_error_message("cannot find who to mimic");
-                return WASORA_RUNTIME_ERROR;
-              }
-
-              l[0] = fino.mesh->node[j].index_dof[bc->dof];
-              l[1] = target_index;
-
-              if (l[0] != l[1]) {
-                wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-                petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-                MatSetValues(A, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-                petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
-              }
-
-              gsl_matrix_free(c);
-              gsl_matrix_free(K);
-
-            } else if (bc->type_phys == bc_phys_displacement ||
-                       bc->type_phys == bc_phys_temperature) {
-              
-              fino.dirichlet_row[k].physical_entity = physical_entity;
-              fino.dirichlet_row[k].dof = bc->dof;
-
-              fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
-
-              if (fino.math_type != math_type_eigen && (strcmp(bc->expr[0].string, "0") != 0)) {
-                fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr[0]);
-              } else {
-                fino.dirichlet_rhs[k] = 0;
-              }
-
-              k++;
-
-            } else if (bc->type_phys == bc_phys_displacement_symmetry) {
-              
-              int coordinate_direction = -1;
-              
-              // vemos si la normal coincide con algun eje ordenado
-              for (d = 0; d < 3; d++) {
-                if (fabs(n[d]) > 1-1e-4) {
-                  coordinate_direction = d;
-                }
-              }
-              
-              if (coordinate_direction != -1) {
-                // dirichlet tradicional
-                fino.dirichlet_row[k].physical_entity = physical_entity;
-                fino.dirichlet_row[k].dof = coordinate_direction;
-                fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[coordinate_direction];
-                fino.dirichlet_rhs[k] = 0;
-                k++;
-                
-              } else {
-                // multi-freedom generico
-                int l[3];
-                gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
-                gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
-              
                 for (d = 0; d < fino.degrees; d++) {
-                  l[d] = fino.mesh->node[j].index_dof[d];
-                  gsl_matrix_set(c, 0, d, n[d]);
+                  fino.dirichlet_row[k].physical_entity = physical_entity;
+                  fino.dirichlet_row[k].dof = d;
+                  fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[d];
+                  fino.dirichlet_rhs[k] = 0;
+                  k++;
                 }
 
-                wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+              } else if (bc->type_phys == bc_phys_displacement_mimic) {
+
+                gsl_matrix *c;
+                gsl_matrix *K;
+                int l[2];
+                int i, target_index;
+
+                c = gsl_matrix_calloc(1, 2);
+                K = gsl_matrix_calloc(2, 2);
+
+                gsl_matrix_set(c, 0, 0, +1);
+                gsl_matrix_set(c, 0, 1, -1);
+
+                // lo que hay que mimicar
+                target_index = -1;
+                for (i = 0; i < fino.mesh->n_elements; i++) {
+                  if (fino.mesh->element[i].physical_entity != NULL &&
+                  fino.mesh->element[i].physical_entity == bc->slave) {
+                    target_index = fino.mesh->element[i].node[0]->index_dof[bc->dof];
+                    break;
+                  }
+                }
+
+                if (target_index == -1) {
+                  wasora_push_error_message("cannot find who to mimic");
+                  return WASORA_RUNTIME_ERROR;
+                }
+
+                l[0] = fino.mesh->node[j].index_dof[bc->dof];
+                l[1] = target_index;
+
+                if (l[0] != l[1]) {
+                  wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+                  // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
+                  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+                  MatSetValues(A, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+                }
 
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
-              }
 
-            } else if (bc->type_phys == bc_phys_displacement_radial) {
+              } else if (bc->type_phys == bc_phys_displacement ||
+                         bc->type_phys == bc_phys_temperature) {
 
-              int l[3];
-              double x[3];
-              double eps = 1e-2;
-              
-              for (d = 0; d < 3; d++) {
-                if (bc->expr[d].n_tokens != 0) {
-                  x[d] = fino.mesh->node[j].x[d]-wasora_evaluate_expression(&bc->expr[d]);
+                fino.dirichlet_row[k].physical_entity = physical_entity;
+                fino.dirichlet_row[k].dof = bc->dof;
+
+                fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
+
+                if (fino.math_type != math_type_eigen && (strcmp(bc->expr[0].string, "0") != 0)) {
+                  fino.dirichlet_rhs[k] = wasora_evaluate_expression(&bc->expr[0]);
                 } else {
-                  x[d] = fino.mesh->node[j].x[d]-physical_entity->cog[d];
+                  fino.dirichlet_rhs[k] = 0;
                 }
-              }
-              
-              // x-y
-              if (fabs(x[0]) > eps && fabs(x[1]) > eps) {
-                
-                gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
-                gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                k++;
+
+              } else if (bc->type_phys == bc_phys_displacement_symmetry) {
+
+                int coordinate_direction = -1;
+
+                // vemos si la normal coincide con algun eje ordenado
+                for (d = 0; d < 3; d++) {
+                  if (fabs(n[d]) > 1-1e-4) {
+                    coordinate_direction = d;
+                  }
+                }
+
+                if (coordinate_direction != -1) {
+                  // dirichlet tradicional
+                  fino.dirichlet_row[k].physical_entity = physical_entity;
+                  fino.dirichlet_row[k].dof = coordinate_direction;
+                  fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[coordinate_direction];
+                  fino.dirichlet_rhs[k] = 0;
+                  k++;
+
+                } else {
+                  // multi-freedom generico
+                  int l[3];
+                  gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
+                  gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                  for (d = 0; d < fino.degrees; d++) {
+                    l[d] = fino.mesh->node[j].index_dof[d];
+                    gsl_matrix_set(c, 0, d, n[d]);
+                  }
+
+                  wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+
+                  gsl_matrix_free(c);
+                  gsl_matrix_free(K);
+                }
+
+              } else if (bc->type_phys == bc_phys_displacement_radial) {
+
+                int l[3];
+                double x[3];
+                double eps = 1e-2;
+
+                for (d = 0; d < 3; d++) {
+                  if (bc->expr[d].n_tokens != 0) {
+                    x[d] = fino.mesh->node[j].x[d]-wasora_evaluate_expression(&bc->expr[d]);
+                  } else {
+                    x[d] = fino.mesh->node[j].x[d]-physical_entity->cog[d];
+                  }
+                }
+
+                // x-y
+                if (fabs(x[0]) > eps && fabs(x[1]) > eps) {
+
+                  gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
+                  gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                  for (d = 0; d < fino.degrees; d++) {
+                    l[d] = fino.mesh->node[j].index_dof[d];
+                  }
+                  gsl_matrix_set(c, 0, 0, +x[1]);
+                  gsl_matrix_set(c, 0, 1, -x[0]);
+
+                  wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+
+                  gsl_matrix_free(c);
+                  gsl_matrix_free(K);
+
+                }
+
+                // x-z
+                if (fabs(x[0]) > eps && fabs(x[2]) > eps) {
+
+                  gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
+                  gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                  for (d = 0; d < fino.degrees; d++) {
+                    l[d] = fino.mesh->node[j].index_dof[d];
+                  }
+                  gsl_matrix_set(c, 0, 0, +x[2]);
+                  gsl_matrix_set(c, 0, 2, -x[0]);
+
+                  wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+
+                  gsl_matrix_free(c);
+                  gsl_matrix_free(K);
+
+                }
+
+                // y-z
+                if (fabs(x[1]) > eps && fabs(x[2]) > eps) {
+
+                  gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
+                  gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                  for (d = 0; d < fino.degrees; d++) {
+                    l[d] = fino.mesh->node[j].index_dof[d];
+                  }
+                  gsl_matrix_set(c, 0, 1, +x[2]);
+                  gsl_matrix_set(c, 0, 2, -x[1]);
+
+                  wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
+                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+
+                  gsl_matrix_free(c);
+                  gsl_matrix_free(K);
+
+                }
+
+              } else if (bc->type_phys == bc_phys_displacement_constrained) {
+
+                gsl_matrix *c;
+                gsl_matrix *K;
+                int l[3];
+
+                gsl_function F;
+                fino_gsl_function_of_uvw_params_t params;
+                double result, abserr;
+                double h = 1e-5;
+
+                params.expr = bc->expr;
+
+                F.function = fino_gsl_function_of_uvw;
+                F.params = &params;
+
+                c = gsl_matrix_calloc(1, fino.degrees);
+                K = gsl_matrix_calloc(fino.degrees, fino.degrees);
+
+                wasora_var_value(fino.vars.U[0]) = 0;
+                wasora_var_value(fino.vars.U[1]) = 0;
+                wasora_var_value(fino.vars.U[2]) = 0;
 
                 for (d = 0; d < fino.degrees; d++) {
                   l[d] = fino.mesh->node[j].index_dof[d];
+                  params.dof = d;
+                  gsl_deriv_central(&F, 0, h, &result, &abserr);
+                  gsl_matrix_set(c, 0, d, -result);
                 }
-                gsl_matrix_set(c, 0, 0, +x[1]);
-                gsl_matrix_set(c, 0, 1, -x[0]);
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
                 MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
+                // TODO: non-uniform RHS
                 gsl_matrix_free(c);
                 gsl_matrix_free(K);
-                
               }
-
-              // x-z
-              if (fabs(x[0]) > eps && fabs(x[2]) > eps) {
-                
-                gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
-                gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
-
-                for (d = 0; d < fino.degrees; d++) {
-                  l[d] = fino.mesh->node[j].index_dof[d];
-                }
-                gsl_matrix_set(c, 0, 0, +x[2]);
-                gsl_matrix_set(c, 0, 2, -x[0]);
-
-                wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-
-                gsl_matrix_free(c);
-                gsl_matrix_free(K);
-                
-              }
-              
-              // y-z
-              if (fabs(x[1]) > eps && fabs(x[2]) > eps) {
-                
-                gsl_matrix *c = gsl_matrix_calloc(1, fino.degrees);
-                gsl_matrix *K = gsl_matrix_calloc(fino.degrees, fino.degrees);
-
-                for (d = 0; d < fino.degrees; d++) {
-                  l[d] = fino.mesh->node[j].index_dof[d];
-                }
-                gsl_matrix_set(c, 0, 1, +x[2]);
-                gsl_matrix_set(c, 0, 2, -x[1]);
-
-                wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-
-                gsl_matrix_free(c);
-                gsl_matrix_free(K);
-                
-              }
-              
-            } else if (bc->type_phys == bc_phys_displacement_constrained) {
-
-              gsl_matrix *c;
-              gsl_matrix *K;
-              int l[3];
-              
-              gsl_function F;
-              fino_gsl_function_of_uvw_params_t params;
-              double result, abserr;
-              double h = 1e-5;
-
-              params.expr = bc->expr;
-              
-              F.function = fino_gsl_function_of_uvw;
-              F.params = &params;
-
-              c = gsl_matrix_calloc(1, fino.degrees);
-              K = gsl_matrix_calloc(fino.degrees, fino.degrees);
-              
-              wasora_var_value(fino.vars.U[0]) = 0;
-              wasora_var_value(fino.vars.U[1]) = 0;
-              wasora_var_value(fino.vars.U[2]) = 0;
-
-              for (d = 0; d < fino.degrees; d++) {
-                l[d] = fino.mesh->node[j].index_dof[d];
-                params.dof = d;
-                gsl_deriv_central(&F, 0, h, &result, &abserr);
-                gsl_matrix_set(c, 0, d, -result);
-              }
-
-              wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-              MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-
-              // TODO: non-uniform RHS
-              gsl_matrix_free(c);
-              gsl_matrix_free(K);
-            }
+            }  
           }
         }
       }
