@@ -13,4 +13,4 @@ PHYSICAL_GROUP BC BC p=10
 FINO_STEP
 
 MESH_POST FILE_PATH le1.vtk VECTOR u v 0 sigmax sigmay tauxy
-PRINT "σy at point D = " %.1f sigmay(2,0) "(reference is 92.7)
+PRINT "σy at point D = " %.1f sigmay(2,0) "(reference is 92.7)"
