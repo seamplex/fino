@@ -865,7 +865,7 @@ int fino_break_compute_stresses(void) {
         sigmay = 0;
         tauxy = 0;
 
-        if (fino.dimensions == 3) {
+//        if (fino.dimensions == 3) {
           dudz = 0;
           dvdz = 0;
           
@@ -876,7 +876,7 @@ int fino_break_compute_stresses(void) {
           sigmaz = 0;
           tauyz = 0;
           tauzx = 0;
-        }  
+//        }  
         
         den = 0;
         LL_FOREACH(avg[k], item) {
@@ -910,7 +910,7 @@ int fino_break_compute_stresses(void) {
             sigmaz += node->f[SIGMAZ];
             tauyz += node->f[TAUYZ];
             tauzx += node->f[TAUZX];
-          }  
+          }
 
           den += 1.0;
         }
@@ -936,7 +936,7 @@ int fino_break_compute_stresses(void) {
             sigmaz /= den;
             tauyz /= den;
             tauzx /= den;
-          }  
+          }
         }  
         
         LL_FOREACH(avg[k], item) {
@@ -963,7 +963,7 @@ int fino_break_compute_stresses(void) {
             node->f[SIGMAZ] = sigmaz;
             node->f[TAUYZ] = tauyz;
             node->f[TAUZX] = tauzx;
-          }  
+          }
         }
         
         LL_FOREACH_SAFE(avg[k], item, tmp) {
@@ -1076,6 +1076,9 @@ int fino_break_compute_stresses(void) {
       dwdx = gsl_matrix_get(node->dphidx, 2, 0);
       dwdy = gsl_matrix_get(node->dphidx, 2, 1);
       dwdz = gsl_matrix_get(node->dphidx, 2, 2);
+    } else {
+      // con esto sacamos un uninitialized value de valgrind en 2d
+      dudz = dvdz = dwdx = dwdy = dwdz = 0;
     }
     
     fino.gradient[0][0]->data_value[j_global] = dudx;
@@ -1161,6 +1164,8 @@ int fino_break_compute_stresses(void) {
         fino.delta_gradient[2][0]->data_value[j_global] = delta_dwdx;
         fino.delta_gradient[2][1]->data_value[j_global] = delta_dwdy;
         fino.delta_gradient[2][2]->data_value[j_global] = delta_dwdz;
+      } else {
+        delta_dudz = delta_dvdz = delta_dwdx = delta_dwdy = delta_dwdz = 0;
       }
       
       if (uniform_properties == 0) {
@@ -1187,7 +1192,7 @@ int fino_break_compute_stresses(void) {
                                   -4*(dvdy*dwdz+dudx*dwdz+dudx*dvdy)*gsl_pow_2(mu)
                                   +3*(gsl_pow_2(dwdy+dvdz)+gsl_pow_2(dwdx+dudz)
                                                    +gsl_pow_2(dvdx+dudy))*gsl_pow_2(mu));
-          
+
       // el libro de taylor de fisica experimental! se me pianta un lagrimoooon
       delta_sigma = sqrt(gsl_pow_2(dsigma_normal*delta_dudx) +
                          gsl_pow_2(dsigma_normal*delta_dvdy) +
