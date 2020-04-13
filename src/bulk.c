@@ -112,8 +112,10 @@ int fino_build_bulk(void) {
       LL_FOREACH(fino.mesh->element[i].physical_entity->bcs, bc) {
         
         if (bc->type_math == bc_math_neumann || bc->type_math == bc_math_robin) {
-          // las de dirichlet set ponen en set_essential despues de ensamblar
-          wasora_call(fino_build_element_bc(&fino.mesh->element[i], bc));
+          if (bc->condition.n_tokens == 0 || fabs(wasora_evaluate_expression(&bc->condition)) > 1e-3) {
+            // las de dirichlet set ponen en set_essential despues de ensamblar
+            wasora_call(fino_build_element_bc(&fino.mesh->element[i], bc));
+          }  
         }
       }
     }
