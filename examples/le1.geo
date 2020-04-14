@@ -15,7 +15,16 @@ Physical Curve("DA") = {4};
 Physical Surface("bulk") = {1};
 
 Mesh.CharacteristicLengthMax = 0.05;
-Mesh.Algorithm = 6;
+
+// unstructured grid
+Mesh.Algorithm = 8;
 Mesh.Optimize = 1;
+Mesh.HighOrderOptimize = 2;
+
+// structured grid
+Transfinite Curve{1,3} = 2/Mesh.CharacteristicLengthMax;
+Transfinite Curve{2,4} = 3/Mesh.CharacteristicLengthMax;
+Transfinite Surface{1};
+
 Mesh.ElementOrder = 2;
 Mesh.RecombineAll = 1;
