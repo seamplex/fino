@@ -708,22 +708,28 @@ int fino_problem_free(void) {
     }
     
     mesh_free(fino.mesh);
+    
   }
 
+  if (fino.unknown_name != NULL) {
+    if (fino.degrees != 0) {
+      for (g = 0; g < fino.degrees; g++) {
+        free(fino.unknown_name[g]);
+        fino.unknown_name[g] = NULL;
+      }
+    }  
+    free(fino.unknown_name);
+    fino.unknown_name = NULL;
+  }
+  
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
     if (fino.dirichlet_row[i].ncols != 0) {
       free(fino.dirichlet_row[i].cols);
       free(fino.dirichlet_row[i].vals);
     }
   }
-/*
-  if (fino.degrees != 0) {
-    for (g = 0; g < fino.degrees; g++) {
-      free(fino.unknown_name[g]);
-    }
-    free(fino.unknown_name);
-  }
- */
+
+
   
   wasora_call(fino_free_elemental_objects());
   

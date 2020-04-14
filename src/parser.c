@@ -872,9 +872,9 @@ int plugin_parse_line(char *line) {
 #define __FUNCT__ "fino_define_functions"
 int fino_define_functions(void) {
   
-  char *name;
-  char *gradname;
-  char *modename;
+  char *name = NULL;
+  char *gradname = NULL;
+  char *modename = NULL;
   int i, g, m;
   
   // las definimos solo si ya sabemos cuantas dimensiones tiene el problema
@@ -905,6 +905,8 @@ int fino_define_functions(void) {
     if ((fino.solution[g] = wasora_define_function(name, fino.dimensions)) == NULL) {
       return WASORA_PARSER_ERROR;
     }
+    free(name);
+    name = NULL;
     
     // esto lo ponemos aca por si alguien quiere hacer un PRINT o algo sin pasar por el STEP
     fino.solution[g]->mesh = (fino.rough==0)?fino.mesh:fino.mesh_rough;
@@ -927,6 +929,9 @@ int fino_define_functions(void) {
         if ((fino.gradient[g][m] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
           return WASORA_PARSER_ERROR;
         }
+        free(gradname);
+        gradname = NULL;
+        
         fino.gradient[g][m]->mesh = fino.solution[g]->mesh;
         fino.gradient[g][m]->var_argument = fino.solution[g]->var_argument;
         fino.gradient[g][m]->type = type_pointwise_mesh_node;
@@ -941,11 +946,12 @@ int fino_define_functions(void) {
         if ((fino.delta_gradient[g][m] = wasora_define_function(gradname, fino.dimensions)) == NULL) {
           return WASORA_PARSER_ERROR;
         }
+        free(gradname);
+        gradname = NULL;
+        
         fino.delta_gradient[g][m]->mesh = fino.solution[g]->mesh;
         fino.delta_gradient[g][m]->var_argument = fino.solution[g]->var_argument;
         fino.delta_gradient[g][m]->type = type_pointwise_mesh_node;
-        
-        free(gradname);
       }
       
     } else {  
@@ -958,13 +964,13 @@ int fino_define_functions(void) {
         }
         wasora_call(fino_define_result_function(modename, &fino.mode[g][i]));
         free(modename);
+        modename = NULL;
         
         fino.mode[g][i]->mesh = fino.solution[g]->mesh;
         fino.mode[g][i]->var_argument = fino.solution[g]->var_argument;
         fino.mode[g][i]->type = fino.solution[g]->type;
       }
     }
-    free(name);
   }
 
   if (fino.problem_family == problem_family_mechanical) {

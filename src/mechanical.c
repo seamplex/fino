@@ -994,6 +994,16 @@ int fino_break_compute_stresses(void) {
       gsl_matrix *m2 = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       int found = 0;
       
+      // en iterative si no hacemos esto estamos leakando
+      if (node->dphidx != NULL) {
+        gsl_matrix_free(node->dphidx);
+      }
+      if (node->delta_dphidx != NULL) {
+        gsl_matrix_free(node->delta_dphidx);
+      }
+      if (node->f != NULL) {
+        free(node->f);
+      }
       node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
