@@ -1530,6 +1530,13 @@ int fino_compute_strain_energy(void) {
     wasora_var(fino.vars.strain_energy) *= 2*M_PI;
   }
   petsc_call(VecDestroy(&Kphi));
+
+  if (wasora_var_value(wasora_special_var(in_static))) {
+    if ((int)(wasora_var(wasora_special_var(step_static))) == 1) {
+      *fino.vars.strain_energy->initial_static = *fino.vars.strain_energy->value;
+    }
+    *fino.vars.strain_energy->initial_transient = *fino.vars.strain_energy->value;
+  }
   
   return WASORA_RUNTIME_OK;
 }
