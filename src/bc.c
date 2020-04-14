@@ -397,6 +397,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
     free(fino.dirichlet_row);
   }  
   n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
+  if (n_bcs < 32) {
+    n_bcs = 32;
+  }
   current_size = n_bcs;
     
   fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
@@ -418,7 +421,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
 //            physical_entity_last = physical_entity; // esto es para no pasar varias veces por lo mismo
             physical_entity = associated_element->element->physical_entity;
 
-            if (fino.n_dirichlet_rows == 0 && k >= (current_size-16)) {
+            // por que habre querido mirar si n_dirichlet_rows es cero?
+//            if (fino.n_dirichlet_rowsk >= (current_size-16)) {
+            if (k >= (current_size-16)) {            
               current_size += n_bcs;
               fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, current_size * sizeof(PetscInt));
               fino.dirichlet_rhs = realloc(fino.dirichlet_rhs, current_size * sizeof(PetscScalar));
