@@ -905,8 +905,6 @@ int fino_define_functions(void) {
     if ((fino.solution[g] = wasora_define_function(name, fino.dimensions)) == NULL) {
       return WASORA_PARSER_ERROR;
     }
-    free(name);
-    name = NULL;
     
     // esto lo ponemos aca por si alguien quiere hacer un PRINT o algo sin pasar por el STEP
     fino.solution[g]->mesh = (fino.rough==0)?fino.mesh:fino.mesh_rough;
@@ -971,6 +969,8 @@ int fino_define_functions(void) {
         fino.mode[g][i]->type = fino.solution[g]->type;
       }
     }
+    free(name);
+    name = NULL;
   }
 
   if (fino.problem_family == problem_family_mechanical) {
