@@ -1,0 +1,37 @@
+# The NAFEMS Benchmark Challenge #1
+MESH FILE_PATH quad$1.msh    # read input mesh file, either quad4 or quad8   
+FINO_PROBLEM PLANE_STRESS    # use plane-stress constitutive equations
+
+# FINO_SOLVER GRADIENT nodes GRADIENT_HIGHER nodes
+
+E = 1   # unitary young modulus
+nu = 0  # null poisson's ratio
+
+# # neumann boundary conditions
+# PHYSICAL_GROUP bottom BC tx=-(1/2-x) ty=+(1/2-x)
+# PHYSICAL_GROUP top    BC tx=-(1/2+x) ty=+(1/2+x)
+# PHYSICAL_GROUP left   BC tx=+(1/2-y) ty=-(1/2-y)
+# PHYSICAL_GROUP right  BC tx=+(1/2+y) ty=-(1/2+y)
+# 
+# # dirichlet boundary conditions
+# PHYSICAL_GROUP one    BC fixed
+# PHYSICAL_GROUP three  BC 0=u-v
+# PHYSICAL_GROUP four   # needed for the BC below
+# PHYSICAL_GROUP two    BC mimic(u_four) mimic(v_four)
+
+PHYSICAL_GROUP left   BC fixed
+PHYSICAL_GROUP top    BC v=0
+PHYSICAL_GROUP bottom BC v=0
+PHYSICAL_GROUP right  BC u=y v=0
+
+
+FINO_STEP   # solve!
+
+# von mises computed explicitly from strains to force usage of the derivatives of the
+# shape functions in the interpolation and not to use the shape functions themselves
+# vonmises(x,y) := sqrt(dudx(x,y)^2 - dudx(x,y)*dvdy(x,y) + dvdy(x,y)^2 + 3*(0.5*(dudy(x,y) + dvdx(x,y)))^2)
+
+MESH_POST FILE_PATH challenge-$1.vtk VECTOR u v 0 dudx dvdy
+
+PRINT u(-0.5,-0.5) dudx(-0.5,0.5)
+# PRINT_FUNCTION u dudx #MIN -0.5 -0.5 MAX +0.5 +0.5 NSTEPS 20 20
