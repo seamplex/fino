@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.145-g993542c
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.146-g89a8832
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -350,7 +350,7 @@ If the `OVER` keyword is given, the search is performed only on the provided phy
 Depending on the problem type, it might be needed to switch from `NODES` to `CELLS`
 but this is usually not needed.
 If given, the minimum (maximum) value is stored in the variable provided by the `MIN` (`MAX`) keyword.
-If given, the $x$ (or $y$ or $z$) coordinate of the minimum (maximum) value is stored in the variable provided by the `X_MIN` (or `Y_MIN` or `Z_MIN) (`X_MAX`, `Y_MAX`, `Z_MAX`) keyword.
+If given, the $x$ (or $y$ or $z$) coordinate of the minimum (maximum) value is stored in the variable provided by the `X_MIN` (or `Y_MIN` or `Z_MIN`) (`X_MAX`, `Y_MAX`, `Z_MAX`) keyword.
 If given, the index of the minimum (maximum) value (i.e. the node or cell number) is stored in the variable provided by the `I_MIN` (`I_MAX`) keyword.
 
 ##  MESH_INTEGRATE

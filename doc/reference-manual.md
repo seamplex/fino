@@ -240,7 +240,7 @@ If the `OVER` keyword is given, the search is performed only on the provided phy
 Depending on the problem type, it might be needed to switch from `NODES` to `CELLS`
 but this is usually not needed.
 If given, the minimum (maximum) value is stored in the variable provided by the `MIN` (`MAX`) keyword.
-If given, the $x$ (or $y$ or $z$) coordinate of the minimum (maximum) value is stored in the variable provided by the `X_MIN` (or `Y_MIN` or `Z_MIN) (`X_MAX`, `Y_MAX`, `Z_MAX`) keyword.
+If given, the $x$ (or $y$ or $z$) coordinate of the minimum (maximum) value is stored in the variable provided by the `X_MIN` (or `Y_MIN` or `Z_MIN`) (`X_MAX`, `Y_MAX`, `Z_MAX`) keyword.
 If given, the index of the minimum (maximum) value (i.e. the node or cell number) is stored in the variable provided by the `I_MIN` (`I_MAX`) keyword.
 
 ###  MESH_INTEGRATE

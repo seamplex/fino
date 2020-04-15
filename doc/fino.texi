@@ -1449,9 +1449,10 @@ Depending on the problem type, it might be needed to switch from
 the minimum (maximum) value is stored in the variable provided by the
 @code{MIN} (@code{MAX}) keyword. If given, the @math{x} (or @math{y} or
 @math{z}) coordinate of the minimum (maximum) value is stored in the
-variable provided by the @code{X_MIN} (or @code{Y_MIN} or
-@code{Z_MIN) (}X_MAX@code{,}Y_MAX@code{,}Z_MAX@code{) keyword. If given, the index of the minimum (maximum) value (i.e. the node or cell number) is stored in the variable provided by the}I_MIN@code{(}I_MAX`)
-keyword.
+variable provided by the @code{X_MIN} (or @code{Y_MIN} or @code{Z_MIN})
+(@code{X_MAX}, @code{Y_MAX}, @code{Z_MAX}) keyword. If given, the index
+of the minimum (maximum) value (i.e.@ the node or cell number) is stored
+in the variable provided by the @code{I_MIN} (@code{I_MAX}) keyword.
 
 @node MESH_INTEGRATE
 @subsection MESH_INTEGRATE
