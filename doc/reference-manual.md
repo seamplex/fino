@@ -226,8 +226,9 @@ If there is more than one mesh, the name has to be given.
 ~~~wasora
 MESH_FIND_MINMAX { FUNCTION <function> | EXPRESSION <expr> }
  [ MESH <name> ] [ OVER <physical_group_name> ] [ NODES | CELLS ]
- [ MIN <variable> ] [ X_MIN <variable> ] [ Y_MIN <variable> ] [Z_MIN <variable> ]
- [ I_MIN <variable> ] [ MAX <variable> ] [ I_MAX <variable> ] [ X_MAX <variable> ] [ Y_MAX <variable> ] [Z_MAX <variable> ]
+ [ MIN <variable> ] [ MAX <variable> ]
+ [ X_MIN <variable> ] [ Y_MIN <variable> ] [ Z_MIN <variable> ] [ I_MIN <variable> ]
+ [ X_MAX <variable> ] [ Y_MAX <variable> ] [ Z_MAX <variable> ] [ I_MAX <variable> ]
 
 ~~~
 
