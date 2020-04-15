@@ -1176,7 +1176,7 @@ Computes the reaction at the selected physical entity.
 
 @smallformat
 @verbatim
-FINO_REACTION PHYSICAL_GROUP <physical_group> [ RESULT { <variable> | <vector> } ]
+FINO_REACTION PHYSICAL_GROUP <physical_group> RESULT { <variable> | <vector> }
 @end verbatim
 @end smallformat
 
@@ -1432,15 +1432,26 @@ domain.
 @smallformat
 @verbatim
 MESH_FIND_MINMAX { FUNCTION <function> | EXPRESSION <expr> }
- [ MESH <name> ] [ NODES | CELLS ]
- [ MIN <variable> ] [ I_MIN <variable> ] [ X_MIN <variable> ] [ Y_MIN <variable> ] [Z_MIN <variable> ]
- [ MAX <variable> ] [ I_MAX <variable> ] [ X_MAX <variable> ] [ Y_MAX <variable> ] [Z_MAX <variable> ]
+ [ MESH <name> ] [ OVER <physical_group_name> ] [ NODES | CELLS ]
+ [ MIN <variable> ] [ X_MIN <variable> ] [ Y_MIN <variable> ] [Z_MIN <variable> ]
+ [ I_MIN <variable> ] [ MAX <variable> ] [ I_MAX <variable> ] [ X_MAX <variable> ] [ Y_MAX <variable> ] [Z_MAX <variable> ]
 @end verbatim
 @end smallformat
 
 Either a @code{FUNCTION} or an @code{EXPRESSION} should be given. In the
 first case, just the function name is expected (i.e.@ not its
-arguments).
+arguments). In the second case, a full algebraic expression including
+the arguments is expected. If no explicit mesh is provided, the main
+mesh is used to search for the extrema. If the @code{OVER} keyword is
+given, the search is performed only on the provided physical group.
+Depending on the problem type, it might be needed to switch from
+@code{NODES} to @code{CELLS} but this is usually not needed. If given,
+the minimum (maximum) value is stored in the variable provided by the
+@code{MIN} (@code{MAX}) keyword. If given, the @math{x} (or @math{y} or
+@math{z}) coordinate of the minimum (maximum) value is stored in the
+variable provided by the @code{X_MIN} (or @code{Y_MIN} or
+@code{Z_MIN) (}X_MAX@code{,}Y_MAX@code{,}Z_MAX@code{) keyword. If given, the index of the minimum (maximum) value (i.e. the node or cell number) is stored in the variable provided by the}I_MIN@code{(}I_MAX`)
+keyword.
 
 @node MESH_INTEGRATE
 @subsection MESH_INTEGRATE
@@ -1474,8 +1485,7 @@ type. In the second case, the integral is computed as the sum of the
 product of the function evaluated at the center of each cell (element)
 and the cell's volume. The scalar result of the integration is stored in
 the variable given by @code{RESULT}. If the variable does not exist, it
-is created. In the second case, a full algebraic expression including
-the arguments is expected.
+is created.
 
 @node MESH_MAIN
 @subsection MESH_MAIN

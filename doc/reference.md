@@ -1,6 +1,6 @@
 % Fino reference sheet
 
-This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.128-g0264fc2
+This reference sheet is for [Fino](https://www.seamplex.com/fino) v0.6.145-g993542c
 . 
 Note that Fino works on top of [wasora](https://www.seamplex.com/wasora), so you should also check the [wasora reference sheet](https://www.seamplex.com/wasora/reference.html) also---not to mention the [wasora RealBook](https://www.seamplex.com/wasora/realbook).
 See Fino in action at the [Fino case files](https://www.seamplex.com/fino).
@@ -181,7 +181,7 @@ The number of modes to be computed in the modal problem. The default is DEFAULT_
 > Computes the reaction at the selected physical entity.
 
 ~~~wasora
-FINO_REACTION PHYSICAL_GROUP <physical_group> [ RESULT { <variable> | <vector> } ]
+FINO_REACTION PHYSICAL_GROUP <physical_group> RESULT { <variable> | <vector> }
 ~~~
 
 
@@ -335,15 +335,23 @@ If there is more than one mesh, the name has to be given.
 
 ~~~wasora
 MESH_FIND_MINMAX { FUNCTION <function> | EXPRESSION <expr> }
- [ MESH <name> ] [ NODES | CELLS ]
- [ MIN <variable> ] [ I_MIN <variable> ] [ X_MIN <variable> ] [ Y_MIN <variable> ] [Z_MIN <variable> ]
- [ MAX <variable> ] [ I_MAX <variable> ] [ X_MAX <variable> ] [ Y_MAX <variable> ] [Z_MAX <variable> ]
+ [ MESH <name> ] [ OVER <physical_group_name> ] [ NODES | CELLS ]
+ [ MIN <variable> ] [ X_MIN <variable> ] [ Y_MIN <variable> ] [Z_MIN <variable> ]
+ [ I_MIN <variable> ] [ MAX <variable> ] [ I_MAX <variable> ] [ X_MAX <variable> ] [ Y_MAX <variable> ] [Z_MAX <variable> ]
 
 ~~~
 
 
 Either a `FUNCTION` or an `EXPRESSION` should be given.
 In the first case, just the function name is expected (i.e. not its arguments).
+In the second case, a full algebraic expression including the arguments is expected.
+If no explicit mesh is provided, the main mesh is used to search for the extrema.
+If the `OVER` keyword is given, the search is performed only on the provided physical group.
+Depending on the problem type, it might be needed to switch from `NODES` to `CELLS`
+but this is usually not needed.
+If given, the minimum (maximum) value is stored in the variable provided by the `MIN` (`MAX`) keyword.
+If given, the $x$ (or $y$ or $z$) coordinate of the minimum (maximum) value is stored in the variable provided by the `X_MIN` (or `Y_MIN` or `Z_MIN) (`X_MAX`, `Y_MAX`, `Z_MAX`) keyword.
+If given, the index of the minimum (maximum) value (i.e. the node or cell number) is stored in the variable provided by the `I_MIN` (`I_MAX`) keyword.
 
 ##  MESH_INTEGRATE
 
@@ -370,7 +378,6 @@ In the first case a the integration is performed using the Gauss points and weig
 In the second case, the integral is computed as the sum of the product of the function evaluated at the center of each cell (element) and the cell’s volume.
 The scalar result of the integration is stored in the variable given by `RESULT`.
 If the variable does not exist, it is created.
-In the second case, a full algebraic expression including the arguments is expected.
 
 ##  MESH_MAIN
 
