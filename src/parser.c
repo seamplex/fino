@@ -528,7 +528,7 @@ int plugin_parse_line(char *line) {
             reaction->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
           }
           free(name);
-///kw+FINO_REACTION+usage [ RESULT { <variable> | <vector> } ]
+///kw+FINO_REACTION+usage RESULT { <variable> | <vector> }
         } else if (strcasecmp(token, "RESULT") == 0) {
           wasora_call(wasora_parser_string(&name));
           
