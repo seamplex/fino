@@ -1,1 +1,24 @@
+0.7 (April 16, 2020): improved stresses, basic paralellization and some documentation
+
+ * conditional BCs
+ * improved support for 2D (plane stress/strain) problems
+ * interpolate strains using derivatives of the shape functions and not the shape functions themselves
+ * attempt to estimate uncertainties in computation of stresses
+ * interface to direct solver MUMPS
+ * basic parallelization using MPI
+ * “rough” mode: do not always smooth strains and stresses, per-material or never
+ * use element-wise objects for caching shape function evaluation
+ * computations of stresses at Gauss points extrapolated to nodes
+ * reactions using the original stiffness matrix (before setting Dirichlet BCs)
+ * internal strain_energy variable
+ * use Lamé coefficients for computing stresses
+ * refactored computation of modal quantities
+ * added total heat BC
+ * rewritten moment BCs
+ * symmetry and radial BCs
+ * implicit BCs using derivatives computed by GSL
+
+
+
+
 0.6 (March 11, 2019): reasonably usable version
