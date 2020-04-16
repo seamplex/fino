@@ -3,7 +3,7 @@ title: Fino
 subtitle: a free finite-element thermo-mechanical solver
 desc: a completely free-as-in-freedom finite-element thermo-mechancial solver desinged and implemented following the UNIX principles
 author: Jeremy Theler
-date: February 20, 2020
+date: April 16th, 2020
 version: v0.7
 infoname: fino
 lang: en-US

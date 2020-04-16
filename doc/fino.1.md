@@ -1,6 +1,5 @@
 % FINO(1) Fino User Manual
 % Jeremy Theler
-% April 2, 2020
 
 # NAME
 

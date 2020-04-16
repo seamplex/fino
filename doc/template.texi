@@ -6,6 +6,7 @@ $header-includes$
 $endfor$
 
 @setfilename $infoname$.info
+@c @include version.texi
 @set UPDATED $date$
 @set VERSION $version$
 

@@ -3,7 +3,8 @@
 @documentencoding UTF-8
 
 @setfilename fino.info
-@set UPDATED February 20, 2020
+@c @include version.texi
+@set UPDATED April 16th, 2020
 @set VERSION v0.7
 
 @copying
@@ -31,7 +32,7 @@ Texts.  A copy of the license is included in the section entitled
 @title Fino
 @subtitle a free finite-element thermo-mechanical solver, v0.7
 @author Jeremy Theler
-February 20, 2020
+April 16th, 2020
 @page
 @vskip 0pt plus 1filll
 @insertcopying
