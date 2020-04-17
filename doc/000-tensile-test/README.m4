@@ -45,7 +45,8 @@ A further note is that not only is Fino both [free](https://www.gnu.org/philosop
  [Pyxplot](http://www.pyxplot.org.uk/),
  [Pandoc](https://pandoc.org/),
  [TeX](https://tug.org/),
-and many others, including of course the operating system [GNU](https://www.gnu.org/)/[Linux](https://www.kernel.org/). In particular, this report has been created from scratch using free and open source software only. Even the [terminal recorder](https://asciinema.org/) used to show the [actual execution](#sec:execution) is GPLv3.
+and many others, including of course the operating system [GNU](https://www.gnu.org/)/[Linux](https://www.kernel.org/). In particular, this report has been created from scratch using free and open source software only.
+Even the [terminal recorder](https://asciinema.org/) used to show the [actual execution](#sec:execution) is GPLv3. dnl online
 
 
 Fino also makes use of high-quality free and open source mathematical libraries which contain numerical methods designed by mathematicians and programmed by professional programmers, such as
@@ -55,16 +56,17 @@ Fino also makes use of high-quality free and open source mathematical libraries 
 This way, Fino bounds its scope to do only one thing and to do it well: to build and solve finite-element formulations of thermo-mechanical problems. And it does so on high grounds, both
 
  i. ethical: since it is [free software](https://www.gnu.org/philosophy/open-source-misses-the-point.en.html), all users can
-       0. run,
-       1. share,
-       2. modify, and/or
-       3. re-share their modifications.
-     
-    If a user cannot read or write code so make Fino suit her needs, at least she has the _freedom_ to hire someone to do it for her, and
+      0. run,
+      1. share,
+      2. modify, and/or
+      3. re-share their modifications.
+      
+    If a user cannot read or write code to make Fino suit her needs, at least she has the _freedom_ to hire someone to do it for her, and
+    
  ii. technological: since it is [open source](http://www.catb.org/~esr/writings/cathedral-bazaar/cathedral-bazaar/), advanced users can detect and correct bugs and even improve the algorithms. [Given enough eyeballs, all bugs are shallow.](https://en.wikipedia.org/wiki/Linus%27s_law)
  
 
-The reader is encouraged to consider and to evaluate the differences (both advantages and disadvantages) between the approach proposed in this work with traditional thermo-mechanical FEA software. The [Git](https://git-scm.com/) repository of Fino can be found at <https://github.com/seamplex/fino>.
+The reader is encouraged to consider and to evaluate the differences (both advantages and disadvantages) between the approach proposed in this work with traditional thermo-mechanical FEA software. The [Git](https://git-scm.com/) repository containing Fino’s source code can be found at <https://github.com/seamplex/fino>.
 
 
 # Problem description
@@ -79,7 +81,7 @@ A tensile test specimen of nominal cross-sectional area\ $A = 20~\text{mm} \time
 The displacements and stresses distribution within the geometry are to be obtained.
 Elongation along the\ $x$ axis and a mild contraction in\ $y$ (and even milder in $z$) are expected.
 The normal tension at the center of the specimen is to be checked to the theoretical solution $\sigma_x = F_x/A$ and the reaction at the fixed end should balance the external load\ $\vec{F}$ at the opposite face.
-Stress concentrations are expected to appear at sharp corners of the coupon.
+Stress concentrations are expected to occur at sharp corners of the coupon.
 
 
 
@@ -89,13 +91,15 @@ Stress concentrations are expected to appear at sharp corners of the coupon.
 Following the general rule of performing only one thing well, and the particular rules of [composition](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2877684) and [parsimony](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2878022), the generation of the set of nodes and elements required to perform a thermo-mechanical computation using the finite element method is outside of Fino’s scope. The finite-element mesh is an _input_ to Fino. 
 
 In the particular case of the tensile test problem, the geometry is given as a [STEP file](tensile-test-specimen.step).
-It is meshed by [Gmsh](http://gmsh.info/) (or, following the rule of [diversity](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2879078), any other meshing tool which can write meshes in [MSH format](http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format) keeping information about [physical groups](http://gmsh.info/doc/texinfo/gmsh.html#Elementary-entities-vs-physical-groups)). A suitable mesh ([@fig:tensile}) can be created using the following `tensile-test.geo` file:
+It is meshed by [Gmsh](http://gmsh.info/) (or, following the rule of [diversity](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2879078), any other meshing tool which can write meshes in [MSH format](http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format)
+keeping information about [physical groups](http://gmsh.info/doc/texinfo/gmsh.html#Elementary-entities-vs-physical-groups)).
+A suitable mesh ([@fig:tensile]) can be created using the following `tensile-test.geo` file:
 
 ```{.c style=c}
 include(tensile-test.geo)
 ```
 
-Out of the six lines, the first three are used to read the CAD file, to se the characteristic element size\ $\ell_c = 1.5~\text{mm}$ and to ask for second-order 10-noded tetrahedra (default first-order 4-node). The last three lines define one physical group each:
+Out of the six lines, the first three are used to read the CAD file, to set the characteristic element size\ $\ell_c = 1.5~\text{mm}$ and to ask for second-order 10-noded tetrahedra (by default Gmsh creates first-order 4-node tetrahedra). The last three lines define one physical group each:
 
  * geometrical surface #1 as physical surface “left,”  which will be set as fixed in the Fino input file,
  * geometrical surface #7 as physical surface “right,” which will hold the load defined in the Fino input file, and
@@ -118,10 +122,10 @@ The usage of [physical groups](http://gmsh.info/doc/texinfo/gmsh.html#Elementary
 
 # Input file
 
-Fino reads a plain-text input file---which in turns also reads the mesh generated above---that defines the problem, asks fino to solve it and writes whatever output is needed. It is a [syntactically-sweetened](http://en.wikipedia.org/wiki/Syntactic_sugar) way to ask the computer to perform the actual computation (which is what computers do). This input file, as illustrated in the example below lives near the English language so a person can read through it from the top down to the bottom, and more or less understand what is going on (rule of [least surprise](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2878339)).
+Fino reads a plain-text input file---which in turns also reads the mesh generated above---that defines the problem, asks Fino to solve it and writes whatever output is needed. It is a [syntactically-sweetened](http://en.wikipedia.org/wiki/Syntactic_sugar) way to ask the computer to perform the actual computation (which is what computers do). This input file, as illustrated in the example below lives somewhere near the English language so a person can read through it from the top down to the bottom and more or less understand what is going on (rule of [least surprise](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2878339)).
 Yet in the extreme case that the complexity of the problem asks for, the input file could be machine-generated by a script or a macro (rule of [generation](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2878742)).
 Or if the circumstances call for an actual graphical interface for properly processing (both pre and post) the problem, the input file could be created by a separate cooperating front-end such as [CAEplex](https://www.caeplex.com) in [@fig:tensile-cad] above (rule of [separation](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2877777)).
-In any case, the input files---both for Gmsh and for Fino---can be tracked with [Git](https://en.wikipedia.org/wiki/Git) in order to increase traceability and repeatability of engineering computations.
+In any case, the input files---both for Gmsh and for Fino---can be tracked with [Git](https://en.wikipedia.org/wiki/Git) in order to increase traceability and repeatability of engineering computations. This is not true for most of the other FEA tools avaialable today, particularly the ones that do not follow McIlroy’s recommendations above.
 
 Given that the problem is relatively simple, following the rule of [simplicity](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#id2877917),
 the input file [`tensile-test.fin`](tensile-test.fin) ought to be also simple. Other cases with more complexity such as parametric runs (such as case_link(085-cantilever-cylinder)) or those that need to read results from other programs (such as case_link(075-fixed-compressed-cylinder)) in order to compare results might lead to more complex input files.
@@ -131,14 +135,14 @@ include(tensile-test.fin)
 ```
 
  * The mesh [`tensile-test.msh`](tensile-test.msh) is the output of Gmsh when invoked with the input [`tensile-test.geo`](tensile-test.geo) above. It can be either [version\ 4.1](http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format) or [2.2](http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-2-_0028Legacy_0029).
- * The mechanical properties, namely the Young modulus\ $E$ and the Poisson’s ratio\ $\nu$ are uniform. Therefore, they can be simply set using special variables `E` and `nu`.
- * Boundary conditions are set by referring to the physical surfaces defined in the mesh. The keyword `fixed` is a shortcut for `u=0`, `v=0` and `w=0`.
- * An explicit location within the logical flow of the input file hast to be given where Fino has to actually solve the problem with the keyword `FINO_STEP`. It should be after defining the material properties and the boundary conditions and before computing secondary results (such as the reactions) and asking for outputs.
+ * The mechanical properties, namely the Young modulus\ $E$ and the Poisson’s ratio\ $\nu$ are uniform in space. Therefore, they can be simply set using special variables `E` and `nu`.
+ * Boundary conditions are set by referring to the physical surfaces defined in the mesh. The keyword `fixed` is a shortcut for setting the individual displacements in each direction `u=0`, `v=0` and `w=0`.
+ * An explicit location within the logical flow of the input file hast to be given where Fino ought to actually solve the problem with the keyword `FINO_STEP`. It should be after defining the material properties and the boundary conditions and before computing secondary results (such as the reactions) and asking for outputs.
  * The reaction in the physical group “left” is computed after the problem is solved (i.e. after `FINO_STEP`) and the result is stored in a vector named `R` of size three. There is nothing special about the name `R`, it could have been any other valid identifier name.
  * A [post-processing output file](tensile-test.vtk) in format [VTK](https://lorensen.github.io/VTKExamples/site/VTKFileFormats/) is created, containing:
     - The von Mises stress `sigma` ($\sigma$) as an scalar field
-    - The three principal stresses `sigma1`, $\sigma_2$ and\ $\sigma_3$ ($\sigma_1$, $\sigma_2$ and $\sigma_3$ respectively) as three scalar fields
-    - The displacement vector $\vec{u}=[u,v,w]$ as a three-dimensional vector field
+    - The three principal stresses `sigma1`, `sigma_2` and\ `sigma_3` ($\sigma_1$, $\sigma_2$ and $\sigma_3$ respectively) as three scalar fields
+    - The displacement vector $\mathbf{u}=[u,v,w]$ as a three-dimensional vector field
  * Some results are printed to the terminal (i.e. the [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout))) to summarize the run.
  Note that
      1. The actual output (including post-processing files) is 100% defined by the user, and
@@ -194,17 +198,17 @@ $
 ```
 
 
- * The three lines with the dots, dashes and double dashes are ASCII progress bars for the assembly of the stiffness matrix, the solution of the linear system and the computation of stresses, respectively. They are turned on by `PROGRESS_ASCII`.
- * Almost any location in the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions).
+ * The three lines with the dots, dashes and double dashes are ASCII progress bars for the assembly of the stiffness matrix, the solution of the linear system and the computation of stresses, respectively. They are turned on with `PROGRESS_ASCII`.
+ * Almost any location within the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions) for details.
  * Once again, if the `MESH_POST` and `PRINT` instructions were not included, there would not be any default output of the execution ([rule of silence](http://www.linfo.org/rule_of_silence.html)). This should be emphasized over and over, as I have recently (i.e. thirteen years after the commercial introduction of smartphones) stumbled upon a the output file of a classical FEM program that seems to have been executed in 1970: paginated ASCII text ready to be fed to a matrix-doy printed containing all the possible numerical output because the CPU cost of re-running the case of course overwhelms the hourly rate of the engineer that hast to understand the results. For more than fifty years (and counting), McIlroy’s second bullet
  from [@sec:foreword] dnl online
- above has been ignored.
- * It has already been said that the output is 100% controlled by the user. Yet this fact includes not just what is written but also how: the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was $100~\text{MPa}$ (the load is $F_x=10^4~\text{N}$ and the cross-sectional area is $100~\text{mm}^2$).
- * If available, the [MUMPS Solver](http://mumps-solver.org/) direct solver can be used by passing the option `--mumps` in the commandline. More on solvers in [@sec:performance].
+ above has been blatantly ignored.
+ * It has already been said that the output is 100% controlled by the user. Yet this fact includes not just what is written but also how: the precision of the printed results is controlled with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was $100~\text{MPa}$ (the load is $F_x=10^4~\text{N}$ and the cross-sectional area is $100~\text{mm}^2$).
+ * If available, the [MUMPS Solver](http://mumps-solver.org/) direct solver can be used instead of the default GAMG-preconditioned GMRES itearative solver by passing the option `--mumps` in the command line. More on solvers in [@sec:performance].
  
 # Results
 
-After the problem is solved and an appropriately-formatted output files is created, Fino’s job is considered done. In this case, the post-processing file is craeted using `MESH_POST`. The [VTK output](tensile-test.vtk) can be post-processed with the free and open source tool [ParaView](http://www.paraview.org/) (or any other tool that reads [VTK files]((https://lorensen.github.io/VTKExamples/site/VTKFileFormats/)) such as [Gmsh in post-processing mode](http://gmsh.info/doc/texinfo/gmsh.html#Post_002dprocessing)), as illustrated in [@fig:tensile-vtk].
+After the problem is solved and an appropriately-formatted output file is created, Fino’s job is considered done. In this case, the post-processing file is written using `MESH_POST`. The [VTK output](tensile-test.vtk) can be post-processed with the free and open source tool [ParaView](http://www.paraview.org/) (or any other tool that reads [VTK files]((https://lorensen.github.io/VTKExamples/site/VTKFileFormats/)) such as [Gmsh in post-processing mode](http://gmsh.info/doc/texinfo/gmsh.html#Post_002dprocessing)), as illustrated in [@fig:tensile-vtk].
 
 ![Tensile test results obtained by Fino and post-processed by ParaView. Displacements are warped 500\ times.](tensile-test.png){#fig:tensile-vtk width=12cm}
 
@@ -213,7 +217,7 @@ After the problem is solved and an appropriately-formatted output files is creat
 Qualitatively speaking, Fino does what a mechanical finite-element program is expected to do:
 
  * The displacement vector and scalar von Mises stress fields are computed by Fino, as they are successfully read by Paraview.
- * Elongation in the $x$ direction and mild contractions in $y$ and $z$ are observed.
+ * Elongation in the\ $x$ direction and mild contractions in $y$ and $z$ are observed.
  * The principal stress $\sigma_1$ should be equal to $F_x/A$, where
      * $F_x=10^4~\text{N}$, and
      * $A = 20~\text{mm} \times 5~\text{mm} = 100~\text{mm}^2$.
@@ -225,7 +229,7 @@ Qualitatively speaking, Fino does what a mechanical finite-element program is ex
    \vec{R} = \left[ -10^4 \quad \approx 10^{-4} \quad \approx 10^{-3} \right]^T ~\text{N}
    $$
    
-   which server as a consistency check.
+   which serves as a consistency check.
  * Stress concentrations are obtained where they are expected.
 
 
@@ -246,11 +250,11 @@ Just for the sake of validating that Fino does what a FEA program is supposed to
 
 ## FreeCAD with CalculiX
 
-[FreeCAD](https://www.freecadweb.org/) is a free and open source parametric modeler based on the [OpenCASCADE](https://www.opencascade.com/content/open-source-core-technology) geometry kernel. FreeCAD can be used both as a GUI app and as a Python API, and the architecture allows for arbitrary extensions. One of these extensiones is the possibility of interfacing with FEM programs, and the most mature interface is with the free and open source FEA tool [CalculiX](http://www.calculix.de/). The interface from FreeCAD to CalculiX is heavily based (and influenced) by the traditional FEA workflow and might be a little bit cumbersome for newcomers.
+[FreeCAD](https://www.freecadweb.org/) is a free and open source parametric modeler based on the [OpenCASCADE](https://www.opencascade.com/content/open-source-core-technology) geometry kernel. FreeCAD can be used both as a GUI application and as a Python API, and the architecture allows for arbitrary plugins. One of these extensions is the possibility of interfacing with FEM programs, and the most mature of these interfaces is the one for the free and open source FEA tool [CalculiX](http://www.calculix.de/) which is heavily based (and influenced) by the traditional FEA workflow. This might be a little bit cumbersome for newcomers unaware of workflows based on using programs designed fifty years ago.
 
 ![FreeCAD showing the results obtained with CalculiX in the FEM workbench.](freecad-ccx.png){width=12cm #fig:freecad-ccx}
 
-In any case, [a FreeCAD file](tensile-test-ccx.FCStd) contains the geometry and all the definitions that CalculiX needs to solve the tensile test specimen subject fixed on one end and subject to a tensile load on the other. [@Fig:freecad-ccx] shows the displacements warped 500\ times (as in [@fig:tensile-vtk]) where the elongation in $x$, contraction in $y$ and $z$ and stress concentrations coincide with Fino’s and with what it is expected in this problem.
+In any case, [a FreeCAD file](tensile-test-ccx.FCStd) contains the geometry and all the definitions that CalculiX needs to solve the tensile test specimen subject fixed on one end and subject to a tensile load on the other. [@Fig:freecad-ccx] shows the displacements warped 500\ times (as in [@fig:tensile-vtk]) where the elongation in\ $x$, contraction in $y$ and $z$ and stress concentrations coincide with Fino’s and with what it is expected in this problem.
 
 ## Simscale with CodeAster
 
@@ -266,9 +270,9 @@ The simple tensile test problem is qualitatively solved with Fino as expected. T
 
 ## Strain energy convergence
 
-It is a well-known result from the mathematical theory that the displacement finite-element formulation gives a stiffer solution than the continuous problem. This means that the total strain energy\ $U$ in load-driven (displacement-driven) problems is always lower (higher) than the exact physical value.
+It is a well-known result from the mathematical theory that the displacement-based finite-element formulation gives a stiffer solution than the continuous problem. This means that the total strain energy\ $U$ in load-driven (displacement-driven) problems is always lower (higher) than the exact physical value.
 
-The following input files ask Fino to perform a parametric run on $c \in [1:10]$ which controls the characteristic element size\ $\ell_c=10~\text{mm}/c$:
+The following input files asks Fino to perform a parametric run on $c \in [1:10]$ which controls the characteristic element size\ $\ell_c=10~\text{mm}/c$:
 
 ```{.fino style=fino}
 include(parametric-energy.fin)
@@ -340,7 +344,7 @@ In the general case, the time needed to solve a finite-element problem depends o
     
 As it has been already explained, Fino uses [PETSc](https://www.mcs.anl.gov/petsc/)---pronounced PET-see (the S is silent). It is a suite of data structures and routines for the scalable (parallel) solution of scientific applications modeled by partial differential equations. In other words, it is a library programmed by professional programmers implementing state-of-the-art numerical methods developed by professional mathematicians. And yet, it is [free and open source](https://www.mcs.anl.gov/petsc/documentation/license.html) software.
 
-PETSc provides a variety of [linear solvers and preconditioners](https://www.mcs.anl.gov/petsc/documentation/linearsolvertable.html) which can be used to solver the finite-element formulation. The choice of the type of preconditioner and linear solver can be done from the input file or directly from the command line. By default, mechanical problems are solved with the [Geometric algebraic multigrid](https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)-preconditioned [Generalized Minimal Residual method](https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPGMRES.html), which is an iterative solver. An alternative might be a direct sparse solver, such as the [MUMPS Solver](http://mumps-solver.org/), which Fino (through PETSc’s interface) can use.
+PETSc provides a variety of [linear solvers and preconditioners](https://www.mcs.anl.gov/petsc/documentation/linearsolvertable.html) which can be used to solve the finite-element formulation. The choice of the type of preconditioner and linear solver can be done from the input file or directly from the command line. By default, mechanical problems are solved with the [Geometric algebraic multigrid](https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCGAMG.html)-preconditioned [Generalized Minimal Residual method](https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPGMRES.html), which is an iterative solver. An alternative might be a direct sparse solver, such as the [MUMPS Solver](http://mumps-solver.org/), which Fino (through PETSc’s interface) can use.
 
 To get some insight about how the problem size, the computer and the algorithms impact in the time needed to solve the problem we perform another parametric run on\ $c \in [1:12]$ in two different computers with three different solvers and pre-conditioners:
  
@@ -366,12 +370,14 @@ $
 Wall time needed to solve the linear problem as a function of the number of nodes in two different computers
 :::
 
-[@Fig:solver] shows the dependence of the [wall time](https://en.wikipedia.org/wiki/Elapsed_real_time) needed to solve the linear problem with respect to the number of nodes in two different computers. Only the time needed to solve the linear problem is plotted. That is to say, the time needed to mesh the geometry, to build the matrix and to compute stresses is not taken into account. The reported times correspond to only one process, i.e. Fino is run in serial mode with no parallelization requested. It can be seen that direct solvers are faster than the iterative method for small problems. Yet GAMG scales better and for a certain problem size (which depends on the hardware and more importantly on the particular problem being solver) its performance is better than that of the direct solvers. This is a known result, which can be stated as direct solvers are _robust_ but _not scalable_.^[See second bullet of slide #6 in <http://www.mcs.anl.gov/petsc/petsc-20/tutorial/PETSc3.pdf>.]
+[@Fig:solver] shows the dependence of the [wall time](https://en.wikipedia.org/wiki/Elapsed_real_time) needed to solve the linear problem with respect to the number of nodes in two different computers. Only the time needed to solve the linear problem is plotted. That is to say, the time needed to mesh the geometry, to build the matrix and to compute the stresses out of the displacements is not taken into account. The reported times correspond to only one process, i.e. Fino is run in serial mode with no parallelization requested. It can be seen that direct solvers are faster than the iterative method for small problems. Yet GAMG scales better and for a certain problem size (which depends on the hardware and more importantly on the particular problem being solved) its performance is better than that of the direct solvers. This is a known result, which can be stated as direct solvers are _robust_ but _not scalable_.^[See second bullet of slide #6 in <http://www.mcs.anl.gov/petsc/petsc-20/tutorial/PETSc3.pdf>.]
 
-Fino defaults ot GAMG+GMRES since this combination is provided natively by PETSc and does not need any extra library (as in the MUMPS case), but it still sticks to the rule of [optimization](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#rule_of_optimization).
+Fino defaults to GAMG+GMRES since this combination is provided natively by PETSc and does not need any extra library (as in the MUMPS case), but it still sticks to the rule of [optimization](https://homepage.cs.uri.edu/~thenry/resources/unix_art/ch01s06.html#rule_of_optimization).
 Chances are that another combination of preconditioner, solver (and hardware!) might be better suitable for the problem being solved. It is up to the user to measure and to choose the most convenient configuration to obtain results as efficiently as possible.
 
-As a final comment, although Fino provides basic parallelization capabilities there is still room to optimize the code regarding distributed computing. [@Fig:strong] shows the wall time needed to solve the $c=10$ case in the VPS with up to eight CPUs. The time does decrease but not as the inverse of the number of processes. dnl online
+dnl As a final comment, although Fino provides basic parallelization capabilities there is still room to optimize the code regarding distributed computing. [@Fig:strong] shows the wall time needed to solve the $c=10$ case in the VPS with up to eight CPUs. The time does decrease but not as the inverse of the number of processes. dnl online
+
+
 
 ![Wall time for strong parallel scaling test.](strong.svg){#fig:strong width=12cm}
 
