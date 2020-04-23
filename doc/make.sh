@@ -12,11 +12,13 @@ m4 reference.m4 > reference.md
 pandoc reference.md --toc --template=toc.template -o reference-toc.md
 m4 reference.m4 > reference.md
 
+
 # the reference for the manual is slightly different due to texinfo
 m4 header.m4 reference-manual.m4 > reference-manual.md
 
 # just for completeness
 pandoc help.md -t plain > help.txt
+pandoc reference.md -t plain > reference.txt
 
 
 # manpage

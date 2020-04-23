@@ -5,7 +5,7 @@ DIST_SUBDIRS = src wasora doc
 
 ACLOCAL_AMFLAGS = -I wasora/m4
 dist_doc_DATA = AUTHORS ChangeLog README TODO \
-                doc/fino.texi doc/fino.info doc/fino.svg doc/fino.xml doc/reference.md
+                doc/fino.texi doc/fino.info doc/fino.svg doc/fino.xml doc/reference.txt
 
 dist_man_MANS = doc/fino.1
 
