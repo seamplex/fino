@@ -142,7 +142,7 @@ include(tensile-test.fin)
  * A [post-processing output file](tensile-test.vtk) in format [VTK](https://lorensen.github.io/VTKExamples/site/VTKFileFormats/) is created, containing:
     - The von Mises stress `sigma` ($\sigma$) as an scalar field
     - The three principal stresses `sigma1`, `sigma_2` and\ `sigma_3` ($\sigma_1$, $\sigma_2$ and $\sigma_3$ respectively) as three scalar fields
-    - The displacement vector $\mathbf{u}=[u,v,w]$ as a three-dimensional vector field
+    - The displacement vector $\vec{u}=[u,v,w]$ as a three-dimensional vector field
  * Some results are printed to the terminal (i.e. the [standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout))) to summarize the run.
  Note that
      1. The actual output (including post-processing files) is 100% defined by the user, and
