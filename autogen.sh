@@ -9,7 +9,7 @@ plugin=fino
 
 # check for needed tools (cannot put this into an m4 macro
 # because we do not even know if we have m4 available)
-for i in git m4 autoconf xargs; do
+for i in git m4 autoconf xargs md5sum; do
  if [ -z "`which $i`" ]; then
   echo "error: $i not installed"
   exit 1
