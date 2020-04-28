@@ -18,7 +18,7 @@ TESTS = examples/test-tensile.sh \
         examples/test-wire.sh
         
 all-local:
-	if [ -e src/${plugin} ]; then cp -u  src/${plugin} .; fi
+	if [ -e src/${plugin} ]; then cp  src/${plugin} .; fi
 	if [ -e ${plugin} ]; then cd examples; ln -sf ../${plugin}; cd;  fi
 # 	if [ -e src/${plugin}-version.$(OBJEXT) ]; then rm -f src/${plugin}-version.$(OBJEXT);  fi
 
