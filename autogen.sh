@@ -9,7 +9,7 @@ plugin=fino
 
 # check for needed tools (cannot put this into an m4 macro
 # because we do not even know if we have m4 available)
-for i in git m4 autoconf xargs md5sum; do
+for i in git m4 autoconf uname xargs md5sum; do
  if [ -z "`which $i`" ]; then
   echo "error: $i not installed"
   exit 1
@@ -55,10 +55,17 @@ echo -n "autogen: building makefile.am... "
 rm -f petscslepc.mak
 touch petscslepc.mak
 am="src/Makefile.am"
-echo -n "building $am... "
-cat << EOF > $am
+echo -n "building ${am}... "
+
+if [ "x`uname`" -eq "xDarwin" ]; then
+  undefine="unexport"
+else
+  undefine="undefine"
+fi
+
+cat << EOF > ${am}
 include ../petscslepc.mak
-undefine DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install
+${undefine} DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install" >> ${am}
 
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = \$(ACLOCAL_FLAGS)
@@ -73,12 +80,12 @@ ${plugin}_SOURCES = \\
 EOF
 
 cd src
-find . -maxdepth 1 \( -name "*.c" -o -name "*.h" \) | xargs echo -n >> ../$am
-echo "\\" >> ../$am
-find ../wasora/src -maxdepth 2 \( -name "*.c" -o -name "*.h" \) | xargs echo >> ../$am
+find . -maxdepth 1 \( -name "*.c" -o -name "*.h" \) | xargs echo -n >> ../${am}
+echo "\\" >> ../${am}
+find ../wasora/src -maxdepth 2 \( -name "*.c" -o -name "*.h" \) | xargs echo >> ../${am}
 cd ..
 
-# cat << EOF >> $am
+# cat << EOF >> ${am}
 # 
 # version.\$(OBJEXT): version.h
 # version.h: Makefile

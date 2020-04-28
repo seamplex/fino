@@ -28,11 +28,10 @@ test-driver
 test-suite.log
 plugin.mk
 
-wasora
-
 README
 INSTALL
-PLUGINS
+
+wasora
 
 src/.deps/
 src/.dirstamp
@@ -53,12 +52,11 @@ src/wasora/
 
 *.tar.gz
 nbproject
-
-cosas
-
+gsl-*
 petscslepc.mak
 
 fino
+fino.exe
 fino.so
 
 fino-v*
