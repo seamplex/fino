@@ -57,15 +57,14 @@ touch petscslepc.mak
 am="src/Makefile.am"
 echo -n "building ${am}... "
 
-if [ "x`uname`" -eq "xDarwin" ]; then
-  undefine="unexport"
-else
-  undefine="undefine"
+comment=""
+if [ "x`uname`" = "xDarwin" ]; then
+  comment="#"
 fi
 
 cat << EOF > ${am}
 include ../petscslepc.mak
-${undefine} DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install" >> ${am}
+${comment} undefine DESTDIR  # this variable is set by petsc somewhere and we need it empty to make install" >> ${am}
 
 AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = \$(ACLOCAL_FLAGS)
