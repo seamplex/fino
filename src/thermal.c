@@ -54,9 +54,11 @@ int fino_bake_step_initial(void) {
 
   } else {
     
+    // TODO: re-pensar y re-implementar esto
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
     wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
     wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
+    wasora_call(fino_phi_to_solution(fino.phi));
     
     // este ksp ya no sirve mas, porque despues usamos otras matrice y demas
     petsc_call(KSPDestroy(&fino.ksp));
