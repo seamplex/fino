@@ -47,19 +47,20 @@ int fino_bake_step_initial(void) {
       return WASORA_RUNTIME_ERROR;
     }
 
-    for (j = 0; j < fino.mesh->n_nodes; j++) {
+    for (j = fino.first_node; j < fino.last_node; j++) {
       xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
       VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES);
     }
 
   } else {
     
-    // TODO: re-pensar y re-implementar esto
+    // TODO: re-pensar y re-implementar esto  
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
     wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
     wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
     wasora_call(fino_phi_to_solution(fino.phi));
     
+    // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
     // este ksp ya no sirve mas, porque despues usamos otras matrice y demas
     petsc_call(KSPDestroy(&fino.ksp));
     fino.ksp = NULL;
@@ -143,6 +144,7 @@ int fino_bake_step_transient(void) {
 
   // y resolver
   wasora_call(fino_solve_petsc_linear(fino.A, fino.c));
+  wasora_call(fino_phi_to_solution(fino.phi));
 
   if (nonlinear) {
     MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);
