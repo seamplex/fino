@@ -723,7 +723,7 @@ int fino_problem_free(void) {
   }
   
   for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    if (fino.dirichlet_row[i].ncols != 0) {
+    if (fino.dirichlet_row != NULL && fino.dirichlet_row[i].ncols != 0) {
       free(fino.dirichlet_row[i].cols);
       free(fino.dirichlet_row[i].vals);
     }

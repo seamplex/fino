@@ -395,11 +395,14 @@ int fino_set_essential_bc(Mat A, Vec b) {
     free(fino.dirichlet_indexes);
     free(fino.dirichlet_rhs);
     free(fino.dirichlet_row);
+    // si nos metimos aca entonces mas o menos sabemos que tamanio de n_bcs necesitamos;
+    n_bcs = fino.n_dirichlet_rows + 24;
+  } else {
+    n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
+    if (n_bcs < 32) {
+      n_bcs = 32;
+    }
   }  
-  n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
-  if (n_bcs < 32) {
-    n_bcs = 32;
-  }
   current_size = n_bcs;
     
   fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
