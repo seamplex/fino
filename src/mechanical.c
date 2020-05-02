@@ -1282,7 +1282,7 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
 
   if (bc->type_phys ==  bc_phys_force) {
     if (element->physical_entity->volume == 0) {
-      wasora_push_error_message("physical entity '%s' has zero volume", element->physical_entity->name);
+      wasora_push_error_message("physical group '%s' has zero volume", element->physical_entity->name);
       return WASORA_RUNTIME_ERROR;
     }
   } else if (bc->type_phys == bc_phys_pressure_normal || bc->type_phys == bc_phys_pressure_real) {

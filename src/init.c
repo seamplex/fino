@@ -438,7 +438,7 @@ int fino_problem_init(void) {
     }
 */
     if (physical_entity->material != NULL && physical_entity->n_elements == 0) {
-      wasora_push_error_message("physical entity '%s' has a material but no associated elements", physical_entity->name);
+      wasora_push_error_message("physical group '%s' has a material but no associated elements", physical_entity->name);
       return WASORA_RUNTIME_ERROR;
     }
   }

@@ -1,0 +1,21 @@
+MESH DIMENSIONS 1 STRUCTURED LENGTH_X 1 NCELLS_X 60 
+FINO_PROBLEM thermal
+
+T_0(x) := sin(6*pi*x) + 3*sin(2*pi*x)
+T_a(x,t) := exp(-36*pi^2*t)*sin(6*pi*x) + 3*exp(-4*pi^2*t)*sin(2*pi*x)
+
+dt_0 = 1e-1
+end_time = 4*dt
+
+k = 1
+kappa = 1
+
+PHYSICAL_GROUP left  BC T=0
+PHYSICAL_GROUP right BC T=0
+PHYSICAL_GROUP bulk
+
+FINO_STEP
+
+PRINT t %.6f T(0) T_a(0,t) T(0.1) T_a(0.1,t) T(0.7) T_a(0.7,t)
+# PRINT_FUNCTION FORMAT %f T T_a(x,t)
+# PRINT

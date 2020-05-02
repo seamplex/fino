@@ -500,7 +500,7 @@ int plugin_parse_line(char *line) {
 
 // ---------------------------------------------------------------------
 ///kw+FINO_REACTION+usage FINO_REACTION
-///kw+FINO_REACTION+desc Computes the reaction at the selected physical entity.
+///kw+FINO_REACTION+desc Computes the reaction at the selected physical group.
 ///kw+FINO_REACTION+detail The result is stored in the variable or vector provided, depending on the number of degrees of freedoms of the problem. 
 ///kw+FINO_REACTION+detail If the object passed as `RESULT` does not exist, an appropriate object (scalar variable or vector) is created.
 ///kw+FINO_REACTION+detail For the elastic problem, the components of the total reaction force are stored in the result vector.
@@ -569,7 +569,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+usage FINO_LINEARIZE
 ///kw+FINO_LINEARIZE+desc Performs stress linearization according to ASME VII-Sec 5 over a
 ///kw+FINO_LINEARIZE+desc Stress Classification Line
-///kw+FINO_LINEARIZE+detail The Stress Classification Line (SCL) may be given either as a one-dimensional physical entity
+///kw+FINO_LINEARIZE+detail The Stress Classification Line (SCL) may be given either as a one-dimensional physical group
 ///kw+FINO_LINEARIZE+detail in the mesh or as the (continuous) spatial coordinates of two end-points.
     } else if ((strcasecmp(token, "FINO_LINEARIZE") == 0)) {
       
@@ -671,7 +671,7 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_LINEARIZE+detail The membrane, bending and peak stress tensor elements are combined using the
 ///kw+FINO_LINEARIZE+detail Von\  Mises criterion and stored as variables.
 ///kw+FINO_LINEARIZE+detail If no name for any of the variables is given, they are stored in
-///kw+FINO_LINEARIZE+detail `M_entity`, `B_entity` and `P_entity` respectively if there is a physical entity.
+///kw+FINO_LINEARIZE+detail `M_group`, `B_group` and `P_group` respectively if there is a physical group.
 ///kw+FINO_LINEARIZE+detail Otherwise `M_1`, `B_1` and `P_1` for the first instruction, `M_2`... etc.
             
 ///kw+FINO_LINEARIZE+usage [ M <variable> ]@

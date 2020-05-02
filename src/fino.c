@@ -107,7 +107,8 @@ int fino_instruction_step(void *arg) {
       if (wasora_var_value(wasora_special_var(in_static))) {
         wasora_call(fino_bake_step_initial());
       } else {
-        wasora_call(fino_bake_step_transient());
+//        wasora_call(fino_bake_step_transient());
+        fino_thermal_step_transient_ts();
       }
     }
     time_checkpoint(solve_end);

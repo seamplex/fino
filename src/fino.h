@@ -27,9 +27,10 @@
 
 #include <wasora.h>
 
+#include <petscpc.h>
 #include <petscksp.h>
 #include <petscsnes.h>
-#include <petscpc.h>
+#include <petscts.h>
 #include <petsctime.h>
 #ifdef HAVE_SLEPC
 #include <slepceps.h>
@@ -296,6 +297,7 @@ struct {
   Vec m;
   
   // contexto de solvers de PETSc
+  TS ts;
   SNES snes;
   KSP ksp;
   PC pc;

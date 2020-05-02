@@ -32,6 +32,9 @@ fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
+PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx);
+PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx);
+
 #undef  __FUNCT__
 #define __FUNCT__ "fino_bake_step_initial"
 int fino_bake_step_initial(void) {
@@ -40,6 +43,52 @@ int fino_bake_step_initial(void) {
   double xi;
   function_t *ic;
 
+  PetscFunctionBeginUser;
+  
+  if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
+
+    if (ic->n_arguments != fino.dimensions) {
+      wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+      return WASORA_RUNTIME_ERROR;
+    }
+
+    for (j = fino.first_node; j < fino.last_node; j++) {
+      xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+      VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES);
+    }
+
+  } else {
+    
+    // TODO: re-pensar y re-implementar esto  
+    wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
+    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
+    wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
+    
+    // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
+    // este ksp ya no sirve mas, porque despues usamos otras matrices y demas
+    // esto habria que ponerlo en el lugar donde se crea el TS
+    petsc_call(KSPDestroy(&fino.ksp));
+    fino.ksp = NULL;
+
+  }
+
+  wasora_call(fino_phi_to_solution(fino.phi));
+  
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  
+}
+
+
+#undef  __FUNCT__
+#define __FUNCT__ "fino_thermal_step_initial_ts"
+int fino_thermal_step_initial_ts(void) {
+  
+  int j;
+  double xi;
+  function_t *ic;
+  
+  PetscFunctionBeginUser;
+      
   if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
 
     if (ic->n_arguments != fino.dimensions) {
@@ -66,8 +115,9 @@ int fino_bake_step_initial(void) {
     fino.ksp = NULL;
 
   }
+  
     
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
   
 }
 
@@ -157,6 +207,89 @@ int fino_bake_step_transient(void) {
 }
 
 #undef  __FUNCT__
+#define __FUNCT__ "fino_thermal_step_transient_ts"
+int fino_thermal_step_transient_ts(void) {
+
+  // resolvemos 
+  //   M*T_dot = K*T + b
+  PetscInt ts_steps;
+  Mat J;
+
+
+  PetscFunctionBeginUser;
+
+  if (fino.ksp != NULL) {
+    petsc_call(KSPDestroy(&fino.ksp));
+    fino.ksp = NULL;
+  }
+  
+  if (fino.ts == NULL) {
+    petsc_call(TSCreate(PETSC_COMM_WORLD, &fino.ts));
+    petsc_call(TSSetProblemType(fino.ts, TS_NONLINEAR));
+    
+    petsc_call(TSSetIFunction(fino.ts, NULL, IFunctionHeat, NULL));
+    petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &J));
+    petsc_call(TSSetIJacobian(fino.ts, J, J, IJacobianHeat, NULL));
+
+    petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
+
+    petsc_call(TSSetExactFinalTime(fino.ts, TS_EXACTFINALTIME_STEPOVER));
+    petsc_call(TSSetFromOptions(fino.ts));    
+  }
+
+  petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
+  petsc_call(TSSetMaxSteps(fino.ts, ts_steps+1));
+
+  petsc_call(TSSolve(fino.ts, fino.phi));
+  petsc_call(fino_phi_to_solution(fino.phi));
+
+  petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
+  petsc_call(TSGetTimeStep(fino.ts, wasora_value_ptr(wasora_special_var(dt))));
+
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
+}
+
+
+
+PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx) {
+  
+  Vec r_tran;
+  
+  // TODO: ver como hacer esto mas eficiente
+  petsc_call(MatZeroEntries(fino.K));
+  petsc_call(MatZeroEntries(fino.M));
+  petsc_call(VecZeroEntries(fino.b));
+  
+  wasora_var_value(wasora_special_var(t)) = t;
+  
+  wasora_call(fino_build_bulk());
+  // capaz ya no se necesiten los argumentos
+  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+  
+  // armamos el residuo
+  petsc_call(MatMult(fino.K, T, r));
+
+  petsc_call(VecDuplicate(r, &r_tran));
+  petsc_call(MatMult(fino.M, T_dot, r_tran));
+  
+  petsc_call(VecAYPX(r, 1.0, r_tran));
+  petsc_call(VecAYPX(r, 1.0, fino.b));
+  
+  VecDestroy(&r_tran);
+  
+  return 0;
+}
+
+PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx) {
+
+  petsc_call(MatCopy(fino.K, A, SUBSET_NONZERO_PATTERN));
+  petsc_call(MatAXPY(A, s, fino.M, SAME_NONZERO_PATTERN));
+  petsc_call(MatCopy(A, B, SAME_NONZERO_PATTERN));
+  return 0;
+}
+
+
+#undef  __FUNCT__
 #define __FUNCT__ "fino_bake_build_element"
 int fino_bake_build_element(element_t *element, int v) {
   
@@ -240,7 +373,7 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
   int v;
 
   if (bc->type_phys == bc_phys_heat_total && element->physical_entity->volume == 0) {
-    wasora_push_error_message("physical entity '%s' has zero volume", element->physical_entity->name);
+    wasora_push_error_message("physical group '%s' has zero volume", element->physical_entity->name);
     return WASORA_RUNTIME_ERROR;
   }
   

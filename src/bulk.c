@@ -156,7 +156,7 @@ int fino_build_element_volumetric(element_t *element) {
 
   if (element->physical_entity == NULL) {
     // esto (deberia) pasar solo en malla estructuradas
-    wasora_push_error_message("volumetric element %d does not have an associated physical entity", element->tag);
+    wasora_push_error_message("volumetric element %d does not have an associated physical group", element->tag);
     return WASORA_RUNTIME_ERROR;
     
   } else {

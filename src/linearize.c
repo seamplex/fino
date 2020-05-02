@@ -62,12 +62,12 @@ int fino_instruction_linearize(void *arg) {
 
   if (linearize->physical_entity != NULL) {
     if (linearize->physical_entity->dimension != 1) {
-      wasora_push_error_message("physical entity for the SCL has to be one-dimensional, not %d-dimensional", linearize->physical_entity->dimension);
+      wasora_push_error_message("physical group for the SCL has to be one-dimensional, not %d-dimensional", linearize->physical_entity->dimension);
       return WASORA_PARSER_ERROR;
     }  
 
     if (linearize->physical_entity->n_elements == 0 || linearize->physical_entity->element == NULL) {
-      wasora_push_error_message("physical entity '%s' has no elements to act as a SCL", linearize->physical_entity->name);
+      wasora_push_error_message("physical group '%s' has no elements to act as a SCL", linearize->physical_entity->name);
       return WASORA_PARSER_ERROR;
     }
 
