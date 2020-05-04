@@ -520,7 +520,7 @@ extern int fino_bc_string2parsed(void);
 void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_bc_process_mechanical(bc_t *, char *, char *);
 extern int fino_bc_process_thermal(bc_t *, char *, char *, char *);
-extern int fino_set_essential_bc(Mat, Vec);
+extern int fino_set_essential_bc(void);
 extern double fino_gsl_function_of_uvw(double, void *);
 
 // bulk.c
@@ -575,10 +575,10 @@ extern void fino_version(FILE *, int, int);
 extern void fino_license(FILE *);
 
 // petsc_ksp.c
-extern int fino_solve_petsc_linear(Mat, Vec);
+extern int fino_solve_petsc_linear(void);
 extern PetscErrorCode fino_ksp_monitor(KSP, PetscInt, PetscReal, void *);
 extern int fino_set_ksp(void);
-extern int fino_set_pc(Mat);
+extern int fino_set_pc(void);
 
 // petsc_snes.c
 extern int fino_solve_nonlinear_petsc();
@@ -616,12 +616,12 @@ extern double fino_compute_tresca_from_stress_tensor(double, double, double, dou
 extern int fino_compute_strain_energy(void);
 
 // bake.c
-extern int fino_bake_step_initial();
-extern int fino_bake_step_transient();
-extern int fino_bake_build_element(element_t *, int);
-extern int fino_bake_set_heat_flux(element_t *, bc_t *);
-extern int fino_bake_set_convection(element_t *, bc_t *);
-extern int fino_bake_compute_fluxes(void);
+extern int fino_thermal_step_initial();
+extern int fino_thermal_step_transient();
+extern int fino_thermal_build_element(element_t *, int);
+extern int fino_thermal_set_heat_flux(element_t *, bc_t *);
+extern int fino_thermal_set_convection(element_t *, bc_t *);
+extern int fino_thermal_compute_fluxes(void);
 
 extern const char *plugin_name(void);
 extern const char *plugin_version(void);

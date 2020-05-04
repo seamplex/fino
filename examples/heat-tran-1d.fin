@@ -4,8 +4,8 @@ FINO_PROBLEM thermal
 T_0(x) := sin(6*pi*x) + 3*sin(2*pi*x)
 T_a(x,t) := exp(-36*pi^2*t)*sin(6*pi*x) + 3*exp(-4*pi^2*t)*sin(2*pi*x)
 
-dt_0 = 1e-1
-end_time = 4*dt
+dt_0 = 1e-4
+end_time = 0.01
 
 k = 1
 kappa = 1

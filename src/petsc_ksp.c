@@ -28,7 +28,7 @@
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_solve_petsc_linear"
-int fino_solve_petsc_linear(Mat A, Vec b) {
+int fino_solve_petsc_linear(void) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
@@ -39,12 +39,12 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
     petsc_call(KSPCreate(PETSC_COMM_WORLD, &fino.ksp));
   }
   
-  petsc_call(KSPSetOperators(fino.ksp, A, A));
+  petsc_call(KSPSetOperators(fino.ksp, fino.K, fino.K));
   petsc_call(KSPSetTolerances(fino.ksp, wasora_var(fino.vars.reltol),
                                         wasora_var(fino.vars.abstol),
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
-  wasora_call(fino_set_pc(A));
+  wasora_call(fino_set_pc());
   wasora_call(fino_set_ksp());
 
   // el monitor
@@ -53,7 +53,7 @@ int fino_solve_petsc_linear(Mat A, Vec b) {
   }
   
   // do the work!
-  petsc_call(KSPSolve(fino.ksp, b, fino.phi));
+  petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
   
   // chequeamos que haya convergido
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
@@ -150,7 +150,7 @@ int fino_set_ksp(void) {
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_set_pc"
-int fino_set_pc(Mat A) {
+int fino_set_pc(void) {
 
   PetscInt i, j, d;
   PCType pc_type;
@@ -171,7 +171,7 @@ int fino_set_pc(Mat A) {
       fino.commandline_mumps == PETSC_TRUE) {
 #if PETSC_VERSION_GT(3,9,0)
 //  petsc_call(PCSetType(fino.pc, PCLU));
-    petsc_call(MatSetOption(A, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
+    petsc_call(MatSetOption(fino.K, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
     petsc_call(PCSetType(fino.pc, PCCHOLESKY));
 
     petsc_call(PCFactorSetMatSolverType(fino.pc, MATSOLVERMUMPS));
@@ -216,7 +216,7 @@ int fino_set_pc(Mat A) {
     switch(fino.set_near_nullspace) {
 
       case set_near_nullspace_rigidbody:
-        petsc_call(MatCreateVecs(A, NULL, &vec_coords));
+        petsc_call(MatCreateVecs(fino.K, NULL, &vec_coords));
         petsc_call(VecSetBlockSize(vec_coords, fino.degrees));
         petsc_call(VecSetUp(vec_coords));
         petsc_call(VecGetArray(vec_coords, &coords));
@@ -232,7 +232,7 @@ int fino_set_pc(Mat A) {
 //        petsc_call(VecView(vec_coords, viewer));
 //        petsc_call(PetscViewerDestroy(&viewer));
         petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
-        petsc_call(MatSetNearNullSpace(A, nullsp));
+        petsc_call(MatSetNearNullSpace(fino.K, nullsp));
         petsc_call(MatNullSpaceDestroy(&nullsp));
         petsc_call(VecDestroy(&vec_coords));
       break;
@@ -241,7 +241,7 @@ int fino_set_pc(Mat A) {
         nearnulldim = 6; 
         petsc_call(PetscMalloc1(nearnulldim, &nullvec));
         for (i = 0; i < nearnulldim; i++) {
-          petsc_call(MatCreateVecs(A, &nullvec[i], NULL));
+          petsc_call(MatCreateVecs(fino.K, &nullvec[i], NULL));
         }
         for (j = 0; j < fino.mesh->n_nodes; j++) {
           // traslaciones
@@ -276,7 +276,7 @@ int fino_set_pc(Mat A) {
         }
 
         petsc_call(MatNullSpaceCreate(PETSC_COMM_WORLD, PETSC_FALSE, nearnulldim, nullvec, &nullsp));
-        petsc_call(MatSetNearNullSpace(A, nullsp));
+        petsc_call(MatSetNearNullSpace(fino.K, nullsp));
       break;  
 
       case set_near_nullspace_none:

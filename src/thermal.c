@@ -36,8 +36,8 @@ PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *
 PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx);
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_step_initial"
-int fino_bake_step_initial(void) {
+#define __FUNCT__ "fino_thermal_step_initial"
+int fino_thermal_step_initial(void) {
   
   int j;
   double xi;
@@ -61,8 +61,8 @@ int fino_bake_step_initial(void) {
     
     // TODO: re-pensar y re-implementar esto  
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
-    wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
+    wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
+    wasora_call(fino_solve_petsc_linear());
     
     // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
     // este ksp ya no sirve mas, porque despues usamos otras matrices y demas
@@ -105,8 +105,8 @@ int fino_thermal_step_initial_ts(void) {
     
     // TODO: re-pensar y re-implementar esto  
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc(fino.K, fino.b));     // condiciones de contorno esenciales
-    wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
+    wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
+    wasora_call(fino_solve_petsc_linear());
     wasora_call(fino_phi_to_solution(fino.phi));
     
     // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
@@ -122,93 +122,8 @@ int fino_thermal_step_initial_ts(void) {
 }
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_step_transient"
-int fino_bake_step_transient(void) {
-
-  // resolvemos 
-  //   A*T(n+1) = b
-  // con
-  //   A = K*theta + C/dt 
-  //   b = (-K*(1-theta)+C/dt)*T(n) + b
-
-  // TODO: elegir esto desde input
-  double theta = 0.5;
-  int nonlinear = 1;
-
-  // TODO: ver como hacer esto mas eficiente
-  petsc_call(MatZeroEntries(fino.K));
-  petsc_call(MatZeroEntries(fino.M));
-  petsc_call(VecZeroEntries(fino.b));
-  
-  wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-
-  if (fino.has_transient == 0) {
-    fino.has_transient = 1;
-    MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.A);
-    MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.B);
-    VecDuplicate(fino.b, &fino.c);
-    if (nonlinear) {
-      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.lastM);
-      MatDuplicate(fino.M, MAT_COPY_VALUES, &fino.dotM);
-      VecDuplicate(fino.b, &fino.m);
-    }
-  } else {
-    MatCopy(fino.K, fino.A, SAME_NONZERO_PATTERN);
-    MatCopy(fino.K, fino.B, SAME_NONZERO_PATTERN);
-    if (nonlinear) {
-      MatCopy(fino.M, fino.dotM, SAME_NONZERO_PATTERN);
-    }
-  }
-
-  if (nonlinear) {
-    // correccion de Mpunto
-    MatAXPY(fino.dotM, -1, fino.lastM, SAME_NONZERO_PATTERN);
-    MatScale(fino.dotM, 1/wasora_var_value(wasora_special_var(dt)));
-  
-    // hacemos un K nuevo como K = K-Mdot
-    //  MatAXPY(fino.A, -1, fino.dotM, SUBSET_NONZERO_PATTERN);
-    //  MatAXPY(fino.B, -1, fino.dotM, SUBSET_NONZERO_PATTERN);
-  }
- 
-  MatScale(fino.A, theta);
-  MatAXPY(fino.A, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
-
-  MatScale(fino.B, -(1-theta));
-  MatAXPY(fino.B, 1/wasora_var_value(wasora_special_var(dt)), fino.M, SUBSET_NONZERO_PATTERN);
-
-  fino_assembly();
-  
-  MatMult(fino.B, fino.phi, fino.c);
-  VecAXPY(fino.c, 1, fino.b);
-  
-  if (nonlinear) {
-    // o hacemos un c nuevo como c = c + Mdot*T
-    MatMult(fino.dotM, fino.phi, fino.m);
-    VecAXPY(fino.c, 1, fino.m);
-  }
-
-  fino_assembly();
-
-  // hay que volver a poner esta
-  wasora_call(fino_set_essential_bc(fino.A, fino.c));
-
-  // y resolver
-  wasora_call(fino_solve_petsc_linear(fino.A, fino.c));
-  wasora_call(fino_phi_to_solution(fino.phi));
-
-  if (nonlinear) {
-    MatCopy(fino.M, fino.lastM, SAME_NONZERO_PATTERN);
-  }
-
-  // esto viene aca porque el ksp tiene que ser != null, capaz que se pueda meter en el solver  
-  petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
- 
-  return WASORA_RUNTIME_OK;
-}
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_step_transient_ts"
-int fino_thermal_step_transient_ts(void) {
+#define __FUNCT__ "fino_thermal_step_transient"
+int fino_thermal_step_transient(void) {
 
   // resolvemos 
   //   M*T_dot = K*T + b
@@ -264,7 +179,7 @@ PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *
   
   wasora_call(fino_build_bulk());
   // capaz ya no se necesiten los argumentos
-  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+  wasora_call(fino_set_essential_bc());
   
   // armamos el residuo
   petsc_call(MatMult(fino.K, T, r));
@@ -290,8 +205,8 @@ PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, 
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_build_element"
-int fino_bake_build_element(element_t *element, int v) {
+#define __FUNCT__ "fino_thermal_build_element"
+int fino_thermal_build_element(element_t *element, int v) {
   
   double k, rhocp;
   double r_for_axisymmetric;
@@ -366,8 +281,8 @@ int fino_bake_build_element(element_t *element, int v) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_set_heat_flux"
-int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
+#define __FUNCT__ "fino_thermal_set_heat_flux"
+int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
   double r_for_axisymmetric;
   double q;
   int v;
@@ -401,8 +316,8 @@ int fino_bake_set_heat_flux(element_t *element, bc_t *bc) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_set_convection"
-int fino_bake_set_convection(element_t *element, bc_t *bc) {
+#define __FUNCT__ "fino_thermal_set_convection"
+int fino_thermal_set_convection(element_t *element, bc_t *bc) {
   double r_for_axisymmetric;
   double h = 0;
   double Tinf = 0;
@@ -448,8 +363,8 @@ int fino_bake_set_convection(element_t *element, bc_t *bc) {
 
 
 #undef  __FUNCT__
-#define __FUNCT__ "fino_bake_compute_fluxes"
-int fino_bake_compute_fluxes(void) {
+#define __FUNCT__ "fino_thermal_compute_fluxes"
+int fino_thermal_compute_fluxes(void) {
   
 //  material_t *material = NULL;
 //  element_list_item_t *associated_element = NULL;

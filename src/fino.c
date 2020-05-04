@@ -67,7 +67,7 @@ int fino_instruction_step(void *arg) {
   if (fino_step->do_not_build == 0 && (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal)) {
     time_checkpoint(build_begin);
     wasora_call(fino_build_bulk());
-    wasora_call(fino_set_essential_bc(fino.K, fino.b));
+    wasora_call(fino_set_essential_bc());
     time_checkpoint(build_end);
   }
 
@@ -83,7 +83,7 @@ int fino_instruction_step(void *arg) {
       // si no nos pidieron transient de calor resolvemos un steady state de lo que sea
       if (fino.math_type == math_type_linear) {
         
-        wasora_call(fino_solve_petsc_linear(fino.K, fino.b));
+        wasora_call(fino_solve_petsc_linear());
         wasora_call(fino_phi_to_solution(fino.phi));
         
       } else if (fino.math_type == math_type_nonlinear) {
@@ -105,10 +105,9 @@ int fino_instruction_step(void *arg) {
       
       // si nos pidieron transient de calor
       if (wasora_var_value(wasora_special_var(in_static))) {
-        wasora_call(fino_bake_step_initial());
+        wasora_call(fino_thermal_step_initial());
       } else {
-//        wasora_call(fino_bake_step_transient());
-        fino_thermal_step_transient_ts();
+        wasora_call(fino_thermal_step_transient());
       }
     }
     time_checkpoint(solve_end);
@@ -128,7 +127,7 @@ int fino_instruction_step(void *arg) {
       
     } else if (fino.problem_family == problem_family_thermal) {
         
-      wasora_call(fino_bake_compute_fluxes());
+      wasora_call(fino_thermal_compute_fluxes());
       
     }
     

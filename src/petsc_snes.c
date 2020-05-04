@@ -33,7 +33,7 @@ PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   // pasamos phi a la solucion porque K puede depender de phi
   wasora_call(fino_phi_to_solution(phi));
   wasora_call(fino_build_bulk());
-  wasora_call(fino_set_essential_bc(fino.K, fino.b));
+  wasora_call(fino_set_essential_bc());
   
   MatMult(fino.K, phi, r);
 //  printf("residual\n");
@@ -80,7 +80,7 @@ int fino_solve_nonlinear_petsc(void) {
   }
   
   wasora_call(fino_set_ksp());
-  wasora_call(fino_set_pc(fino.K));
+  wasora_call(fino_set_pc());
   
   petsc_call(SNESSetFromOptions(fino.snes));
 

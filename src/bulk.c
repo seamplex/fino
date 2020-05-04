@@ -184,7 +184,7 @@ int fino_build_element_volumetric(element_t *element) {
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         wasora_call(fino_break_build_element(element, v));
       } else if (fino.problem_family == problem_family_thermal) {
-        wasora_call(fino_bake_build_element(element, v));
+        wasora_call(fino_thermal_build_element(element, v));
       }
     }
     
@@ -230,10 +230,10 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
     
     if (bc->type_phys == bc_phys_heat_flux || bc->type_phys == bc_phys_heat_total) {
       if (strcmp(bc->expr[0].string, "0") != 0) { // para no tener que hacer cuentas si es adiabatico
-        wasora_call(fino_bake_set_heat_flux(element, bc));
+        wasora_call(fino_thermal_set_heat_flux(element, bc));
       }
     } else if (bc->type_phys == bc_phys_convection) {
-      wasora_call(fino_bake_set_convection(element, bc));
+      wasora_call(fino_thermal_set_convection(element, bc));
     }
     
   }

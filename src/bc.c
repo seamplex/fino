@@ -370,7 +370,7 @@ void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sig
 #undef  __FUNCT__
 #define __FUNCT__ "fino_set_essential_bc"
 // esta pide argumentos porque se llama desde thermal transient con una matriz intermedia
-int fino_set_essential_bc(Mat A, Vec b) {
+int fino_set_essential_bc(void) {
 
   PetscScalar diag;
   
@@ -496,9 +496,9 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 if (l[0] != l[1]) {
                   wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
                   // esto lo necesitamos porque en mimic ponemos cualquier otra estructura diferente a la que ya pusimos antes
-                  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-                  MatSetValues(A, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
-                  petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+                  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+                  MatSetValues(fino.K, 2, l, 2, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
                 }
 
                 gsl_matrix_free(c);
@@ -551,7 +551,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   }
 
                   wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                   gsl_matrix_free(c);
                   gsl_matrix_free(K);
@@ -584,7 +584,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   gsl_matrix_set(c, 0, 1, -x[0]);
 
                   wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                   gsl_matrix_free(c);
                   gsl_matrix_free(K);
@@ -604,7 +604,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   gsl_matrix_set(c, 0, 2, -x[0]);
 
                   wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                   gsl_matrix_free(c);
                   gsl_matrix_free(K);
@@ -624,7 +624,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                   gsl_matrix_set(c, 0, 2, -x[1]);
 
                   wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                  MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                  MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                   gsl_matrix_free(c);
                   gsl_matrix_free(K);
@@ -662,7 +662,7 @@ int fino_set_essential_bc(Mat A, Vec b) {
                 }
 
                 wasora_call(gsl_blas_dgemm(CblasTrans, CblasNoTrans, wasora_var(fino.vars.penalty_weight), c, c, 0, K));
-                MatSetValues(A, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
+                MatSetValues(fino.K, fino.degrees, l, fino.degrees, l, gsl_matrix_ptr(K, 0, 0), ADD_VALUES);
 
                 // TODO: non-uniform RHS
                 gsl_matrix_free(c);
@@ -690,21 +690,21 @@ int fino_set_essential_bc(Mat A, Vec b) {
   // alguna veces hay nodos sueltos que no tienen nigun volumen asociado asi que le quedan
   // ceros en la diagonal y el MatZeroRowsColumns se queja
   for (k = fino.first_row; k < fino.last_row; k++) {
-    petsc_call(MatGetValues(A, 1, &k, 1, &k, &diag));
+    petsc_call(MatGetValues(fino.K, 1, &k, 1, &k, &diag));
     if (diag == 0) {
-      petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-      petsc_call(MatSetValue(A, k, k, 1.0, INSERT_VALUES));
-      petsc_call(MatSetOption(A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+      petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+      petsc_call(MatSetValue(fino.K, k, k, 1.0, INSERT_VALUES));
+      petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
       wasora_call(fino_assembly());
     }
   }
   
-  petsc_call(MatCreateVecs(A, &vec_rhs, NULL));
+  petsc_call(MatCreateVecs(fino.K, &vec_rhs, NULL));
   petsc_call(VecSetValues(vec_rhs, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_rhs, INSERT_VALUES));
-  petsc_call(MatZeroRowsColumns(A, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, b));
+  petsc_call(MatZeroRowsColumns(fino.K, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, vec_rhs, fino.b));
   petsc_call(VecDestroy(&vec_rhs));
   
-  if (fino.math_type == math_type_eigen) {
+  if (fino.has_mass) {
     petsc_call(MatZeroRowsColumns(fino.M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
   }
     
