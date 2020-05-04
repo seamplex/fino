@@ -310,9 +310,10 @@ struct {
   
   // strings con tipos
   PetscBool commandline_mumps; // esta sobre-escribe todo
-  SNESType snes_type;
   KSPType ksp_type;
   PCType pc_type;
+  TSType ts_type;
+  SNESType snes_type;
 
   enum {
     set_near_nullspace_rigidbody,

@@ -706,6 +706,11 @@ int fino_set_essential_bc(void) {
   
   if (fino.has_mass) {
     petsc_call(MatZeroRowsColumns(fino.M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
+//    petsc_call(MatZeroRowsColumns(fino.M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, vec_rhs, fino.b));
+    
+//    MatSetOption(fino.M, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE);
+//    petsc_call(MatZeroRows(fino.M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, PETSC_NULL, PETSC_NULL));
+    
   }
     
   wasora_call(fino_assembly());

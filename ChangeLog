@@ -1,3 +1,6 @@
+Current:
+ * use PETSc’s TS for transient heat conduction
+
 0.7 (April 16, 2020): improved stresses, basic paralellization and some documentation
 
  * conditional BCs

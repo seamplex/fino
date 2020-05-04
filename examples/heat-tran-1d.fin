@@ -1,11 +1,16 @@
-MESH DIMENSIONS 1 STRUCTURED LENGTH_X 1 NCELLS_X 60 
+# example of a 1D heat transient problem
+# a non-dimensional slab 0 < x < 1 is kept at T(0) = T(1) = 0
+# there is an initial non-trivial T(x)
+# the steady-state is T(x) = 0
+MESH DIMENSIONS 1 STRUCTURED LENGTH_X 1 NCELLS_X 60-1
 FINO_PROBLEM thermal
 
-T_0(x) := sin(6*pi*x) + 3*sin(2*pi*x)
-T_a(x,t) := exp(-36*pi^2*t)*sin(6*pi*x) + 3*exp(-4*pi^2*t)*sin(2*pi*x)
+end_time = 1e-1
 
-dt_0 = 1e-4
-end_time = 0.01
+# initial condition
+T_0(x) := sin(6*pi*x) + 3*sin(2*pi*x)
+# analytical solution
+T_a(x,t) := exp(-36*pi^2*t)*sin(6*pi*x) + 3*exp(-4*pi^2*t)*sin(2*pi*x)
 
 k = 1
 kappa = 1
@@ -16,6 +21,6 @@ PHYSICAL_GROUP bulk
 
 FINO_STEP
 
-PRINT t %.6f T(0) T_a(0,t) T(0.1) T_a(0.1,t) T(0.7) T_a(0.7,t)
+PRINT %e t dt T(0) T_a(0,t) T(0.1) T_a(0.1,t) T(0.7) T_a(0.7,t)
 # PRINT_FUNCTION FORMAT %f T T_a(x,t)
 # PRINT

@@ -1,0 +1,47 @@
+# example of a 2D heat transient problem
+# a square is in thermal equilibrium with its surroundings
+# one of the ends is kept at T=0
+# the other three ends are subject to a convection condition
+# with a linear piecewise reference temperature
+MESH FILE_PATH square.msh DIMENSIONS 2
+FINO_PROBLEM HEAT DIMENSIONS 2
+
+end_time = 5000
+
+# material properties
+k = 1e-9        # thermal conduction
+rho = 7800e-9   # density
+cp = 0.49e3     # calorific capacity
+h_conv = 0.003
+
+# the linear piecewise temperature
+FUNCTION Tin(t) INTERPOLATION linear DATA {
+0    600
+5    600
+205  100
+1000 100
+1200 600
+3000 600
+}
+
+
+# either give an initial condition or let fino compute the steady-state
+# T_0(x,y) := Tin(0)
+
+PHYSICAL_GROUP NAME left      BC h=h_conv Tref=0
+PHYSICAL_GROUP NAME right     BC h=h_conv Tref=Tin(t)
+PHYSICAL_GROUP NAME bottom    BC h=h_conv Tref=Tin(t)
+PHYSICAL_GROUP NAME top       BC h=h_conv Tref=Tin(t)
+
+
+FINO_STEP
+
+PRINT t Tin(t) T(0,0)
+
+# OUTPUT_FILE vtk tran-%03g.vtk t
+# MESH_POST FILE vtk T
+
+# to view the results call 
+# $ gmsh square.msh temp-square.msh
+OUTPUT_FILE msh temp-square.msh 
+MESH_POST FILE msh T NO_MESH

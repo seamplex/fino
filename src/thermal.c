@@ -42,50 +42,6 @@ int fino_thermal_step_initial(void) {
   int j;
   double xi;
   function_t *ic;
-
-  PetscFunctionBeginUser;
-  
-  if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
-
-    if (ic->n_arguments != fino.dimensions) {
-      wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
-      return WASORA_RUNTIME_ERROR;
-    }
-
-    for (j = fino.first_node; j < fino.last_node; j++) {
-      xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-      VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES);
-    }
-
-  } else {
-    
-    // TODO: re-pensar y re-implementar esto  
-    wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
-    wasora_call(fino_solve_petsc_linear());
-    
-    // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
-    // este ksp ya no sirve mas, porque despues usamos otras matrices y demas
-    // esto habria que ponerlo en el lugar donde se crea el TS
-    petsc_call(KSPDestroy(&fino.ksp));
-    fino.ksp = NULL;
-
-  }
-
-  wasora_call(fino_phi_to_solution(fino.phi));
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-  
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_step_initial_ts"
-int fino_thermal_step_initial_ts(void) {
-  
-  int j;
-  double xi;
-  function_t *ic;
   
   PetscFunctionBeginUser;
       
@@ -107,14 +63,10 @@ int fino_thermal_step_initial_ts(void) {
     wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
     wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
     wasora_call(fino_solve_petsc_linear());
-    wasora_call(fino_phi_to_solution(fino.phi));
     
-    // TODO: ojo que si steps_statics > 1 destruimos y volvemos a alocar
-    // este ksp ya no sirve mas, porque despues usamos otras matrice y demas
-    petsc_call(KSPDestroy(&fino.ksp));
-    fino.ksp = NULL;
-
   }
+  
+  wasora_call(fino_phi_to_solution(fino.phi));
   
     
   PetscFunctionReturn(WASORA_RUNTIME_OK);
@@ -125,8 +77,6 @@ int fino_thermal_step_initial_ts(void) {
 #define __FUNCT__ "fino_thermal_step_transient"
 int fino_thermal_step_transient(void) {
 
-  // resolvemos 
-  //   M*T_dot = K*T + b
   PetscInt ts_steps;
   Mat J;
 
@@ -142,12 +92,21 @@ int fino_thermal_step_transient(void) {
     petsc_call(TSCreate(PETSC_COMM_WORLD, &fino.ts));
     petsc_call(TSSetProblemType(fino.ts, TS_NONLINEAR));
     
+    // TODO: tener apuntadores a funcion en la estructura fino, en tiempo de parseo
+    // hacerlos apuntar aca y meter esto en un file generico petsc_ts y no en thermal
     petsc_call(TSSetIFunction(fino.ts, NULL, IFunctionHeat, NULL));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &J));
     petsc_call(TSSetIJacobian(fino.ts, J, J, IJacobianHeat, NULL));
 
     petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
+    if (fino.ts_type != NULL) {
+      petsc_call(TSSetType(fino.ts, fino.ts_type));
+    } else {
+      petsc_call(TSSetType(fino.ts, TSBDF));
+    }
 
+    petsc_call(TSSetMaxStepRejections(fino.ts, 10000));
+    
     petsc_call(TSSetExactFinalTime(fino.ts, TS_EXACTFINALTIME_STEPOVER));
     petsc_call(TSSetFromOptions(fino.ts));    
   }
@@ -168,6 +127,9 @@ int fino_thermal_step_transient(void) {
 
 PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx) {
   
+  // resolvemos 
+  //   K*T + M*T_dot - b = 0
+  
   Vec r_tran;
   
   // TODO: ver como hacer esto mas eficiente
@@ -178,18 +140,40 @@ PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *
   wasora_var_value(wasora_special_var(t)) = t;
   
   wasora_call(fino_build_bulk());
-  // capaz ya no se necesiten los argumentos
   wasora_call(fino_set_essential_bc());
-  
+/*  
+  printf("t = %g\n", t);
+  printf("T\n");
+  fino_print_petsc_vector(T, PETSC_VIEWER_STDOUT_SELF);
+  printf("T_dot\n");
+  fino_print_petsc_vector(T_dot, PETSC_VIEWER_STDOUT_SELF);
+  printf("K\n");
+  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
+  printf("M\n");
+  fino_print_petsc_matrix(fino.M, PETSC_VIEWER_STDOUT_SELF);
+  printf("b\n");
+  fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
+*/  
   // armamos el residuo
   petsc_call(MatMult(fino.K, T, r));
-
+/*  
+  printf("KT\n");
+  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+*/
   petsc_call(VecDuplicate(r, &r_tran));
+//  petsc_call(VecZeroEntries(r_tran));
   petsc_call(MatMult(fino.M, T_dot, r_tran));
+/*  
+  printf("MT_dot\n");
+  fino_print_petsc_vector(r_tran, PETSC_VIEWER_STDOUT_SELF);
+*/
   
-  petsc_call(VecAYPX(r, 1.0, r_tran));
-  petsc_call(VecAYPX(r, 1.0, fino.b));
-  
+  petsc_call(VecAXPY(r, +1.0, r_tran));
+  petsc_call(VecAXPY(r, -1.0, fino.b));
+/*  
+  printf("r\n");
+  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+*/  
   VecDestroy(&r_tran);
   
   return 0;
@@ -200,6 +184,7 @@ PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, 
   petsc_call(MatCopy(fino.K, A, SUBSET_NONZERO_PATTERN));
   petsc_call(MatAXPY(A, s, fino.M, SAME_NONZERO_PATTERN));
   petsc_call(MatCopy(A, B, SAME_NONZERO_PATTERN));
+  
   return 0;
 }
 

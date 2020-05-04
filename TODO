@@ -15,8 +15,7 @@
  * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
  * see if some for loops can be replaced by matrix-matrix products
  * DMplex + mutigrid
- * use TS for heat transient
- * extrapolate matrix for quads/prisms
+ * extrapolate matrix for prisms
  * optimize memory usage with massif
     - instead of having max_neighbours try to get the actual number of neighbors per node
     - preallocation

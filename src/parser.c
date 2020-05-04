@@ -250,6 +250,11 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+detail  * List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
         } else if (strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.ksp_type));
+          
+///kw+FINO_SOLVER+usage [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]@
+///kw+FINO_SOLVER+detail  * List of `TS_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html>.
+        } else if (strcasecmp(token, "TS_TYPE") == 0) {
+          wasora_call(wasora_parser_string((char **)&fino.ts_type));
 
 ///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
 ///kw+FINO_SOLVER+detail  * List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
