@@ -288,14 +288,6 @@ struct {
   PetscScalar *eigenvalue;    // los autovalores
   Vec *eigenvector;           // los autovectores
 
-  Mat A;         // las matrices para el transient de calor
-  Mat B;
-  Vec c;         // el vector del miembro derecho para el transient
-
-  Mat lastM;
-  Mat dotM;
-  Vec m;
-  
   // contexto de solvers de PETSc
   TS ts;
   SNES snes;
@@ -304,7 +296,6 @@ struct {
   
   int has_mass;
   int has_rhs;
-  int has_transient;
 
   loadable_routine_t *user_provided_linearsolver;
   

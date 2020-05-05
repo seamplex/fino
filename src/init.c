@@ -741,19 +741,6 @@ int fino_problem_free(void) {
     fino_function_clean_nodal_data(fino.sigma);
     fino_function_clean_nodal_data(fino.tresca);
     
-  } else if (fino.problem_family == problem_family_thermal) {
-    
-    if (fino.has_transient) {
-      MatDestroy(&fino.A);
-      MatDestroy(&fino.B);
-      VecDestroy(&fino.c);
-      
-      MatDestroy(&fino.lastM);
-      MatDestroy(&fino.dotM);
-      VecDestroy(&fino.m);
-
-      fino.has_transient = 0;
-    }
   }
   
   if (fino.n_dirichlet_rows != 0) {
@@ -782,6 +769,13 @@ int fino_problem_free(void) {
   if (fino.ksp != PETSC_NULL) {
     petsc_call(KSPDestroy(&fino.ksp));
   }
+  if (fino.ts != PETSC_NULL) {
+    petsc_call(TSDestroy(&fino.ts));
+  }
+  if (fino.snes != PETSC_NULL) {
+    petsc_call(SNESDestroy(&fino.snes));
+  }
+  
 #ifdef HAVE_SLEPC  
   if (fino.eps != PETSC_NULL) {
 //    petsc_call(EPSDestroy(&fino.eps));

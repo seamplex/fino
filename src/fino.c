@@ -173,12 +173,6 @@ int fino_assembly(void) {
     MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY);
   }
-  if (fino.has_transient) {
-    MatAssemblyBegin(fino.A, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(fino.A, MAT_FINAL_ASSEMBLY);
-    MatAssemblyBegin(fino.B, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(fino.B, MAT_FINAL_ASSEMBLY);
-  }
   if (fino.has_rhs) {
     VecAssemblyBegin(fino.b);
     VecAssemblyEnd(fino.b);
