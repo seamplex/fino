@@ -14,8 +14,9 @@ EXTRA_DIST = examples locateruntest.sh \
 
 TESTS = examples/test-tensile.sh \
         examples/test-piston.sh \
-        examples/test-cantilever.sh \
-        examples/test-wire.sh
+        examples/test-wire.sh \
+        examples/test-heated-cylinder.sh \
+        examples/test-cantilever.sh
         
 all-local:
 	if [ -e src/${plugin} ]; then cp  src/${plugin} .; fi

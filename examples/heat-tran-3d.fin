@@ -1,33 +1,31 @@
 # example of a 3D heat transient problem
-# a non-dimensional cylinder is cool (T(x,y,z)=0 at t=0)
-# and suddently the base is heated up to T(0,y,z)=1 at t>0
+# a non-dimensional cylinder is everywhere cool but at the yz-plane
+# T(x,y,z) = { 1 for x = 0 at t = 0
+#            { 0 for x > 0 at t = 0
+# For there is t > 0 a unitary convection condition with T_ref = 1
+
 MESH FILE_PATH cylinder.msh DIMENSIONS 3
 FINO_PROBLEM HEAT DIMENSIONS 3
 
-# final time = 1 non-dimensional time
+end_time = 10  # final time [ non-dimensional units ]
 # the time step is automatically computed
-# expect a very small dt for t >~ 0 due to the finite step
-# at x=0 from T_cool to T_hot
-end_time = 1
 
-# unitary properties
+# unitary material properties
 k = 1
 rho = 1
 cp = 1
 
 
 # unitary temperatures
-T_hot = 1
-T_cool = 0
-T_0(x,y,z) := T_cool
+T_0(x,y,z) := if(x < eps, 1, 0)
 
-PHYSICAL_GROUP NAME hot       BC T=T_hot
-PHYSICAL_GROUP NAME cool      BC Tref=T_cool h=1
+PHYSICAL_GROUP NAME hot       BC T=1
+PHYSICAL_GROUP NAME cool      BC Tref=0 h=1
 
 FINO_STEP
 
 # print the temperature at the center of the base vs time
-PRINT t T(1,0,0)
+PRINT %e t T(1,0,0)
 
 # to view the results call 
 # $ gmsh cylinder.msh temp-cylinder.msh
