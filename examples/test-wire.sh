@@ -12,7 +12,9 @@ if [ $? -eq 1 ]; then
 fi  
 
 outcome=0
-gmsh -v 0 -3 wire-general.geo
+if [ ! -e wire-general.msh ]; then
+  gmsh -v 0 -3 wire-general.geo
+fi  
 if [ $? -ne 0 ]; then
   exit 99
 fi

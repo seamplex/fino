@@ -126,8 +126,19 @@ int fino_build_bulk(void) {
 
   // nos copiamos la matrizota asi como esta sin las condiciones de contorno de dirichlet
   // esto es para calcular reacciones en nodos arbitrarios (i.e. no solo los de dirichlet)
-  petsc_call(MatDestroy(&fino.K_nobc));
-  petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &fino.K_nobc));
+  if (fino.K_nobc == NULL) {
+    petsc_call(MatDestroy(&fino.K_nobc));
+    petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.K_nobc));
+    if (fino.has_rhs) {
+      petsc_call(VecDuplicate(fino.b, &fino.b_nobc));
+    }  
+  }
+  
+  // el rhs esta bueno tenerlo antes de las BCs por si hay que usar la misma K con otras BCs
+  petsc_call(MatCopy(fino.K, fino.K_nobc, SAME_NONZERO_PATTERN));
+  if (fino.has_rhs) {
+    petsc_call(VecCopy(fino.b, fino.b_nobc));
+  }  
 
   if (fino.progress_ascii) {
     if (wasora.nprocs == 1) {

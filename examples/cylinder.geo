@@ -1,11 +1,11 @@
 //
 SetFactory("OpenCASCADE");
-Cylinder(1) = {0, 0, 0, 2, 0, 0, 0.5};
+Cylinder(1) = {0, 0, 0, 1, 0, 0, 0.5};
 Physical Volume("bulk") = {1};
 Physical Surface("hot") = {3};
 Physical Surface("cool") = {1, 2};
 
-lc = 0.5;
+lc = 0.35;
 Mesh.CharacteristicLengthMax = lc;
 
 Mesh.Algorithm = 6;

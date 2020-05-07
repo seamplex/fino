@@ -118,7 +118,7 @@ FINO_LINEARIZE
      [ PEAK <variable> ]
 
 The Stress Classification Line (SCL) may be given either as a
-one-dimensional physical entity in the mesh or as the (continuous)
+one-dimensional physical group in the mesh or as the (continuous)
 spatial coordinates of two end-points. If the SCL is given as a
 PHYSICAL_GROUP, the entity should be one-dimensional (i.e a line)
 independently of the dimension of the problem. If the SCL is given with
@@ -135,8 +135,8 @@ Von Mises criterion for the composition of stresses. The definition of
 what total stress means can be changed using the TOTAL keyword. The
 membrane, bending and peak stress tensor elements are combined using the
 Von Mises criterion and stored as variables. If no name for any of the
-variables is given, they are stored in M_entity, B_entity and P_entity
-respectively if there is a physical entity. Otherwise M_1, B_1 and P_1
+variables is given, they are stored in M_group, B_group and P_group
+respectively if there is a physical group. Otherwise M_1, B_1 and P_1
 for the first instruction, M_2… etc.
 
 FINO_PROBLEM
@@ -173,7 +173,7 @@ DEFAULT_NMODES.
 
 FINO_REACTION
 
-  Computes the reaction at the selected physical entity.
+  Computes the reaction at the selected physical group.
 
     FINO_REACTION PHYSICAL_GROUP <physical_group> RESULT { <variable> | <vector> }
 
@@ -191,6 +191,7 @@ FINO_SOLVER
     FINO_SOLVER [ PROGRESS_ASCII ]
      [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
      [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+     [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
      [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
      [ GRADIENT { gauss | nodes | none } ]
      [ GRADIENT_HIGHER { average | nodes } ]
@@ -207,6 +208,8 @@ solver might be any of those available in PETSc:
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html.
 -   List of KSP_TYPEs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html.
+-   List of TS_TYPEs
+    http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html.
 -   List of SNES_TYPEs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html.
 

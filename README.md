@@ -4,7 +4,13 @@ lang: en-US
 ...
 
 
-![Fino: a free finite-element solver](doc/fino.svg){.img-fluid}\ 
+:::{.text-center}
+![](doc/fino.svg)
+
+[Download Fino](https://www.seamplex.com/fino/install.html){.btn .btn-primary}
+[Test cases](https://www.seamplex.com/fino/cases){.btn .btn-secondary}
+[Reference sheet](https://www.seamplex.com/fino/reference.html){.btn .btn-info}
+:::
 
 
 # What
@@ -16,7 +22,7 @@ lang: en-US
  * modal analysis problems.
 
 :::{.alert .alert-warning}
-Please note that Fino is a [back-end](https://en.wikipedia.org/wiki/Front_and_back_ends) aimed at advanced users running [GNU/Linux](https://www.gnu.org/gnu/linux-and-gnu.en.html). For an easy-to-use web-based front-end with Fino running in the cloud directly from your browser see [CAEplex](https://www.caeplex.com) at <https://www.caeplex.com>.
+Please note that Fino is a [back-end](https://en.wikipedia.org/wiki/Front_and_back_ends) aimed at advanced users. For an easy-to-use web-based front-end with Fino running in the cloud directly from your browser see [CAEplex](https://www.caeplex.com) at <https://www.caeplex.com>.
 
 ::::: {.embed-responsive .embed-responsive-16by9 .mb-3}
  <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/kD3tQdq17ZE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
@@ -42,7 +48,7 @@ Because almost every piece of FEA software falls in either one of these two cate
     **Examples:** [CalculiX](http://calculix.de/), [CodeAster](https://www.code-aster.org), [NASTRAN](https://github.com/nasa/NASTRAN-95)^[We list just the open-source ones because we [at Seamplex do not want to encourage the usage of non-free software](https://www.seamplex.com/mission.html#principles), but any of the commercial packages out there would also apply.] 
      
 Hence, Fino tries to fill in the gap between these two worlds with a different design basis.^[Somewhat like [milonga](https://www.seamplex.com/milonga) although the landscape is slightly different.]
-
+Read the foreword of the [tensile-test example](https://seamplex.com/fino/cases/000-tensile-test/) within the [case files](https://seamplex.com/fino/cases) for a deeper insight into Fino’s design and implementation philosophy.
      
 ## How does Fino fill in the gap?
 
@@ -59,36 +65,7 @@ Fino...
  * can perform parametric or optimization runs---see [the parametric cantilever study](#cantilever).
 
 
-# Quick start
 
-:::{.alert .alert-secondary}
-> “It is really worth any amount of time and effort to get away from Windows if you are doing computational science.”
->
-> [<https://lists.mcs.anl.gov/pipermail/petsc-users/2015-July/026388.html>]{.blockquote-footer}
-:::
-
-Open a terminal in a GNU/Linux box (may be a VirtualBox box) and install the following tools and libraries:
-
-```
-sudo apt-get install m4 make autoconf automake gcc g++ git findutils
-sudo apt-get install libgsl-dev petsc-dev slepc-dev
-```
-
-If your distribution does not have a bundled version of [PETSc](http://www.mcs.anl.gov/petsc/) or [SLEPc](http://www.grycap.upv.es/slepc/), then you might need to compile them yourself (SLEPc is optional for Fino). Ask for help in the [mailing list](https://www.seamplex.com/lists.html).
-
-Clone the Fino repository, bootstrap (might take a while as it has to clone and bootstrap [wasora](https://www.seamplex.com/wasora/) first), configure, compile, check and install:
-
-```
-git clone https://github.com/seamplex/fino.git
-cd fino
-./autogen.sh
-./configure
-make
-make check
-sudo make install
-```
-
-If these instructions are non-sense to you, go directly to the [mailing list](https://www.seamplex.com/lists.html).
 
 
 # Features

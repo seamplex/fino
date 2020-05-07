@@ -280,6 +280,7 @@ struct {
   // objetos globales
   Vec phi;       // el vector incognita
   Vec b;         // el vector del miembro derecho para el steady-state
+  Vec b_nobc;
   Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
   Mat K_nobc;    // la matriz de rigidez antes de poner las condiciones de dirichlet (para reacciones)
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)

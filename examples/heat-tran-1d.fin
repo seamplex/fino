@@ -21,6 +21,10 @@ PHYSICAL_GROUP bulk
 
 FINO_STEP
 
-PRINT %e t dt T(0) T_a(0,t) T(0.1) T_a(0.1,t) T(0.7) T_a(0.7,t)
-# PRINT_FUNCTION FORMAT %f T T_a(x,t)
-# PRINT
+PRINT %e t dt T(0.1) T_a(0.1,t) T(0.7) T_a(0.7,t)
+
+MESH_POST FILE_PATH temp-slab.msh T
+
+IF done
+ PRINT "\# open temp-anim-slab.geo in Gmsh to see the result!"
+ENDIF

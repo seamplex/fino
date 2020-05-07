@@ -24,6 +24,8 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
 
+#include <petscts.h>
+
 #include "fino.h"
 
 fino_distribution_t distribution_k;     // conductividad
@@ -32,8 +34,8 @@ fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
-PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx);
-PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx);
+PetscErrorCode fino_thermal_IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx);
+PetscErrorCode fino_thermal_IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx);
 
 #undef  __FUNCT__
 #define __FUNCT__ "fino_thermal_step_initial"
@@ -80,7 +82,6 @@ int fino_thermal_step_transient(void) {
   PetscInt ts_steps;
   Mat J;
 
-
   PetscFunctionBeginUser;
 
   if (fino.ksp != NULL) {
@@ -94,9 +95,9 @@ int fino_thermal_step_transient(void) {
     
     // TODO: tener apuntadores a funcion en la estructura fino, en tiempo de parseo
     // hacerlos apuntar aca y meter esto en un file generico petsc_ts y no en thermal
-    petsc_call(TSSetIFunction(fino.ts, NULL, IFunctionHeat, NULL));
+    petsc_call(TSSetIFunction(fino.ts, NULL, fino_thermal_IFunctionHeat, NULL));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &J));
-    petsc_call(TSSetIJacobian(fino.ts, J, J, IJacobianHeat, NULL));
+    petsc_call(TSSetIJacobian(fino.ts, J, J, fino_thermal_IJacobianHeat, NULL));
 
     petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
     if (fino.ts_type != NULL) {
@@ -124,23 +125,38 @@ int fino_thermal_step_transient(void) {
 }
 
 
-
-PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx) {
+#undef  __FUNCT__
+#define __FUNCT__ "fino_thermal_IFunctionHeat"
+PetscErrorCode fino_thermal_IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx) {
   
   // resolvemos 
   //   K*T + M*T_dot - b = 0
-  
+
   Vec r_tran;
+
+  PetscFunctionBeginUser;
+
+  wasora_var_value(wasora_special_var(t)) = t;
   
   // TODO: ver como hacer esto mas eficiente
-  petsc_call(MatZeroEntries(fino.K));
-  petsc_call(MatZeroEntries(fino.M));
-  petsc_call(VecZeroEntries(fino.b));
-  
-  wasora_var_value(wasora_special_var(t)) = t;
+  // esto no camina porque el transient seguro esta en b
+  // pero si b tiene conveccion ya hay que recalcular K
+/*  
+  if (fino.K_nobc == NULL) {
+    petsc_call(MatZeroEntries(fino.K));
+    petsc_call(MatZeroEntries(fino.M));
+    petsc_call(VecZeroEntries(fino.b));
+    wasora_call(fino_build_bulk());
+  } else {
+    wasora_call(MatCopy(fino.K_nobc, fino.K, SAME_NONZERO_PATTERN));
+    wasora_call(VecCopy(fino.b_nobc, fino.b));
+  }
+*/
   
   wasora_call(fino_build_bulk());
   wasora_call(fino_set_essential_bc());
+    
+  
 /*  
   printf("t = %g\n", t);
   printf("T\n");
@@ -176,16 +192,20 @@ PetscErrorCode IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *
 */  
   VecDestroy(&r_tran);
   
-  return 0;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
-PetscErrorCode IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx) {
+#undef  __FUNCT__
+#define __FUNCT__ "fino_thermal_IJacobianHeat"
+PetscErrorCode fino_thermal_IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx) {
+
+  PetscFunctionBeginUser;
 
   petsc_call(MatCopy(fino.K, A, SUBSET_NONZERO_PATTERN));
   petsc_call(MatAXPY(A, s, fino.M, SAME_NONZERO_PATTERN));
   petsc_call(MatCopy(A, B, SAME_NONZERO_PATTERN));
   
-  return 0;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
 

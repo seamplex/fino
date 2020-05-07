@@ -1106,7 +1106,7 @@ FINO_LINEARIZE { PHYSICAL_GROUP <physical_group> | START_POINT <x1> <y1> <z1> EN
 @end smallformat
 
 The Stress Classification Line (SCL) may be given either as a
-one-dimensional physical entity in the mesh or as the (continuous)
+one-dimensional physical group in the mesh or as the (continuous)
 spatial coordinates of two end-points. If the SCL is given as a
 @code{PHYSICAL_GROUP}, the entity should be one-dimensional (i.e a line)
 independently of the dimension of the problem. If the SCL is given with
@@ -1124,9 +1124,9 @@ criterion for the composition of stresses. The definition of what
 @emph{total stress} means can be changed using the @code{TOTAL} keyword.
 The membrane, bending and peak stress tensor elements are combined using
 the Von@ Mises criterion and stored as variables. If no name for any of
-the variables is given, they are stored in @code{M_entity},
-@code{B_entity} and @code{P_entity} respectively if there is a physical
-entity. Otherwise @code{M_1}, @code{B_1} and @code{P_1} for the first
+the variables is given, they are stored in @code{M_group},
+@code{B_group} and @code{P_group} respectively if there is a physical
+group. Otherwise @code{M_1}, @code{B_1} and @code{P_1} for the first
 instruction, @code{M_2}@dots{} etc.
 
 @node FINO_PROBLEM
@@ -1180,7 +1180,7 @@ default is DEFAULT_NMODES.
 @subsection FINO_REACTION
 @anchor{#fino_reaction}
 @quotation
-Computes the reaction at the selected physical entity.
+Computes the reaction at the selected physical group.
 @end quotation
 
 @smallformat
@@ -1209,6 +1209,7 @@ Sets options related to the solver and the computation of gradients.
 FINO_SOLVER [ PROGRESS_ASCII ]
  [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
  [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+ [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
  [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
@@ -1230,6 +1231,9 @@ List of @code{PC_TYPE}s
 @item
 List of @code{KSP_TYPE}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html}.
+@item
+List of @code{TS_TYPE}s
+@url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html}.
 @item
 List of @code{SNES_TYPE}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html}.

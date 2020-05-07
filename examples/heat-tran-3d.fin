@@ -7,7 +7,7 @@
 MESH FILE_PATH cylinder.msh DIMENSIONS 3
 FINO_PROBLEM HEAT DIMENSIONS 3
 
-end_time = 10  # final time [ non-dimensional units ]
+end_time = 1  # final time [ non-dimensional units ]
 # the time step is automatically computed
 
 # unitary material properties
@@ -19,7 +19,7 @@ cp = 1
 # unitary temperatures
 T_0(x,y,z) := if(x < eps, 1, 0)
 
-PHYSICAL_GROUP NAME hot       BC T=1
+PHYSICAL_GROUP NAME hot       BC T=0.5+y
 PHYSICAL_GROUP NAME cool      BC Tref=0 h=1
 
 FINO_STEP
@@ -27,7 +27,9 @@ FINO_STEP
 # print the temperature at the center of the base vs time
 PRINT %e t T(1,0,0)
 
-# to view the results call 
-# $ gmsh cylinder.msh temp-cylinder.msh
-OUTPUT_FILE msh temp-cylinder.msh 
-MESH_POST FILE msh T NO_MESH
+MESH_POST FILE_PATH temp-cylinder.msh T
+
+IF done
+ PRINT "\# open temp-anim-cylinder.geo in Gmsh to create a quick rough video"
+ PRINT "\# run  temp-anim-cylinder.py  to get a nicer and smoother video"
+ENDIF

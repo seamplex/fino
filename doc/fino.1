@@ -178,7 +178,7 @@ FINO_LINEARIZE { PHYSICAL_GROUP <physical_group> | START_POINT <x1> <y1> <z1> EN
 .fi
 .PP
 The Stress Classification Line (SCL) may be given either as a
-one-dimensional physical entity in the mesh or as the (continuous)
+one-dimensional physical group in the mesh or as the (continuous)
 spatial coordinates of two end-points.
 If the SCL is given as a \f[C]PHYSICAL_GROUP\f[R], the entity should be
 one-dimensional (i.e a line) independently of the dimension of the
@@ -202,8 +202,8 @@ the \f[C]TOTAL\f[R] keyword.
 The membrane, bending and peak stress tensor elements are combined using
 the Von\ Mises criterion and stored as variables.
 If no name for any of the variables is given, they are stored in
-\f[C]M_entity\f[R], \f[C]B_entity\f[R] and \f[C]P_entity\f[R]
-respectively if there is a physical entity.
+\f[C]M_group\f[R], \f[C]B_group\f[R] and \f[C]P_group\f[R] respectively
+if there is a physical group.
 Otherwise \f[C]M_1\f[R], \f[C]B_1\f[R] and \f[C]P_1\f[R] for the first
 instruction, \f[C]M_2\f[R]\&... etc.
 .SS FINO_PROBLEM
@@ -256,7 +256,7 @@ The default is DEFAULT_NMODES.
 .SS FINO_REACTION
 .RS
 .PP
-Computes the reaction at the selected physical entity.
+Computes the reaction at the selected physical group.
 .RE
 .IP
 .nf
@@ -284,6 +284,7 @@ Sets options related to the solver and the computation of gradients.
 FINO_SOLVER [ PROGRESS_ASCII ]
  [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
  [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+ [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
  [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
@@ -304,6 +305,9 @@ List of \f[C]PC_TYPE\f[R]s
 .IP \[bu] 2
 List of \f[C]KSP_TYPE\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
+.IP \[bu] 2
+List of \f[C]TS_TYPE\f[R]s
+<http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html>.
 .IP \[bu] 2
 List of \f[C]SNES_TYPE\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
