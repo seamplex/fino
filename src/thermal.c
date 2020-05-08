@@ -56,9 +56,12 @@ int fino_thermal_step_initial(void) {
 
     for (j = fino.first_node; j < fino.last_node; j++) {
       xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-      VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES);
+      petsc_call(VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES));
     }
 
+    petsc_call(VecAssemblyBegin(fino.phi));
+    petsc_call(VecAssemblyEnd(fino.phi));
+    
   } else {
     
     // TODO: re-pensar y re-implementar esto  
@@ -80,7 +83,6 @@ int fino_thermal_step_initial(void) {
 int fino_thermal_step_transient(void) {
 
   PetscInt ts_steps;
-  Mat J;
 
   PetscFunctionBeginUser;
 
@@ -96,8 +98,15 @@ int fino_thermal_step_transient(void) {
     // TODO: tener apuntadores a funcion en la estructura fino, en tiempo de parseo
     // hacerlos apuntar aca y meter esto en un file generico petsc_ts y no en thermal
     petsc_call(TSSetIFunction(fino.ts, NULL, fino_thermal_IFunctionHeat, NULL));
-    petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &J));
-    petsc_call(TSSetIJacobian(fino.ts, J, J, fino_thermal_IJacobianHeat, NULL));
+    
+    // si nos dieron una condicion inicial entonces fino.K no existe
+    // en paralelo esto falla porque fino.J tiene que estar ensamblada y toda la milonga
+    if (wasora.nprocs > 1 && wasora_get_function_ptr("T_0") != NULL) {
+      wasora_call(fino_build_bulk());
+      wasora_call(fino_set_essential_bc());
+    }  
+    petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.J));
+    petsc_call(TSSetIJacobian(fino.ts, fino.J, fino.J, fino_thermal_IJacobianHeat, NULL));
 
     petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
     if (fino.ts_type != NULL) {

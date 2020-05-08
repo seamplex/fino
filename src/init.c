@@ -760,6 +760,9 @@ int fino_problem_free(void) {
     petsc_call(MatDestroy(&fino.K_nobc));
   }
   
+  if (fino.J != PETSC_NULL) {
+    petsc_call(MatDestroy(&fino.J));
+  }
   if (fino.M != PETSC_NULL) {
     petsc_call(MatDestroy(&fino.M));
   }

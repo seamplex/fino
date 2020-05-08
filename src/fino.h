@@ -284,6 +284,7 @@ struct {
   Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
   Mat K_nobc;    // la matriz de rigidez antes de poner las condiciones de dirichlet (para reacciones)
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
+  Mat J;         // jacobiano multiuso
   PetscScalar lambda; // el autovalor
   
   PetscScalar *eigenvalue;    // los autovalores

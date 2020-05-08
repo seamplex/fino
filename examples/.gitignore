@@ -82,3 +82,6 @@ le1.vtk
 temp-*.msh
 temp-*.png
 *.mp4
+
+valve.brep
+valve.geo

@@ -167,15 +167,15 @@ int fino_instruction_step(void *arg) {
 
 
 int fino_assembly(void) {
-  MatAssemblyBegin(fino.K, MAT_FINAL_ASSEMBLY);
-  MatAssemblyEnd(fino.K, MAT_FINAL_ASSEMBLY);
+  petsc_call(MatAssemblyBegin(fino.K, MAT_FINAL_ASSEMBLY));
+  petsc_call(MatAssemblyEnd(fino.K, MAT_FINAL_ASSEMBLY));
   if (fino.has_mass) {
-    MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY);
-    MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY);
+    petsc_call(MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY));
+    petsc_call(MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY));
   }
   if (fino.has_rhs) {
-    VecAssemblyBegin(fino.b);
-    VecAssemblyEnd(fino.b);
+    petsc_call(VecAssemblyBegin(fino.b));
+    petsc_call(VecAssemblyEnd(fino.b));
   }
   
   return WASORA_RUNTIME_OK;
