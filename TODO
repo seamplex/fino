@@ -1,3 +1,6 @@
+ * replace doc/reference by the man with a TOC
+ * read/write $ElementNodeData
+ * complete manual
  * nonlinear
     - initial guess como en thermal T0
     - optimizar assemblies
@@ -5,7 +8,6 @@
     - NETWON | PICARD
     - BC type radiation
  * log stages
- * complete manual
  * refinement
     - stressrefine
     - sparselizard

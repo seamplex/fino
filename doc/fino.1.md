@@ -18,7 +18,7 @@ Fino is a free and open source tool released under the terms of the GPLv3+ that 
  * steady or transient heat conduction problems, or
  * modal analysis problems.
 
-It can a Gmsh(1) mesh file and can write results for post-processing in either `.msh` or `.vtk` files.
+Fino reads a plain-text input file which contains the problem definition and a reference to a Gmsh(1) mesh file and it writes 100%-user defined results in ASCII (through `PRINT` instructions within the input file) and/or post-processing views in either `.msh` or `.vtk` formats.
 
  
 # EXAMPLES
