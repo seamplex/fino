@@ -14,7 +14,9 @@ if test -e ../.git -a ! -z "`which git`"; then
 EOF
 fi
 
-# git status > /dev/stderr
+echo '/*' >> version-vcs.h
+git status >> version-vcs.h
+echo '*/' >> version-vcs.h
 
 cat version-vcs.h >> version.h
 
