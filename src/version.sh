@@ -15,7 +15,7 @@ EOF
 fi
 
 echo '/*' >> version-vcs.h
-git status >> version-vcs.h
+git status --porcelain >> version-vcs.h
 echo '*/' >> version-vcs.h
 
 cat version-vcs.h >> version.h
