@@ -38,7 +38,7 @@ f_euler(i) = 1/(2*pi) * kl(i)^2 * sqrt((E * I)/(rho * A * l^4))
 
 # now compute the modes numerically with FEM
 # note that each mode is duplicated as it is degenerated
-FINO_PROBLEM SHAKE N_MODES 10  
+FINO_PROBLEM modal N_MODES 10  
 PHYSICAL_GROUP NAME fixed   BC fixed
 FINO_STEP
 
