@@ -43,7 +43,7 @@ while t < end_time:
   print(t,i,alpha)
   
   for j in range(len(temps[i])):
-    temp_inst[j] = temps[i-1][j] + alpha * (temps[i][j] - temps[i-1][j])
+    temp_inst[j] = [temps[i-1][j][0] + alpha * (temps[i][j][0] - temps[i-1][j][0])]
 
   gmsh.view.addModelData(view_inst, step, "", kind, tags, temp_inst, t)
   
