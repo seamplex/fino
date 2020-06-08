@@ -475,14 +475,9 @@ int plugin_parse_line(char *line) {
 
       
       while ((token = wasora_get_next_token(NULL)) != NULL) {
-///kw+FINO_STEP+usage [ JUST_BUILD |
+///kw+FINO_STEP+usage [ JUST_BUILD ]
         if (strcasecmp(token, "JUST_BUILD") == 0) {
-          fino_step->do_not_build = 0;
           fino_step->do_not_solve = 1;
-///kw+FINO_STEP+usage JUST_SOLVE ]
-        } else if (strcasecmp(token, "JUST_SOLVE") == 0) {
-          fino_step->do_not_build = 1;
-          fino_step->do_not_solve = 0;
         } else {
           wasora_push_error_message("unknown keyword '%s'", token);
           return WASORA_PARSER_ERROR;
@@ -558,7 +553,7 @@ int plugin_parse_line(char *line) {
             wasora_push_error_message("RESULT should pass a variable not a vector");
             return WASORA_PARSER_ERROR;
           } else if (reaction->vector != NULL && fino.degrees != reaction->vector->size) {
-            wasora_push_error_message("RESULT should pass a vecetor of size %d not of size %d", fino.degrees, reaction->vector->size);
+            wasora_push_error_message("RESULT should pass a vector of size %d not of size %d", fino.degrees, reaction->vector->size);
             return WASORA_PARSER_ERROR;
           }
           

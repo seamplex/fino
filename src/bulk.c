@@ -102,8 +102,8 @@ int fino_build_bulk(void) {
 
     if (fino.mesh->element[i].type->dim == fino.dimensions) {
        
-      // solo los elementos que tengan la dimension del problema
-      // son los que usamos para las matrices elementales
+      // only the elements that have the problem dimension are used to build
+      // the elemental matrices of the bulk problem
       wasora_call(fino_build_element_volumetric(&fino.mesh->element[i]));
       
     } else if (fino.mesh->element[i].type->dim < fino.dimensions &&
@@ -113,7 +113,7 @@ int fino_build_bulk(void) {
         
         if (bc->type_math == bc_math_neumann || bc->type_math == bc_math_robin) {
           if (bc->condition.n_tokens == 0 || fabs(wasora_evaluate_expression(&bc->condition)) > 1e-3) {
-            // las de dirichlet set ponen en set_essential despues de ensamblar
+            // only non-dirichlet BCs here, dirichlet is handled in set_essential after the assembly
             wasora_call(fino_build_element_bc(&fino.mesh->element[i], bc));
           }  
         }
@@ -121,11 +121,11 @@ int fino_build_bulk(void) {
     }
   }
 
-  // ver si esto chupa memoria
   wasora_call(fino_assembly());
 
-  // nos copiamos la matrizota asi como esta sin las condiciones de contorno de dirichlet
-  // esto es para calcular reacciones en nodos arbitrarios (i.e. no solo los de dirichlet)
+  // copy the assembled stiffness matrix before setting dirichlet BCs
+  // this is used to compute reactions or resultants at arbitrary locations
+  // and to compute the strain energy for non-homogeneous BCs
   if (fino.K_nobc == NULL) {
     petsc_call(MatDestroy(&fino.K_nobc));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.K_nobc));
@@ -134,7 +134,7 @@ int fino_build_bulk(void) {
     }  
   }
   
-  // el rhs esta bueno tenerlo antes de las BCs por si hay que usar la misma K con otras BCs
+  // just in case we need the RHS vector before setting the BCs
   petsc_call(MatCopy(fino.K, fino.K_nobc, SAME_NONZERO_PATTERN));
   if (fino.has_rhs) {
     petsc_call(VecCopy(fino.b, fino.b_nobc));
@@ -152,7 +152,7 @@ int fino_build_bulk(void) {
     }  
   }
   
-  // aca tambien perdemos a C y a et porque son static
+  // C and et are lost here (they are static)
   wasora_call(fino_free_elemental_objects());
   
   return WASORA_RUNTIME_OK;
@@ -162,11 +162,11 @@ int fino_build_bulk(void) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_build_element_volumetric"
 int fino_build_element_volumetric(element_t *element) {
-  int v;           // indice del punto de gauss
-  int V;           // total de puntos de gauss
+  int V;           // total number of Gauss points
+  int v;           // gauss point index 
 
   if (element->physical_entity == NULL) {
-    // esto (deberia) pasar solo en malla estructuradas
+    // this (should) happen only in structured grids
     wasora_push_error_message("volumetric element %d does not have an associated physical group", element->tag);
     return WASORA_RUNTIME_ERROR;
     
@@ -182,7 +182,7 @@ int fino_build_element_volumetric(element_t *element) {
       element->B = calloc(V, sizeof(gsl_matrix *));
     }
     
-    // inicializamos en cero los objetos elementales
+    // initialize to zero the elemental objects
     gsl_matrix_set_zero(fino.Ki);
     gsl_matrix_set_zero(fino.Mi);
     gsl_vector_set_zero(fino.bi);
@@ -191,7 +191,8 @@ int fino_build_element_volumetric(element_t *element) {
     // hacer evaluaciones nodo por nodo o lo que sea para cada punto de gauss
     for (v = 0; v < V; v++) {
       
-      // armamos las matrices
+      // build elementary matrices
+      // TODO: use function pointers
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         wasora_call(fino_break_build_element(element, v));
       } else if (fino.problem_family == problem_family_thermal) {
@@ -199,7 +200,7 @@ int fino_build_element_volumetric(element_t *element) {
       }
     }
     
-    // los indices de los DOFs para ensamblar
+    // the indices of the DOFs to ensamble
     mesh_compute_l(fino.mesh, element);
 
     MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
@@ -249,7 +250,6 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
     
   }
   
-  // los indices de los DOFs para ensamblar
   mesh_compute_l(fino.mesh, element);
   VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
   

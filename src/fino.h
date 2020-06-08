@@ -429,7 +429,6 @@ struct fino_distribution_t {
 };
 
 struct fino_step_t {
-  int do_not_build;
   int do_not_solve;
 };
 

@@ -106,8 +106,8 @@ int fino_break_build_element(element_t *element, int v) {
   dhdx = element->dhdx[v];
   h = element->type->gauss[GAUSS_POINTS_CANONICAL].h[v];
   
-  // si la matriz C de la formulacion es null entonces allocamos y
-  // buscamos las distribuciones espaciales de parametros
+  // if the stress-strain matrix C is null then we have to allocate some stuff
+  // and resolve the special distributions with material properties
   if (C == NULL) {
     wasora_call(fino_distribution_init(&distribution_E, "E"));
     wasora_call(fino_distribution_init(&distribution_nu, "nu"));
@@ -118,6 +118,7 @@ int fino_break_build_element(element_t *element, int v) {
     wasora_call(fino_distribution_init(&distribution_alpha, "alpha"));
     wasora_call(fino_distribution_init(&distribution_T, "T"));
     
+    // T0 (the temperature at wich no expansion occurs) might be a function or a constant
     wasora_call(fino_distribution_init(&distribution_T0, "T0"));
     if (distribution_T0.defined) {
       T0 = fino_distribution_evaluate(&distribution_T0, NULL, NULL);
@@ -146,12 +147,15 @@ int fino_break_build_element(element_t *element, int v) {
       stress_strain_size = 3;
     }
 
-    // matriz de stress-strain
+    // stress-strain matrix
     C = gsl_matrix_calloc(stress_strain_size, stress_strain_size);
-    // expansion termica
-    et = gsl_vector_calloc(stress_strain_size);
+    // thermal expansion vector
+    if (distribution_alpha.defined) {
+      et = gsl_vector_calloc(stress_strain_size);
+    }  
     
-    // si E y nu son variables, calculamos C una sola vez y ya porque no dependen del espacio
+    // if E y nu are scalar variables (i.e. uniform in space) then we compute C once
+    // because they do not depend on space and will always be the same for all elements
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
       uniform_properties = 1;
       if ((E = fino_distribution_evaluate(&distribution_E, material, NULL)) <= 0) {
@@ -172,6 +176,8 @@ int fino_break_build_element(element_t *element, int v) {
     
   }
   
+  // if there are no elemental objects allocated or the volumetric element type
+  // is different from the last one we need to re-allocate
   if (J != element->type->nodes) {
     J = element->type->nodes;
     gsl_matrix_free(B);
@@ -180,16 +186,17 @@ int fino_break_build_element(element_t *element, int v) {
     gsl_matrix_free(CB);
     CB = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
-    // esto lo ponemos aca porque sino es mucho lio ponerlo en otro lado
-    gsl_vector_free(Cet);
-    Cet = gsl_vector_alloc(stress_strain_size);
+    if (distribution_alpha.defined) {
+      gsl_vector_free(Cet);
+      Cet = gsl_vector_alloc(stress_strain_size);
+    }  
   }  
   
-  // la H es la del framework fem, pero la B no es la misma 
-  // porque la formulacion es reducida, i.e hace un 6x6 (o 3x3) cuando deberia ser 9x9
-  
+  // matrix H is the standard one by B is not due to the reduced formulation of the multi-DOF problem
+  // i.e the C matrix is 6x6 (or 3x3 in 2D) when it should be 9x9 for the full non-reduced problem
   gsl_matrix_set_zero(B);
 
+  // TODO: use function pointers instead of a big if-elseif
   for (j = 0; j < J; j++) {
     if (fino.problem_kind == problem_kind_full3d) {
       gsl_matrix_set(B, 0, 3*j+0, gsl_matrix_get(dhdx, j, 0));
@@ -211,7 +218,7 @@ int fino_break_build_element(element_t *element, int v) {
 
       r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
       
-      // ecuacion 3.5 AFEM CH.03 sec 3.3.2 pag 3.5
+      // equation 3.5 AFEM CH.03 sec 3.3.2 pag 3.5
       gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(dhdx, j, 0));
       
       gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(dhdx, j, 1));
@@ -226,8 +233,8 @@ int fino_break_build_element(element_t *element, int v) {
       gsl_matrix_set(B, 3, 2*j+1, gsl_matrix_get(dhdx, j, 0));
 
     } else  {
-      // plane stress y plane strain son iguales
-      // ecuacion 14.18 IFEM CH.14 sec 14.4.1 pag 14-11
+      // plane stress and plane strain are the same
+      // see equation 14.18 IFEM CH.14 sec 14.4.1 pag 14-11
       gsl_matrix_set(B, 0, 2*j+0, gsl_matrix_get(dhdx, j, 0));
       
       gsl_matrix_set(B, 1, 2*j+1, gsl_matrix_get(dhdx, j, 1));
@@ -239,7 +246,7 @@ int fino_break_build_element(element_t *element, int v) {
     
     if ((fino.problem_family == problem_family_mechanical) &&
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
-      // el vector de fuerzas volumetricas
+      // the volumetric force vector
       c = r_for_axisymmetric * element->w[v] * h[j];
       mesh_compute_x_at_gauss(element, v);
       if (distribution_fx.defined) {
@@ -255,8 +262,8 @@ int fino_break_build_element(element_t *element, int v) {
     
   }
   
-  // si E y nu estan dadas por variables, C es constante y no la volvemos a evaluar
-  // pero si alguna es una propiedad o una funcion, es otro cantar
+  // if E and nu are scalar variables C is uniform and we already have it
+  // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v);
     wasora_call(fino_break_compute_C(C,
@@ -264,21 +271,22 @@ int fino_break_build_element(element_t *element, int v) {
         fino_distribution_evaluate(&distribution_nu, material, element->x[v])));
   }
 
-  // calculamos Bt*C*B
+  // compute the elementals Bt*C*B
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, r_for_axisymmetric, C, B, 0, CB);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v], B, CB, 1.0, fino.Ki);
 
-  // expansion termica
+  // thermal expansion 
   if (distribution_alpha.defined != 0) {
-    // TODO: no volver a evaluar si no hace falta
-    // este debe ser el medio!
+    // note that alpha should be the mean expansion coefficient in the range
     mesh_compute_x_at_gauss(element, v);
     alphaDT = fino_distribution_evaluate(&distribution_alpha, material, element->x[v]);
     if (alphaDT != 0) {
       alphaDT *= fino_distribution_evaluate(&distribution_T, material, element->x[v])-T0;
       gsl_vector_set(et, 0, alphaDT);
       gsl_vector_set(et, 1, alphaDT);
-      gsl_vector_set(et, 2, alphaDT);
+      if (fino.dimensions == 3) {
+        gsl_vector_set(et, 2, alphaDT);
+      }  
       gsl_blas_dgemv(CblasTrans, r_for_axisymmetric, C, et, 0, Cet);
       gsl_blas_dgemv(CblasTrans, element->w[v], B, Cet, 1.0, fino.bi);
     }
@@ -466,8 +474,8 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
     // plane stress es otra milonga
     double c1, c2;
     
-    E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
-    nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
+    E = mu*(3*lambda + 2*mu)/(lambda+mu);
+    nu = lambda / (2*(lambda+mu));
     
     c1 = E/(1-nu*nu);
     c2 = nu * c1;
@@ -478,11 +486,11 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
     
   }  
   
-  // restamos la contribucion termica porque nos interesan las tensiones mecanicas ver IFEM.Ch30
+  // subtract the thermal contribution to the normal stresses (see IFEM.Ch30)
   if (alpha != 0) {
     DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
-    E = fino_distribution_evaluate(&distribution_E, element->physical_entity->material, fino.mesh->node[j].x);
-    nu = fino_distribution_evaluate(&distribution_nu, element->physical_entity->material, fino.mesh->node[j].x);
+    E = mu*(3*lambda + 2*mu)/(lambda+mu);
+    nu = lambda / (2*(lambda+mu));
     xi = E/(1-2*nu) * alpha * DT;
 
     *sigmax -= xi;

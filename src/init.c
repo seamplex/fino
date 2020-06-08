@@ -23,7 +23,7 @@
 #include <signal.h>
 #include "fino.h"
 
-// maneje por el cambio de PetscOptionsHasName en 3.7.0
+// this is a wrapper because PetscOptionsHasName change its arguments after 3.7.0
 #if PETSC_VERSION_LT(3,7,0)
  #define PetscOptionsHasNameWrapper(a, b, c) PetscOptionsHasName(a, b, c)
 #else
@@ -45,10 +45,10 @@ int plugin_init_before_parser(void) {
     return WASORA_PARSER_ERROR;
   }
   
-  // amasamos la linea de comandos original (porque la que saca getopt puede tener un orden que no nos sirve)
-  // el chiste es que por ejemplo "-log_summary" es atrapado por el getopt de wasora como "-l"
-  // hay que re-escrbir eso como "--slepc_opt log_summary"
-  // si alguna opcion tiene argumento hay que ponerlo como "--slepc_opt pc_type=sor"
+  // we process the original command line (beucase the one that remains after getopt might have a different order)
+  // for instance, "-log_summary" is trapped by wasora's getoopt as "-l"
+  // so that needs to be rewritten as "--petsc_opt log_summary"
+  // if the option has an argument it has to be put as "--slepc_opt pc_type=sor"
   for (i = 0; i < wasora.argc_orig; i++) {
     if (strcmp(wasora.argv_orig[i], "--petsc") == 0) {
       if (i >= (wasora.argc_orig-1)) {
@@ -64,19 +64,19 @@ int plugin_init_before_parser(void) {
         *dummy = '\0';
         tmp1 = strdup(wasora.argv_orig[i+1]);
         tmp2 = strdup(dummy+1);
-        wasora.argv_orig[i]   = realloc(wasora.argv_orig[i],   strlen(wasora.argv_orig[i+1])+2);
-        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(dummy)+1);
-        sprintf(wasora.argv_orig[i],  "-%s", tmp1);
-        sprintf(wasora.argv_orig[i+1], "%s", tmp2);
+        wasora.argv_orig[i]   = realloc(wasora.argv_orig[i],   strlen(wasora.argv_orig[i+1])+3);
+        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(dummy)+2);
+        snprintf(wasora.argv_orig[i], strlen(wasora.argv_orig[i+1])+2, "-%s", tmp1);
+        snprintf(wasora.argv_orig[i+1], strlen(dummy)+1, "%s", tmp2);
         free(tmp1);
         free(tmp2);
         
       } else {
         char *tmp1;
         tmp1 = strdup(wasora.argv_orig[i+1]);
-        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(tmp1)+1);
+        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(tmp1)+2);
         wasora.argv_orig[i][0] = '\0';
-        sprintf(wasora.argv_orig[i+1],  "-%s", tmp1);
+        snprintf(wasora.argv_orig[i+1], strlen(tmp1)+1, "-%s", tmp1);
         free(tmp1);
       }
       i++;
@@ -84,26 +84,27 @@ int plugin_init_before_parser(void) {
   }
   
 #ifdef HAVE_SLEPC  
-  // inicializamos la slepc (que a su vez inicializa la petsc)
-  // le pasamos la linea de comandos que acabamos de amasar
+  // initialize SLEPc (which in turn initalizes PETSc)
+  // we pass the processed command line
   petsc_call(SlepcInitialize(&wasora.argc_orig, &wasora.argv_orig, (char*)0, PETSC_NULL));
 #else
-  // inicializamos la petsc
-  // le pasamos la linea de comandos que acabamos de amasar
+  // initialize PETSc
+  // we pass the processed command line
   petsc_call(PetscInitialize(&wasora.argc_orig, &wasora.argv_orig, (char*)0, PETSC_NULL));
 #endif
   fino.petscinit_called = 1;
   
-  // los segfaults son segfaults, no queremos que la petsc meta las narices
+  // segfaults are segfaults, try to leave PETSC out of them
   signal(SIGSEGV, SIG_DFL);
 
+  // get the number of processes and the rank
   petsc_call(MPI_Comm_size(PETSC_COMM_WORLD, &wasora.nprocs));
   petsc_call(MPI_Comm_rank(MPI_COMM_WORLD, &wasora.rank));
 
-  // instalamos nuestro error handler para errores la petsc 
+  // install out error handler for PETSc
   petsc_call(PetscPushErrorHandler(&fino_handler, NULL));
 
-  // registramos nuestros eventos
+  // register events
   petsc_call(PetscClassIdRegister("Fino", &fino.petsc_classid));
 
   petsc_call(PetscLogStageRegister("Assembly", &fino.petsc_stage_build));
@@ -114,16 +115,16 @@ int plugin_init_before_parser(void) {
   petsc_call(PetscLogEventRegister("fino_solve", fino.petsc_classid, &fino.petsc_event_solve));
   petsc_call(PetscLogEventRegister("fino_stress", fino.petsc_classid, &fino.petsc_event_solve));
 
-  // vemos si nos pidieron mumps por linea de comando
+  // see if the user asked for mumps in the command line
   petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &fino.commandline_mumps));
   
-  // inicializamos mesh
+  // initialize wasora's mesh framework
   if (!wasora_mesh.initialized) {
     wasora_call(wasora_mesh_init_before_parser());
   }
 
   
-  // variables especiales de fino
+  // Fino's special variables
 ///va+fino_abstol+name fino_abstol
 ///va+fino_abstol+detail Absolute tolerance of the linear solver,
 ///va+fino_abstol+detail as passed to PETSc’s
@@ -189,9 +190,10 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
 ///va+nodes_rough+detail The number of nodes of the mesh in `ROUGH` mode.
   fino.vars.nodes_rough = wasora_define_variable("nodes_rough");
   
-  // estas son para las expresiones algebraicas implicitamente
-  // las definimos en mayusculas porque ya hay funciones que se llaman asi en minuscula
-  // antes de parsear la expresion algebraica les cambiamos el case en bc.
+  // these are for the algebraic expressions in the  which are implicitly-defined BCs
+  // i.e. 0=u*nx+v*ny
+  // here they are defined as uppercase because there already exist functions named u, v and w
+  // but the parser changes their case when an implicit BC is read
   fino.vars.U[0]= wasora_define_variable("U");
   fino.vars.U[1]= wasora_define_variable("V");
   fino.vars.U[2]= wasora_define_variable("W");

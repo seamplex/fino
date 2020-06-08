@@ -50,8 +50,8 @@ int fino_instruction_step(void *arg) {
   PetscFunctionBegin;
   
   //---------------------------------
-  // inicializamos si hace falta
-  // TODO: ver como hacer si cambia la malla con el step_static o con el tiempo 
+  // initialize only if we did not initialized before
+  // TODO: how to handle changes in the mesh within steps?
   //---------------------------------
   if (fino.spatial_unknowns == 0) {
     wasora_call(fino_problem_init());
@@ -61,10 +61,9 @@ int fino_instruction_step(void *arg) {
   // ------------------------------------
   // build
   // ------------------------------------
-  
-  // el do_not_build se podria usar en el extremo caso en que alguien quiera ensamblar
-  // por si mismo con una user-provided routine
-  if (fino_step->do_not_build == 0 && (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal)) {
+  // this logic ought to change to have a generalized way of building the stiffness matrix
+  // independently of the problem type
+  if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
     time_checkpoint(build_begin);
     wasora_call(fino_build_bulk());
     wasora_call(fino_set_essential_bc());
@@ -74,13 +73,13 @@ int fino_instruction_step(void *arg) {
   // ------------------------------------
   // solve
   // ------------------------------------
-  // el do_not_solve se puede pedir para debuguear las matrices cuando no convergen
+  // the do_not_solve flag can be used to debug stuff when the problem does not converge
   if (fino_step->do_not_solve == 0) {
     
     time_checkpoint(solve_begin);
     if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
       
-      // si no nos pidieron transient de calor resolvemos un steady state de lo que sea
+      // if the problem is not transient heat we solve the (quasi) steady state here
       if (fino.math_type == math_type_linear) {
         
         wasora_call(fino_solve_petsc_linear());
@@ -103,7 +102,8 @@ int fino_instruction_step(void *arg) {
       }
     } else {
       
-      // si nos pidieron transient de calor
+      // the transient heat problem is different
+      // TODO: homogenize the logic
       if (wasora_var_value(wasora_special_var(in_static))) {
         wasora_call(fino_thermal_step_initial());
       } else {
@@ -113,7 +113,7 @@ int fino_instruction_step(void *arg) {
     time_checkpoint(solve_end);
     
   // ------------------------------------
-  // stress
+  // stresses
   // ------------------------------------
     
     time_checkpoint(stress_begin);
@@ -135,11 +135,9 @@ int fino_instruction_step(void *arg) {
     
   }
   
-  if (fino_step->do_not_build == 0) {
-    wasora_var(fino.vars.time_petsc_build) = petsc.build_end - petsc.build_begin;
-    wasora_var(fino.vars.time_wall_build)  = wall.build_end  - wall.build_begin;
-    wasora_var(fino.vars.time_cpu_build)   = cpu.build_end   - cpu.build_begin;
-  }
+  wasora_var(fino.vars.time_petsc_build) = petsc.build_end - petsc.build_begin;
+  wasora_var(fino.vars.time_wall_build)  = wall.build_end  - wall.build_begin;
+  wasora_var(fino.vars.time_cpu_build)   = cpu.build_end   - cpu.build_begin;
   
   if (fino_step->do_not_solve == 0) {
     wasora_var(fino.vars.time_petsc_solve) = petsc.solve_end - petsc.solve_begin;
@@ -149,7 +147,6 @@ int fino_instruction_step(void *arg) {
     wasora_var(fino.vars.time_petsc_stress) = petsc.stress_end - petsc.stress_begin;
     wasora_var(fino.vars.time_wall_stress)  = wall.stress_end  - wall.stress_begin;
     wasora_var(fino.vars.time_cpu_stress)   = cpu.stress_end   - cpu.stress_begin;
-
   }
   
   wasora_var(fino.vars.time_petsc_total) = wasora_var(fino.vars.time_petsc_build) + wasora_var(fino.vars.time_petsc_solve) + wasora_var(fino.vars.time_petsc_stress);
