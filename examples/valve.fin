@@ -33,20 +33,6 @@ FUNCTION k_carbon(temp) INTERPOLATION steffen DATA {
      300             14.9
      325             15.1
      350             15.4
-     375             15.7
-     400             15.9
-     425             16.1
-     450             16.4
-     475             16.5
-     500             16.7
-     525             16.8
-     550             16.9
-     575             17.0
-     600             17.0
-     625             17.1
-     650             17.1
-     675             17.1
-     700             17.1
 }
 
 FUNCTION kappa_carbon(temp) INTERPOLATION steffen DATA {
@@ -64,20 +50,6 @@ FUNCTION kappa_carbon(temp) INTERPOLATION steffen DATA {
      300             13.3
      325             13.4
      350             13.6
-     375             13.7
-     400             13.8
-     425             14.0
-     450             14.1
-     475             14.2
-     500             14.4
-     525             14.5
-     550             14.6
-     575             14.7
-     600             14.8
-     625             14.9
-     650             15.0
-     675             15.1
-     700             15.1
 }
 
 FUNCTION k_ss(temp) INTERPOLATION steffen DATA {
@@ -95,22 +67,6 @@ FUNCTION k_ss(temp) INTERPOLATION steffen DATA {
   300     19.4
   325     19.8
   350     20.1
-  375     20.5
-  400     20.8
-  425     21.2
-  450     21.5
-  475     21.9
-  500     22.2
-  525     22.6
-  550     22.9
-  575     23.3
-  600     23.6
-  625     24.0
-  650     24.3
-  675     24.7
-  700     25.0
-  725     25.4
-  750     25.7
 }
 
 FUNCTION kappa_ss(temp) INTERPOLATION steffen DATA {
@@ -128,22 +84,6 @@ FUNCTION kappa_ss(temp) INTERPOLATION steffen DATA {
   300      4.46
   325      4.52
   350      4.57
-  375      4.63
-  400      4.69
-  425      4.74
-  450      4.80
-  475      4.85
-  500      4.91
-  525      4.97
-  550      5.02
-  575      5.08
-  600      5.13
-  625      5.19
-  650      5.24
-  675      5.30
-  700      5.35
-  725      5.40
-  750      5.45
 }
 
 
@@ -153,7 +93,7 @@ MATERIAL carbon {
 }
 
 MATERIAL stainless {
-  k       0.5*k_ss(T(x,y,z))*1e-3    # half to exaggerate the effects
+  k       0.2*k_ss(T(x,y,z))*1e-3      # one-fifth to exaggerate the effects
   kappa   kappa_ss(T(x,y,z))
 }
 
