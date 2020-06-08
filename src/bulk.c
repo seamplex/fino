@@ -232,7 +232,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
     
     // TODO: poner un flag si se necesita
     if (element->type->dim == 1 || element->type->dim == 2) {
-      mesh_compute_normal(element);
+      wasora_call(mesh_compute_normal(element));
     }  
     
     wasora_call(fino_break_set_neumann(element, bc));
