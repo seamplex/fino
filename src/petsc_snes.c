@@ -75,26 +75,40 @@ PetscErrorCode fino_newton_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) 
   wasora_call(fino_set_essential_bc(fino.K, fino.b));
   wasora_call(fino_assembly());
 */  
-  MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
-  MatSetOption(J, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  MatCopy(fino.K, J, SAME_NONZERO_PATTERN);
+  
+//  MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+//  MatSetOption(J, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
 
-
-  for (i = 0; i < fino.mesh->n_nodes; i++) {
+//  MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
+//  MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
+      
+//  printf("jacobiano pelado\n");
+//  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+  
+//  for (i = 0; i < fino.mesh->n_nodes; i++) {
+/*  
+  i = 2;
     for (j = 0; j < fino.mesh->n_nodes; j++) {
       VecGetValues(fino.r, 1, &i, &ri);
       Tj = fino.mesh->node[j].phi[0];
+      // TODO: read the actual expression and take its derivative
       K = 1+Tj;
       dKdT = 1;
-      xi = 1/K * dKdT * ri;
+      xi = -1/K * dKdT * ri;
       if (xi != 0) {
+//        printf("%d %d %g\n", i, j, xi);
         MatSetValues(J, 1, &i, 1, &j, &xi, ADD_VALUES);
       }  
     }
-  }
+ */
+//  }
 
   MatAssemblyBegin(J, MAT_FINAL_ASSEMBLY);
   MatAssemblyEnd(J, MAT_FINAL_ASSEMBLY);
-      
+
+  MatCopy(J, P, SAME_NONZERO_PATTERN);
+  
 //  printf("jacobiano\n");
 //  fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
   
