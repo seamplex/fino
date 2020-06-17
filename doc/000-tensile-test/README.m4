@@ -71,7 +71,7 @@ The reader is encouraged to consider and to evaluate the differences (both advan
 
 # Problem description
 
-A tensile test specimen of nominal cross-sectional area\ $A = 20~\text{mm} \times 5~\text{mm} = 100~\text{mm}^2$ is fully fixed on one end (magenta surface) and a tensile load of $F_x = 10~\text{kN}$ is applied at the other end (green surface). The Young modulus is\ $E=200~\text{GPa}$ and the Poisson’s ratio is\ $\nu=0.35$.
+A tensile test specimen of nominal cross-sectional area\ $A = 20~\text{mm} \times 5~\text{mm} = 100~\text{mm}^2$ is fully fixed on one end (magenta surface) and a tensile load of $F_x = 10~\text{kN}$ is applied at the other end (green surface). The Young modulus is\ $E=200~\text{GPa}$ and the Poisson’s ratio is\ $\nu=0.3$.
 
 
 ![Tensile test specimen CAD from CAEplex <https://caeplex.com/p/41dd1>](tensile-test-cad.png){#fig:tensile-cad width=12cm}

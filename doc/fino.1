@@ -20,8 +20,11 @@ steady or transient heat conduction problems, or
 .IP \[bu] 2
 modal analysis problems.
 .PP
-It can a Gmsh(1) mesh file and can write results for post-processing in
-either \f[C].msh\f[R] or \f[C].vtk\f[R] files.
+Fino reads a plain-text input file which contains the problem definition
+and a reference to a Gmsh(1) mesh file and it writes 100%-user defined
+results in ASCII (through \f[C]PRINT\f[R] instructions within the input
+file) and/or post-processing views in either \f[C].msh\f[R] or
+\f[C].vtk\f[R] formats.
 .SH EXAMPLES
 .SS Minimum working example
 .PP
@@ -380,7 +383,7 @@ Ask Fino to solve the problem and advance one step.
 .IP
 .nf
 \f[C]
-FINO_STEP [ JUST_BUILD | JUST_SOLVE ]
+FINO_STEP [ JUST_BUILD ]
 \f[R]
 .fi
 .PP
@@ -773,19 +776,26 @@ Define a file, either as input or as output, for further usage.
 .SS FIT
 .RS
 .PP
-Fit a function of one or more arguments to a set of data.
+Fit a function of one or more arguments to a set of pointwise-defined
+data.
 .RE
 .IP
 .nf
 \f[C]
-FIT <function_to_be_fitted> TO <function_with_data> VIA <var_1> <var_2> ... <var_n> [ GRADIENT <expr_1> <expr_2> ... <expr_n> ] [ RANGE_MIN <expr_1> <expr_2> ... <expr_n> ] [ RANGE_MAX <expr_1> <expr_2> ... <expr_n> ] [ DELTAEPSREL <expr> ] [ DELTAEPSABS <expr> ] [ MAX_ITER <expr> ] [ VERBOSE ] [ RERUN | DO_NOT_RERUN ]
+FIT <function_to_be_fitted> TO <function_with_data> VIA <var_1> <var_2> ... <var_n>
+ [ GRADIENT <expr_1> <expr_2> ... <expr_n> ]
+ [ RANGE_MIN <expr_1> <expr_2> ... <expr_j> ]
+ [ RANGE_MAX <expr_1> <expr_2> ... <expr_n> ]
+ [ DELTAEPSREL <expr> ] [ DELTAEPSABS <expr> ] [ MAX_ITER <expr> ]
+ [ VERBOSE ] [ RERUN | DO_NOT_RERUN ]
 \f[R]
 .fi
 .PP
-The function with the data has to be point-wise defined.
-The function to be fitted hast to be parametrized with at least one of
+The function with the data has to be point-wise defined (i.e.\ a
+\f[C]FUNCTION\f[R] read from a file with inline \f[C]DATA\f[R]).
+The function to be fitted has to be parametrized with at least one of
 the variables provided after the \f[C]VIA\f[R] keyword.
-Only the names of the functions have to be given.
+Only the names of the functions have to be given, not the arguments.
 Both functions have to have the same number of arguments.
 The initial guess of the solution is given by the initial value of the
 variables listed in the \f[C]VIA\f[R] keyword.
@@ -796,15 +806,26 @@ If none is provided, the gradient will be computed numerically using
 finite differences.
 A range over which the residuals are to be minimized can be given with
 \f[C]RANGE_MIN\f[R] and \f[C]RANGE_MAX\f[R].
+The expressions give the range of the arguments of the functions, not of
+the parameters.
 For multidimensional fits, the range is an hypercube.
-If no range is given, all the definition points of the function witht
-the data are used for the fit.
-Convergence can be controlled by given the relative and absolute
-tolreances with \f[C]DELTAEPSREL\f[R] (default 1e-4) and
-\f[C]DELTAEPSABS\f[R] (default 1e-6), and with the maximum number of
-iterations \f[C]MAX_ITER\f[R] (default 100).
+If no range is given, all the definition points of the function with the
+data are used for the fit.
+Convergence can be controlled by giving the relative and absolute
+tolreances with \f[C]DELTAEPSREL\f[R] (default \f[C]1e-4\f[R]) and
+\f[C]DELTAEPSABS\f[R] (default \f[C]1e-6\f[R]), and with the maximum
+number of iterations \f[C]MAX_ITER\f[R] (default 100).
 If the optional keyword \f[C]VERBOSE\f[R] is given, some data of the
 intermediate steps is written in the standard output.
+The combination of arguments that minimize the function are computed and
+stored in the variables.
+So if \f[C]f(x,y)\f[R] is to be minimized, after a \f[C]MINIMIZE f\f[R]
+both \f[C]x\f[R] and \f[C]y\f[R] would have the appropriate values.
+The details of the method used can be found in GSL\[cq]s
+documentation (https://www.gnu.org/software/gsl/doc/html/multimin.html).
+Some of them use derivatives and some of them do not.
+Default method is \f[C]gsl_multimin_fminimizer_nmsimplex2\f[R], which
+does not need derivatives.
 .SS FUNCTION
 .RS
 .PP
@@ -1100,12 +1121,20 @@ MATRIX <name> ROWS <expr> COLS <expr> [ DATA num_expr_1 num_expr_2 ... num_expr_
 .RS
 .PP
 Find the combination of arguments that give a (relative) minimum of a
-function, i.e.\ run an optimization problem.
+function.
 .RE
 .IP
 .nf
 \f[C]
-MINIMIZE <function> <function> [ METHOD { conjugate_fr | conjugate_pr | vector_bfgs2 | vector_bfgs | steepest_descent | nmsimplex2 | nmsimplex | nmsimplex2rand } [ GRADIENT <expr_1> <expr_2> ... <expr_n> ] [ GUESS <expr_1> <expr_2> ... <expr_n> ] [ MIN <expr_1> <expr_2> ... <expr_n> ] [ MAX <expr_1> <expr_2> ... <expr_n> ] [ STEP <expr_1> <expr_2> ... <expr_n> ] [ VERBOSE ] [ NORERUN ] [ MAX_ITER <expr> ] [ TOL <expr> ] [ GRADTOL <expr> ]
+MINIMIZE <function>
+ [ METHOD { nmsimplex2 | nmsimplex | nmsimplex2rand | conjugate_fr | conjugate_pr | vector_bfgs2 | vector_bfgs | steepest_descent}
+ [ GRADIENT <expr_1> <expr_2> ... <expr_n> ]
+ [ GUESS <expr_1> <expr_2> ... <expr_n> ]
+ [ MIN <expr_1> <expr_2> ... <expr_n> ]
+ [ MAX <expr_1> <expr_2> ... <expr_n> ]
+ [ STEP <expr_1> <expr_2> ... <expr_n> ]
+ [ MAX_ITER <expr> ] [ TOL <expr> ] [ GRADTOL <expr> ]
+ [ VERBOSE ] [ NORERUN ]
 \f[R]
 .fi
 .SS PARAMETRIC

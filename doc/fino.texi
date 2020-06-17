@@ -384,7 +384,7 @@ area@ @math{A = 20~\r{mm} \times 5~\r{mm} = 100~\r{mm}^2} is fully fixed
 on one end (magenta surface) and a tensile load of
 @math{F_x = 10~\r{kN}} is applied at the other end (green surface). The
 Young modulus is@ @math{E=200~\r{GPa}} and the Poisson's ratio
-is@ @math{\nu=0.35}.
+is@ @math{\nu=0.3}.
 
 @float
 @image{000-tensile-test/tensile-test-cad,12cm,,Figure 1: Tensile test
@@ -1317,7 +1317,7 @@ Ask Fino to solve the problem and advance one step.
 
 @smallformat
 @verbatim
-FINO_STEP [ JUST_BUILD | JUST_SOLVE ]
+FINO_STEP [ JUST_BUILD ]
 @end verbatim
 @end smallformat
 
@@ -1803,34 +1803,50 @@ Define a file, either as input or as output, for further usage.
 @subsection FIT
 @anchor{#fit}
 @quotation
-Fit a function of one or more arguments to a set of data.
+Fit a function of one or more arguments to a set of pointwise-defined
+data.
 @end quotation
 
 @smallformat
 @verbatim
-FIT <function_to_be_fitted> TO <function_with_data> VIA <var_1> <var_2> ... <var_n> [ GRADIENT <expr_1> <expr_2> ... <expr_n> ] [ RANGE_MIN <expr_1> <expr_2> ... <expr_n> ] [ RANGE_MAX <expr_1> <expr_2> ... <expr_n> ] [ DELTAEPSREL <expr> ] [ DELTAEPSABS <expr> ] [ MAX_ITER <expr> ] [ VERBOSE ] [ RERUN | DO_NOT_RERUN ]
+FIT <function_to_be_fitted> TO <function_with_data> VIA <var_1> <var_2> ... <var_n>
+ [ GRADIENT <expr_1> <expr_2> ... <expr_n> ]
+ [ RANGE_MIN <expr_1> <expr_2> ... <expr_j> ]
+ [ RANGE_MAX <expr_1> <expr_2> ... <expr_n> ]
+ [ DELTAEPSREL <expr> ] [ DELTAEPSABS <expr> ] [ MAX_ITER <expr> ]
+ [ VERBOSE ] [ RERUN | DO_NOT_RERUN ]
 @end verbatim
 @end smallformat
 
-The function with the data has to be point-wise defined. The function to
-be fitted hast to be parametrized with at least one of the variables
+The function with the data has to be point-wise defined (i.e.@ a
+@code{FUNCTION} read from a file with inline @code{DATA}). The function
+to be fitted has to be parametrized with at least one of the variables
 provided after the @code{VIA} keyword. Only the names of the functions
-have to be given. Both functions have to have the same number of
-arguments. The initial guess of the solution is given by the initial
-value of the variables listed in the @code{VIA} keyword. Analytical
-expressions for the gradient of the function to be fitted with respect
-to the parameters to be fitted can be optionally given with the
-@code{GRADIENT} keyword. If none is provided, the gradient will be
+have to be given, not the arguments. Both functions have to have the
+same number of arguments. The initial guess of the solution is given by
+the initial value of the variables listed in the @code{VIA} keyword.
+Analytical expressions for the gradient of the function to be fitted
+with respect to the parameters to be fitted can be optionally given with
+the @code{GRADIENT} keyword. If none is provided, the gradient will be
 computed numerically using finite differences. A range over which the
 residuals are to be minimized can be given with @code{RANGE_MIN} and
-@code{RANGE_MAX}. For multidimensional fits, the range is an hypercube.
-If no range is given, all the definition points of the function witht
-the data are used for the fit. Convergence can be controlled by given
-the relative and absolute tolreances with @code{DELTAEPSREL} (default
-1e-4) and @code{DELTAEPSABS} (default 1e-6), and with the maximum number
-of iterations @code{MAX_ITER} (default 100). If the optional keyword
-@code{VERBOSE} is given, some data of the intermediate steps is written
-in the standard output.
+@code{RANGE_MAX}. The expressions give the range of the arguments of the
+functions, not of the parameters. For multidimensional fits, the range
+is an hypercube. If no range is given, all the definition points of the
+function with the data are used for the fit. Convergence can be
+controlled by giving the relative and absolute tolreances with
+@code{DELTAEPSREL} (default @code{1e-4}) and @code{DELTAEPSABS} (default
+@code{1e-6}), and with the maximum number of iterations @code{MAX_ITER}
+(default 100). If the optional keyword @code{VERBOSE} is given, some
+data of the intermediate steps is written in the standard output. The
+combination of arguments that minimize the function are computed and
+stored in the variables. So if @code{f(x,y)} is to be minimized, after a
+@code{MINIMIZE f} both @code{x} and @code{y} would have the appropriate
+values. The details of the method used can be found in
+@uref{https://www.gnu.org/software/gsl/doc/html/multimin.html,GSL's
+documentation}. Some of them use derivatives and some of them do not.
+Default method is @code{gsl_multimin_fminimizer_nmsimplex2}, which does
+not need derivatives.
 
 @node FUNCTION
 @subsection FUNCTION
@@ -2131,12 +2147,20 @@ MATRIX <name> ROWS <expr> COLS <expr> [ DATA num_expr_1 num_expr_2 ... num_expr_
 @anchor{#minimize}
 @quotation
 Find the combination of arguments that give a (relative) minimum of a
-function, i.e.@ run an optimization problem.
+function.
 @end quotation
 
 @smallformat
 @verbatim
-MINIMIZE <function> <function> [ METHOD { conjugate_fr | conjugate_pr | vector_bfgs2 | vector_bfgs | steepest_descent | nmsimplex2 | nmsimplex | nmsimplex2rand } [ GRADIENT <expr_1> <expr_2> ... <expr_n> ] [ GUESS <expr_1> <expr_2> ... <expr_n> ] [ MIN <expr_1> <expr_2> ... <expr_n> ] [ MAX <expr_1> <expr_2> ... <expr_n> ] [ STEP <expr_1> <expr_2> ... <expr_n> ] [ VERBOSE ] [ NORERUN ] [ MAX_ITER <expr> ] [ TOL <expr> ] [ GRADTOL <expr> ]
+MINIMIZE <function>
+ [ METHOD { nmsimplex2 | nmsimplex | nmsimplex2rand | conjugate_fr | conjugate_pr | vector_bfgs2 | vector_bfgs | steepest_descent}
+ [ GRADIENT <expr_1> <expr_2> ... <expr_n> ]
+ [ GUESS <expr_1> <expr_2> ... <expr_n> ]
+ [ MIN <expr_1> <expr_2> ... <expr_n> ]
+ [ MAX <expr_1> <expr_2> ... <expr_n> ]
+ [ STEP <expr_1> <expr_2> ... <expr_n> ]
+ [ MAX_ITER <expr> ] [ TOL <expr> ] [ GRADTOL <expr> ]
+ [ VERBOSE ] [ NORERUN ]
 @end verbatim
 @end smallformat
 
