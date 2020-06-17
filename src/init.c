@@ -64,19 +64,19 @@ int plugin_init_before_parser(void) {
         *dummy = '\0';
         tmp1 = strdup(wasora.argv_orig[i+1]);
         tmp2 = strdup(dummy+1);
-        wasora.argv_orig[i]   = realloc(wasora.argv_orig[i],   strlen(wasora.argv_orig[i+1])+3);
-        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(dummy)+2);
-        snprintf(wasora.argv_orig[i], strlen(wasora.argv_orig[i+1])+2, "-%s", tmp1);
-        snprintf(wasora.argv_orig[i+1], strlen(dummy)+1, "%s", tmp2);
+        wasora.argv_orig[i]   = realloc(wasora.argv_orig[i],   strlen(wasora.argv_orig[i+1])+6);
+        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(dummy)+6);
+        snprintf(wasora.argv_orig[i], strlen(wasora.argv_orig[i+1])+4, "-%s", tmp1);
+        snprintf(wasora.argv_orig[i+1], strlen(dummy)+4, "%s", tmp2);
         free(tmp1);
         free(tmp2);
         
       } else {
         char *tmp1;
         tmp1 = strdup(wasora.argv_orig[i+1]);
-        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(tmp1)+2);
+        wasora.argv_orig[i+1] = realloc(wasora.argv_orig[i+1], strlen(tmp1)+6);
         wasora.argv_orig[i][0] = '\0';
-        snprintf(wasora.argv_orig[i+1], strlen(tmp1)+1, "-%s", tmp1);
+        snprintf(wasora.argv_orig[i+1], strlen(tmp1)+4, "-%s", tmp1);
         free(tmp1);
       }
       i++;
