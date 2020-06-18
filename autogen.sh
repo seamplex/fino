@@ -55,7 +55,8 @@ echo -n "autogen: building makefile.am... "
 rm -f petscslepc.mak
 touch petscslepc.mak
 
-if [ ! -z "`which texinfo`" ]; then
+# check if texinfo is installed
+if [ ! -z "`which texi2any`" ]; then
   docsubdir="doc"
   finoinfo="doc/fino.info"
 fi
