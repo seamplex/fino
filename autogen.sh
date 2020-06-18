@@ -54,6 +54,40 @@ echo "ok"
 echo -n "autogen: building makefile.am... "
 rm -f petscslepc.mak
 touch petscslepc.mak
+
+if [ ! -z "`which texinfo`" ]; then
+  docsubdir="doc"
+fi
+
+am="Makefile.am"
+cat << EOF > ${am}
+SUBDIRS = src ${docsubdir}
+DIST_SUBDIRS = src wasora doc
+
+ACLOCAL_AMFLAGS = -I wasora/m4
+dist_doc_DATA = AUTHORS ChangeLog README TODO \\
+                doc/fino.texi doc/fino.info doc/fino.svg doc/fino.xml doc/reference.txt
+
+dist_man_MANS = doc/fino.1
+
+EXTRA_DIST = examples locateruntest.sh \\
+             src/version.sh
+
+TESTS = examples/test-tensile.sh \\
+        examples/test-piston.sh \\
+        examples/test-wire.sh \\
+        examples/test-heated-cylinder.sh \\
+        examples/test-cantilever.sh
+        
+all-local:
+	if [ -e src/fino ]; then cp src/fino .; fi
+	if [ -e fino ]; then cd examples; ln -sf ../fino; cd;  fi
+
+clean-local:
+	rm -f fino src/fino
+EOF
+
+
 am="src/Makefile.am"
 echo -n "building ${am}... "
 
