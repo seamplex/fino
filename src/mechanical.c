@@ -638,7 +638,7 @@ int fino_break_compute_stresses(void) {
   // paso 0 (solo si es gauss extrapolate): calculamos las derivadas en los puntos de gauss
   if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
     for (i = 0; i < mesh->n_elements; i++) {
-      if (fino.progress_ascii && (progress++ % step) == 0) {
+      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
         printf(CHAR_PROGRESS_GRADIENT);  
         fflush(stdout);
         ascii_progress_chars++;
@@ -673,7 +673,7 @@ int fino_break_compute_stresses(void) {
   
   // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
   for (i = 0; i < mesh->n_elements; i++) {
-    if (fino.progress_ascii && (progress++ % step) == 0) {
+    if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
       printf(CHAR_PROGRESS_GRADIENT);  
       fflush(stdout);
       ascii_progress_chars++;
@@ -985,7 +985,7 @@ int fino_break_compute_stresses(void) {
 
   // paso 2. barremos nodos de la malla de salida (la misma en smooth, rough en rough)
   for (j_global = 0; j_global < mesh->n_nodes; j_global++) {
-    if (fino.progress_ascii && (progress++ % step) == 0) {
+    if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
       printf(CHAR_PROGRESS_GRADIENT);  
       fflush(stdout);
       ascii_progress_chars++;
@@ -1262,7 +1262,7 @@ int fino_break_compute_stresses(void) {
     }
   }
 
-  if (fino.progress_ascii) {
+  if (fino.progress_ascii == PETSC_TRUE) {
     if (wasora.nprocs == 1) {
       while (ascii_progress_chars++ < 100) {
         printf(CHAR_PROGRESS_GRADIENT);

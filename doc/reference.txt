@@ -188,7 +188,7 @@ FINO_SOLVER
 
   Sets options related to the solver and the computation of gradients.
 
-    FINO_SOLVER [ PROGRESS_ASCII ]
+    FINO_SOLVER [ PROGRESS ]
      [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
      [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
      [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
@@ -198,8 +198,8 @@ FINO_SOLVER
      [ SMOOTH { always | never | material } ]
      [ ELEMENT_WEIGHT { volume_times_quality | volume | quality | flat } ]
 
-If the keyword PROGRESS_ASCII is given, three ASCII lines will show in
-the terminal the progress of the ensamble of the stiffness matrix (or
+If the keyword PROGRESS is given, three ASCII lines will show in the
+terminal the progress of the ensamble of the stiffness matrix (or
 matrices), the solution of the system of equations and the computation
 of gradients (stresses). The preconditioner, linear and non-linear
 solver might be any of those available in PETSc:

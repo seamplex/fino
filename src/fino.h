@@ -316,7 +316,7 @@ struct {
   
   int do_not_set_block_size;
   
-  int progress_ascii;
+  PetscBool progress_ascii;
   double progress_r0;
   double progress_last;
 

@@ -36,9 +36,10 @@ char finoshortversion[128];
 char finolongversion[2048];
 const char finousage[] = "\
   --mumps           use the MUMPS direct solver (if available)\n\
+  --progress        show build, solve and stress ASCII progress bars\n\
   --petsc <option[=argument]>\n\
                     pass \"-option argument\" directly to PETSc/SLEPc, e.g.\n\
-    $ fino tensile-test.fin --petsc ksp_view\n\
+    $ fino tensile-test.fin --petsc ksp_view --petsc pc_type=cholesky\n\
 \n\
 The option --petsc is provided to avoid clashes with PETSc' non-POSIX arguments.\
 Note that options are passed directly to PETSc/SLEPc if they do not clash with Fino/wasora.\

@@ -117,7 +117,10 @@ int plugin_init_before_parser(void) {
 
   // see if the user asked for mumps in the command line
   petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &fino.commandline_mumps));
-  
+
+    // see if the user asked for preogress in the command line
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--progress", &fino.progress_ascii));
+
   // initialize wasora's mesh framework
   if (!wasora_mesh.initialized) {
     wasora_call(wasora_mesh_init_before_parser());

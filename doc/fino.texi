@@ -123,6 +123,10 @@ Display version information and exit
 
 use the MUMPS direct solver (if available)
 
+@item @code{--progress}
+
+print ASCII progress bars for build, step and stress steps
+
 @item @code{--petsc <option[=argument]>}
 
 Pass @code{-option argument} directly to PETSc/SLEPc, e.g.
@@ -1206,7 +1210,7 @@ Sets options related to the solver and the computation of gradients.
 
 @smallformat
 @verbatim
-FINO_SOLVER [ PROGRESS_ASCII ]
+FINO_SOLVER [ PROGRESS ]
  [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
  [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
  [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
@@ -1218,11 +1222,11 @@ FINO_SOLVER [ PROGRESS_ASCII ]
 @end verbatim
 @end smallformat
 
-If the keyword @code{PROGRESS_ASCII} is given, three ASCII lines will
-show in the terminal the progress of the ensamble of the stiffness
-matrix (or matrices), the solution of the system of equations and the
-computation of gradients (stresses). The preconditioner, linear and
-non-linear solver might be any of those available in PETSc:
+If the keyword @code{PROGRESS} is given, three ASCII lines will show in
+the terminal the progress of the ensamble of the stiffness matrix (or
+matrices), the solution of the system of equations and the computation
+of gradients (stresses). The preconditioner, linear and non-linear
+solver might be any of those available in PETSc:
 
 @itemize
 @item

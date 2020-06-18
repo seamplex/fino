@@ -129,7 +129,7 @@ PetscErrorCode fino_snes_monitor(SNES snes, PetscInt n, PetscReal rnorm, void *d
 
 //  printf("%d %e %e\n", n, rnorm/fino.progress_r0, current_progress);
   
-  if (fino.progress_ascii) {
+  if (fino.progress_ascii == PETSC_TRUE) {
     for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
       printf(CHAR_PROGRESS_SOLVE);
       fflush(stdout);

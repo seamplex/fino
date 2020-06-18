@@ -112,6 +112,9 @@ Display version information and exit
 \f[B]\f[CB]--mumps\f[B]\f[R]
 use the MUMPS direct solver (if available)
 .TP
+\f[B]\f[CB]--progress\f[B]\f[R]
+print ASCII progress bars for build, step and stress steps
+.TP
 \f[B]\f[CB]--petsc <option[=argument]>\f[B]\f[R]
 Pass \f[C]-option argument\f[R] directly to PETSc/SLEPc, e.g.
 .RS
@@ -284,7 +287,7 @@ Sets options related to the solver and the computation of gradients.
 .IP
 .nf
 \f[C]
-FINO_SOLVER [ PROGRESS_ASCII ]
+FINO_SOLVER [ PROGRESS ]
  [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
  [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
  [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
@@ -296,10 +299,10 @@ FINO_SOLVER [ PROGRESS_ASCII ]
 \f[R]
 .fi
 .PP
-If the keyword \f[C]PROGRESS_ASCII\f[R] is given, three ASCII lines will
-show in the terminal the progress of the ensamble of the stiffness
-matrix (or matrices), the solution of the system of equations and the
-computation of gradients (stresses).
+If the keyword \f[C]PROGRESS\f[R] is given, three ASCII lines will show
+in the terminal the progress of the ensamble of the stiffness matrix (or
+matrices), the solution of the system of equations and the computation
+of gradients (stresses).
 The preconditioner, linear and non-linear solver might be any of those
 available in PETSc:
 .IP \[bu] 2

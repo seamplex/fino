@@ -48,7 +48,7 @@ int fino_solve_petsc_linear(void) {
   wasora_call(fino_set_ksp());
 
   // el monitor
-  if (fino.progress_ascii) {  
+  if (fino.progress_ascii == PETSC_TRUE) {  
     petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
   }
   
@@ -62,7 +62,7 @@ int fino_solve_petsc_linear(void) {
     return WASORA_RUNTIME_ERROR;
   }
 
-  if (fino.progress_ascii) {
+  if (fino.progress_ascii == PETSC_TRUE) {
     if (wasora.nprocs == 1) {
       for (i = (int)(100*fino.progress_last); i < 100; i++) {
         printf(CHAR_PROGRESS_SOLVE);
@@ -110,7 +110,7 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 
 //    printf("%d %e %.0f\n", n, rnorm/r0, 100*current_progress);
     
-    if (fino.progress_ascii) {
+    if (fino.progress_ascii == PETSC_TRUE) {
       for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
         printf(CHAR_PROGRESS_SOLVE);
         fflush(stdout);

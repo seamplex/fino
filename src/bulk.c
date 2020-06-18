@@ -93,7 +93,7 @@ int fino_build_bulk(void) {
   for (i = fino.first_element; i < fino.last_element; i++) {
 
 // ------ progress bar ------------------------------------------    
-    if (fino.progress_ascii && (i % step) == 0) {
+    if ((fino.progress_ascii == PETSC_TRUE) && (i % step) == 0) {
       printf(CHAR_PROGRESS_BUILD);  
       fflush(stdout);
       ascii_progress_chars++;
@@ -140,7 +140,7 @@ int fino_build_bulk(void) {
     petsc_call(VecCopy(fino.b, fino.b_nobc));
   }  
 
-  if (fino.progress_ascii) {
+  if (fino.progress_ascii == PETSC_TRUE) {
     if (wasora.nprocs == 1) {
       while (ascii_progress_chars++ < 100) {
         printf(CHAR_PROGRESS_BUILD);

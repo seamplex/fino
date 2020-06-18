@@ -31,6 +31,11 @@
 
 :   use the MUMPS direct solver (if available)
 
+
+`--progress`
+
+:   print ASCII progress bars for build, step and stress steps
+
 `--petsc <option[=argument]>`
 
 :   Pass `-option argument` directly to PETSc/SLEPc, e.g.

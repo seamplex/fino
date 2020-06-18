@@ -232,12 +232,12 @@ int plugin_parse_line(char *line) {
             return WASORA_PARSER_ERROR;
           }
 
-///kw+FINO_SOLVER+usage [ PROGRESS_ASCII ]@
-///kw+FINO_SOLVER+detail If the keyword `PROGRESS_ASCII` is given, three ASCII lines will show in the terminal the
+///kw+FINO_SOLVER+usage [ PROGRESS ]@
+///kw+FINO_SOLVER+detail If the keyword `PROGRESS` is given, three ASCII lines will show in the terminal the
 ///kw+FINO_SOLVER+detail progress of the ensamble of the stiffness matrix (or matrices), the solution of the system of equations
 ///kw+FINO_SOLVER+detail and the computation of gradients (stresses).
-        } else if (strcasecmp(token, "PROGRESS_ASCII") == 0) {
-          fino.progress_ascii = 1;
+        } else if (strcasecmp(token, "PROGRESS") == 0 || strcasecmp(token, "PROGRESS_ASCII") == 0) {
+          fino.progress_ascii = PETSC_TRUE;
 
 ///kw+FINO_SOLVER+usage [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]@
 ///kw+FINO_SOLVER+detail The preconditioner, linear and non-linear solver might be any of those available in PETSc:
