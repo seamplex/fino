@@ -1,7 +1,7 @@
 rm -f version.h
 
 if test -e ../.git -a ! -z "`which git`"; then
- version=`git describe --tags | sed 's/-/./'`
+ version=`git describe --tags --dirty | sed 's/-/./'`
 #  echo "[[define]](wasoraversion, ${version})[[dnl]]" > version.m4
 
  branch=$(git symbolic-ref HEAD | sed -e 's,.*/\(.*\),\1,')
@@ -10,7 +10,8 @@ if test -e ../.git -a ! -z "`which git`"; then
 #define PLUGIN_VCS_BRANCH    "${branch}"
 #define PLUGIN_VCS_VERSION   "${version}"
 #define PLUGIN_VCS_DATE      "${date}"
-#define PLUGIN_VCS_CLEAN     `git status --porcelain | wc -l`
+#define PLUGIN_VCS_CLEAN     0
+//#define PLUGIN_VCS_CLEAN     `git status --porcelain | wc -l`
 EOF
 fi
 
