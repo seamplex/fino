@@ -96,6 +96,12 @@ PetscErrorCode petsc_err;
 #define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
 
 
+#define time_checkpoint(which) \
+  petsc_call(PetscTime(&fino.wall.which)); \
+  petsc_call(PetscGetCPUTime(&fino.petsc.which)); \
+  fino.cpu.which = fino_get_cpu_time();
+
+
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;
 typedef struct fino_step_t fino_step_t;
@@ -119,6 +125,19 @@ typedef struct {
 } dirichlet_row_t;
 
 
+// para medir tiempos (wall y cpu)
+struct fino_times_t {
+  PetscLogDouble init_begin;
+  PetscLogDouble init_end;
+  PetscLogDouble build_begin;
+  PetscLogDouble build_end;
+  PetscLogDouble stress_begin;
+  PetscLogDouble stress_end;
+  PetscLogDouble solve_begin;
+  PetscLogDouble solve_end;
+};
+
+
 // estructura admnistrativa
 struct {
 
@@ -128,7 +147,13 @@ struct {
     math_type_nonlinear,
     math_type_eigen,
   } math_type;
-  
+
+  enum {
+    transient_type_undefined,
+    transient_type_transient,
+    transient_type_quasistatic
+  } transient_type;
+
   enum {
     problem_family_undefined,
     problem_family_mechanical,
@@ -181,6 +206,9 @@ struct {
   PetscLogDouble petsc_flops_solve;
   PetscLogDouble petsc_flops_stress;
 
+  fino_times_t wall;
+  fino_times_t cpu;
+  fino_times_t petsc;
   
   // variables internas
   struct {
@@ -314,7 +342,7 @@ struct {
     set_near_nullspace_none
   } set_near_nullspace;
   
-  int do_not_set_block_size;
+//  int do_not_set_block_size;
   
   PetscBool progress_ascii;
   double progress_r0;
@@ -341,13 +369,9 @@ struct {
   gsl_vector *bi;               // el vector del miembro derecho elemental
   gsl_vector *Nb;               // para las BCs de neumann
 
-  // holder para poner las BCs dirichlet (y calcular las reacciones de vinculo)
+  // reusable number of dirichlet rows to know how much memory to allocaet
   int n_dirichlet_rows;
-  PetscScalar     *dirichlet_rhs;
-  PetscInt        *dirichlet_indexes;
-  dirichlet_row_t *dirichlet_row;
-  
- 
+    
   // user-provided functions para los objetos elementales, las linkeamos
   // a las que dio el usuario en el input en init
   function_t ***Ai_function;
@@ -428,9 +452,11 @@ struct fino_distribution_t {
   function_t *function;
 };
 
+
 struct fino_step_t {
-  int do_not_solve;
+  int dummy_for_a_future_flag;
 };
+
 
 struct fino_reaction_t {
   physical_entity_t *physical_entity;
@@ -484,18 +510,6 @@ struct fino_debug_t {
   fino_debug_t *next;
 };
 
-// para medir tiempos (wall y cpu)
-struct fino_times_t {
-  PetscLogDouble init_begin;
-  PetscLogDouble init_end;
-  PetscLogDouble build_begin;
-  PetscLogDouble build_end;
-  PetscLogDouble stress_begin;
-  PetscLogDouble stress_end;
-  PetscLogDouble solve_begin;
-  PetscLogDouble solve_end;
-};
-
 struct fino_roughish_avg_t {
   int smooth_element;
   int local_node;
@@ -513,7 +527,7 @@ extern int fino_bc_string2parsed(void);
 void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_bc_process_mechanical(bc_t *, char *, char *);
 extern int fino_bc_process_thermal(bc_t *, char *, char *, char *);
-extern int fino_set_essential_bc(void);
+extern int fino_set_essential_bcs(Mat, Mat, Mat, Vec, Vec, Vec);
 extern double fino_gsl_function_of_uvw(double, void *);
 
 // bulk.c
@@ -574,7 +588,7 @@ extern int fino_set_ksp(void);
 extern int fino_set_pc(void);
 
 // petsc_snes.c
-extern int fino_solve_nonlinear_petsc();
+extern int fino_solve_petsc_nonlinear();
 extern PetscErrorCode fino_snes_monitor(SNES, PetscInt, PetscReal, void *);
 // slepc_eigen.c
 extern int fino_solve_eigen_slepc();
@@ -608,9 +622,8 @@ extern double fino_compute_tresca_from_principal(double, double, double);
 extern double fino_compute_tresca_from_stress_tensor(double, double, double, double, double, double);
 extern int fino_compute_strain_energy(void);
 
-// bake.c
-extern int fino_thermal_step_initial();
-extern int fino_thermal_step_transient();
+// thermal.c
+extern int fino_thermal_step();
 extern int fino_thermal_build_element(element_t *, int);
 extern int fino_thermal_set_heat_flux(element_t *, bc_t *);
 extern int fino_thermal_set_convection(element_t *, bc_t *);

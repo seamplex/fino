@@ -449,69 +449,74 @@ int fino_problem_init(void) {
   }
 
 
-  // ponemos esto para hacer explicito que somos FEM y no FVM
+  // set this explicitly, we are FEM not FVM
   fino.spatial_unknowns = fino.mesh->n_nodes;
   fino.mesh->data_type = data_type_node;
   fino.global_size = fino.spatial_unknowns * fino.degrees;
   
 
 //---------------------------------
-// alocamos objetos globales
+// aloccate global objects
 //---------------------------------
 
   width = GSL_MAX(fino.mesh->max_nodes_per_element, fino.mesh->max_first_neighbor_nodes) * fino.degrees;
 
-  // preguntamos cuantos nodos nos tocan
+  // ask how many local nodes we own
   fino.nodes_local = PETSC_DECIDE;
   petsc_call(PetscSplitOwnership(PETSC_COMM_WORLD, &fino.nodes_local, &fino.mesh->n_nodes));
   fino.size_local = fino.degrees * fino.nodes_local;
   
-  // la matriz de stiffnes global
+  // the global stiffnes matrix
   petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.K));
+  petsc_call(PetscObjectSetName((PetscObject)fino.K, "K"));
   petsc_call(MatSetSizes(fino.K, fino.size_local, fino.size_local, fino.global_size, fino.global_size));
   petsc_call(MatSetFromOptions(fino.K));
   petsc_call(MatMPIAIJSetPreallocation(fino.K, width, PETSC_NULL, width, PETSC_NULL));
   petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
   petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE));
-  if (fino.do_not_set_block_size == 0) {
+  if (fino.degrees > 1) {
     petsc_call(MatSetBlockSize(fino.K, fino.degrees));
   }
-  petsc_call(PetscObjectSetName((PetscObject)fino.K, "K"));
 
-  // el vector incognita
-  petsc_call(MatCreateVecs(fino.K, NULL, &fino.phi));
+  // the solution (unknown) vector
+  petsc_call(MatCreateVecs(fino.K, &fino.phi, NULL));
   petsc_call(PetscObjectSetName((PetscObject)fino.phi, "phi"));
+  petsc_call(VecSetFromOptions(fino.phi));
+  // explicit initial value
+  petsc_call(VecSet(fino.phi, 0));
+
   
   if (fino.math_type != math_type_eigen) {
-    // el vector del miembro derecho
+    // the right-hand-side vector
     fino.has_rhs = 1;
     petsc_call(MatCreateVecs(fino.K, NULL, &fino.b));
     petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
+    petsc_call(VecSetFromOptions(fino.b));
   }
   
   if (fino.problem_family == problem_family_modal ||
       (fino.problem_family == problem_family_thermal && wasora_var_value(wasora_special_var(end_time)) != 0)) {
-    // la matriz de masa para autovalores del problema elastico o para transitorio de calor
+    // the mass matrix for modal or heat transient
     fino.has_mass = 1;
     petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
+    petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
     petsc_call(MatSetSizes(fino.M, fino.size_local, fino.size_local, fino.global_size, fino.global_size));
     petsc_call(MatSetFromOptions(fino.M));
     petsc_call(MatMPIAIJSetPreallocation(fino.M, width, PETSC_NULL, width, PETSC_NULL));
     petsc_call(MatSeqAIJSetPreallocation(fino.M, width, PETSC_NULL));
-    if (fino.do_not_set_block_size == 0) {
+    petsc_call(MatSetOption(fino.M, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE));
+    if (fino.degrees > 1) {
       petsc_call(MatSetBlockSize(fino.M, fino.degrees));
     }
-    
-    petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
   }
   
   
-  // ahora pedimos el local ownership range
+  // ask for the local ownership range
   petsc_call(MatGetOwnershipRange(fino.K, &fino.first_row, &fino.last_row));
   fino.first_node = fino.first_row / fino.degrees;
   fino.last_node = fino.last_row / fino.degrees;
   
-  // para paralelizar el assembly dividimos los elementos a lo cabeza porque no es tan importante
+  // TODO: partition mesh
   // https://lists.mcs.anl.gov/pipermail/petsc-users/2014-April/021433.html
   fino.first_element = (fino.mesh->n_elements / wasora.nprocs) * wasora.rank;
   if (fino.mesh->n_elements % wasora.nprocs > wasora.rank) {
@@ -526,7 +531,7 @@ int fino_problem_init(void) {
     wasora_mesh_struct_init_rectangular_for_nodes(fino.mesh);
   }
 
-  // rellenamos holders las funciones continuas que van a tener la solucion
+  // fill in the holders of the continuous functions that will hold the solution
   
   if (fino.rough == 0) {
     for (g = 0; g < fino.degrees; g++) {
@@ -550,7 +555,7 @@ int fino_problem_init(void) {
     mesh_post_t *post; 
     
     fino_init_rough_mesh();
-    // capaz se podria usar el macro fill_ 
+    // maybe the macros fill_* can be used
     for (g = 0; g < fino.degrees; g++) {
       fino.solution[g]->mesh = fino.mesh_rough;
       fino.solution[g]->data_size = fino.mesh_rough->n_nodes;
@@ -659,7 +664,7 @@ int fino_init_rough_mesh(void) {
 #undef  __FUNCT__
 #define __FUNCT__ "fino_problem_free"
 int fino_problem_free(void) {
-  int i, g, d;
+  int g, d;
 
   if (fino.mesh != NULL && fino.mesh->n_elements != 0) {
     for (g = 0; g < fino.degrees; g++) {
@@ -727,14 +732,6 @@ int fino_problem_free(void) {
     fino.unknown_name = NULL;
   }
   
-  for (i = 0; i < fino.n_dirichlet_rows; i++) {
-    if (fino.dirichlet_row != NULL && fino.dirichlet_row[i].ncols != 0) {
-      free(fino.dirichlet_row[i].cols);
-      free(fino.dirichlet_row[i].vals);
-    }
-  }
-
-
   
   wasora_call(fino_free_elemental_objects());
   
@@ -748,12 +745,7 @@ int fino_problem_free(void) {
     
   }
   
-  if (fino.n_dirichlet_rows != 0) {
-    free(fino.dirichlet_row);
-    free(fino.dirichlet_rhs);
-    free(fino.dirichlet_indexes);
-    fino.n_dirichlet_rows = 0;
-  }  
+  fino.n_dirichlet_rows = 0;
      
   if (fino.phi != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.phi));

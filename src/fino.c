@@ -1,5 +1,5 @@
 /*------------ -------------- -------- --- ----- ---   --       -            -
- *  fino plugin for wasora
+ *  fino is a free finite-element thermo-mechanical solver
  *
  *  Copyright (C) 2015--2020 Seamplex
  *
@@ -33,19 +33,11 @@
 #include "wasora.h"
 #include "fino.h"
 
-#define time_checkpoint(which) \
-  petsc_call(PetscTime(&wall.which)); \
-  petsc_call(PetscGetCPUTime(&petsc.which)); \
-  cpu.which = fino_get_cpu_time();
 
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_step"
+#undef  __func__
+#define __func__ "fino_instruction_step"
 int fino_instruction_step(void *arg) {
-  fino_step_t *fino_step = (fino_step_t *)arg;
-  fino_times_t wall;
-  fino_times_t cpu;
-  fino_times_t petsc;
+//  fino_step_t *fino_step = (fino_step_t *)arg;
   
   PetscFunctionBegin;
   
@@ -58,26 +50,12 @@ int fino_instruction_step(void *arg) {
   }
   
 
-  // ------------------------------------
-  // build
-  // ------------------------------------
-  // this logic ought to change to have a generalized way of building the stiffness matrix
-  // independently of the problem type
+  // TODO: function pointers
+  if (fino.problem_family == problem_family_thermal) {
+    wasora_call(fino_thermal_step());
+  }  
+/*  
   if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
-    time_checkpoint(build_begin);
-    wasora_call(fino_build_bulk());
-    wasora_call(fino_set_essential_bc());
-    time_checkpoint(build_end);
-  }
-
-  // ------------------------------------
-  // solve
-  // ------------------------------------
-  // the do_not_solve flag can be used to debug stuff when the problem does not converge
-  if (fino_step->do_not_solve == 0) {
-    
-    time_checkpoint(solve_begin);
-    if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
       
       // if the problem is not transient heat we solve the (quasi) steady state here
       if (fino.math_type == math_type_linear) {
@@ -87,7 +65,7 @@ int fino_instruction_step(void *arg) {
         
       } else if (fino.math_type == math_type_nonlinear) {
         
-        wasora_call(fino_solve_nonlinear_petsc());
+        wasora_call(fino_solve_petsc_nonlinear());
         
       } else if (fino.math_type == math_type_eigen) {
         
@@ -134,27 +112,26 @@ int fino_instruction_step(void *arg) {
     time_checkpoint(stress_end);
     
   }
+*/  
+  wasora_var(fino.vars.time_petsc_build) += fino.petsc.build_end - fino.petsc.build_begin;
+  wasora_var(fino.vars.time_wall_build)  += fino.wall.build_end  - fino.wall.build_begin;
+  wasora_var(fino.vars.time_cpu_build)   += fino.cpu.build_end   - fino.cpu.build_begin;
   
-  wasora_var(fino.vars.time_petsc_build) = petsc.build_end - petsc.build_begin;
-  wasora_var(fino.vars.time_wall_build)  = wall.build_end  - wall.build_begin;
-  wasora_var(fino.vars.time_cpu_build)   = cpu.build_end   - cpu.build_begin;
-  
-  if (fino_step->do_not_solve == 0) {
-    wasora_var(fino.vars.time_petsc_solve) = petsc.solve_end - petsc.solve_begin;
-    wasora_var(fino.vars.time_wall_solve)  = wall.solve_end  - wall.solve_begin;
-    wasora_var(fino.vars.time_cpu_solve)   = cpu.solve_end   - cpu.solve_begin;
+  wasora_var(fino.vars.time_petsc_solve) += fino.petsc.solve_end - fino.petsc.solve_begin;
+  wasora_var(fino.vars.time_wall_solve)  += fino.wall.solve_end  - fino.wall.solve_begin;
+  wasora_var(fino.vars.time_cpu_solve)   += fino.cpu.solve_end   - fino.cpu.solve_begin;
 
-    wasora_var(fino.vars.time_petsc_stress) = petsc.stress_end - petsc.stress_begin;
-    wasora_var(fino.vars.time_wall_stress)  = wall.stress_end  - wall.stress_begin;
-    wasora_var(fino.vars.time_cpu_stress)   = cpu.stress_end   - cpu.stress_begin;
-  }
+  wasora_var(fino.vars.time_petsc_stress) += fino.petsc.stress_end - fino.petsc.stress_begin;
+  wasora_var(fino.vars.time_wall_stress)  += fino.wall.stress_end  - fino.wall.stress_begin;
+  wasora_var(fino.vars.time_cpu_stress)   += fino.cpu.stress_end   - fino.cpu.stress_begin;
   
-  wasora_var(fino.vars.time_petsc_total) = wasora_var(fino.vars.time_petsc_build) + wasora_var(fino.vars.time_petsc_solve) + wasora_var(fino.vars.time_petsc_stress);
-  wasora_var(fino.vars.time_wall_total)  = wasora_var(fino.vars.time_wall_build)  + wasora_var(fino.vars.time_wall_solve)  + wasora_var(fino.vars.time_wall_stress);
-  wasora_var(fino.vars.time_cpu_total)   = wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve)   + wasora_var(fino.vars.time_cpu_stress);
+  wasora_var(fino.vars.time_petsc_total) += wasora_var(fino.vars.time_petsc_build) + wasora_var(fino.vars.time_petsc_solve) + wasora_var(fino.vars.time_petsc_stress);
+  wasora_var(fino.vars.time_wall_total)  += wasora_var(fino.vars.time_wall_build)  + wasora_var(fino.vars.time_wall_solve)  + wasora_var(fino.vars.time_wall_stress);
+  wasora_var(fino.vars.time_cpu_total)   += wasora_var(fino.vars.time_cpu_build)   + wasora_var(fino.vars.time_cpu_solve)   + wasora_var(fino.vars.time_cpu_stress);
 
   getrusage(RUSAGE_SELF, &fino.resource_usage);
   wasora_value(fino.vars.memory) = (double)(1024.0*fino.resource_usage.ru_maxrss);
+
   
   PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
@@ -164,15 +141,41 @@ int fino_instruction_step(void *arg) {
 
 
 int fino_assembly(void) {
+  // which is better?
+/*  
   petsc_call(MatAssemblyBegin(fino.K, MAT_FINAL_ASSEMBLY));
   petsc_call(MatAssemblyEnd(fino.K, MAT_FINAL_ASSEMBLY));
-  if (fino.has_mass) {
+
+  petsc_call(VecAssemblyBegin(fino.phi));
+  petsc_call(VecAssemblyEnd(fino.phi));
+  
+  if (fino.M != NULL) {
     petsc_call(MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY));
     petsc_call(MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY));
   }
-  if (fino.has_rhs) {
+  if (fino.J != NULL) {
     petsc_call(VecAssemblyBegin(fino.b));
     petsc_call(VecAssemblyEnd(fino.b));
+  }
+*/
+  
+  petsc_call(VecAssemblyBegin(fino.phi));
+  if (fino.b != NULL) {
+    petsc_call(VecAssemblyBegin(fino.b));
+  }  
+  petsc_call(MatAssemblyBegin(fino.K, MAT_FINAL_ASSEMBLY));
+  if (fino.M != NULL) {
+    petsc_call(MatAssemblyBegin(fino.M, MAT_FINAL_ASSEMBLY));
+  }  
+
+
+  petsc_call(VecAssemblyEnd(fino.phi));
+  if (fino.b != NULL) {
+    petsc_call(VecAssemblyEnd(fino.b));
+  }  
+  petsc_call(MatAssemblyEnd(fino.K, MAT_FINAL_ASSEMBLY));
+  if (fino.M != NULL) {
+    petsc_call(MatAssemblyEnd(fino.M, MAT_FINAL_ASSEMBLY));
   }
   
   return WASORA_RUNTIME_OK;

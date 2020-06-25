@@ -203,12 +203,12 @@ int fino_build_element_volumetric(element_t *element) {
     // the indices of the DOFs to ensamble
     mesh_compute_l(fino.mesh, element);
 
-    MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
+    petsc_call(MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES));
     if (fino.math_type != math_type_eigen) {
-      VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+      petsc_call(VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES));
     }
     if (fino.has_mass)  {
-      MatSetValues(fino.M, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES);
+      petsc_call(MatSetValues(fino.M, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES));
     }
   }
 

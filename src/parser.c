@@ -104,6 +104,15 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_PROBLEM+usage | NON_LINEAR ]@
         } else if (strcasecmp(token, "NON_LINEAR") == 0) {
           fino.math_type = math_type_nonlinear;
+
+///kw+FINO_PROBLEM+usage [ QUASISTATIC
+        } else if (strcasecmp(token, "QUASISTATIC") == 0) {
+          fino.transient_type = transient_type_quasistatic;
+
+///kw+FINO_PROBLEM+usage | TRANSIENT ]@
+        } else if (strcasecmp(token, "TRANSIENT") == 0) {
+          fino.transient_type = transient_type_transient;
+          
 ///kw+FINO_PROBLEM+detail By default Fino tries to detect wheter the computation should be linear or non-linear.
 ///kw+FINO_PROBLEM+detail An explicit mode can be set with either `LINEAR` on `NON_LINEAR`.
           
@@ -473,9 +482,10 @@ int plugin_parse_line(char *line) {
         return WASORA_PARSER_ERROR;
       }
 
-      
+
+/*      
       while ((token = wasora_get_next_token(NULL)) != NULL) {
-///kw+FINO_STEP+usage [ JUST_BUILD ]
+//kw+FINO_STEP+usage [ JUST_BUILD ]
         if (strcasecmp(token, "JUST_BUILD") == 0) {
           fino_step->do_not_solve = 1;
         } else {
@@ -484,6 +494,7 @@ int plugin_parse_line(char *line) {
         }
 
       }
+ */
       
       if (fino.rough) {
         fino.mesh_rough = calloc(1, sizeof(mesh_t));

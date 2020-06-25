@@ -24,19 +24,34 @@
 #include <petscsys.h>
 #include <petscksp.h>
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_solve_petsc_linear"
+#undef  __func__
+#define __func__ "fino_solve_petsc_linear"
 int fino_solve_petsc_linear(void) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
   int i;
+  
+  PetscFunctionBegin;
 
-  // creamos un solver lineal
+  time_checkpoint(build_begin);
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_set_essential_bcs(fino.K, NULL, NULL, fino.b, fino.phi, NULL));
+  time_checkpoint(build_end);
+
+  time_checkpoint(solve_begin);
+  // create a KSP object if needed
   if (fino.ksp == NULL) {
     petsc_call(KSPCreate(PETSC_COMM_WORLD, &fino.ksp));
+    
+    // set the monitor for the ascii progress
+    if (fino.progress_ascii == PETSC_TRUE) {  
+      petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
+    }
   }
   
   petsc_call(KSPSetOperators(fino.ksp, fino.K, fino.K));
@@ -44,22 +59,20 @@ int fino_solve_petsc_linear(void) {
                                         wasora_var(fino.vars.abstol),
                                         wasora_var(fino.vars.divtol),
                                         (PetscInt)wasora_var(fino.vars.max_iterations)));
+  
+  // TODO: this call sets up the nearnullspace, shouldn't that be in another place?
   wasora_call(fino_set_pc());
   wasora_call(fino_set_ksp());
 
-  // el monitor
-  if (fino.progress_ascii == PETSC_TRUE) {  
-    petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
-  }
   
   // do the work!
   petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
   
-  // chequeamos que haya convergido
+  // check for convergence
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
   if (reason < 0) {
     wasora_push_error_message("PETSc's linear solver did not converge with reason '%s' (%d)", KSPConvergedReasons[reason], reason);
-    return WASORA_RUNTIME_ERROR;
+    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
   }
 
   if (fino.progress_ascii == PETSC_TRUE) {
@@ -79,19 +92,22 @@ int fino_solve_petsc_linear(void) {
   wasora_value(fino.vars.iterations) = (double)iterations;
   
   petsc_call(KSPGetResidualNorm(fino.ksp, wasora_value_ptr(fino.vars.residual_norm)));
+  time_checkpoint(solve_end);
 
 
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_ksp_monitor"
+#undef  __func__
+#define __func__ "fino_ksp_monitor"
 PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
 //  wasora_value(fino.vars.iterations) = (double)n;
 //  wasora_var_value(fino.vars.residual_norm) = rnorm;
   int i;
   double current_progress;
+  
+  PetscFunctionBegin;
   
   if (wasora.rank == 0) {
   
@@ -119,37 +135,42 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
     }
   }  
 
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_ksp_set"
+#undef  __func__
+#define __func__ "fino_ksp_set"
 int fino_set_ksp(void) {
 
-  // el KSP
+  
+  PetscFunctionBegin;
+  
+  // the KSP type
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
-      (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
+      (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
       fino.commandline_mumps == PETSC_TRUE) {
-    // mumps es un caso particular, hay que poner pre-only aca y en el pc otras cosas
+    // mumps is a particular case, see fino_set_pc
     KSPSetType(fino.ksp, KSPPREONLY);
   } else if (fino.ksp_type != NULL) {
     petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-  }
-  // si no nos dieron nada, dejamos el default gmres, que no esta mal
+  } else {
+    // by default we use GMRES
+    petsc_call(KSPSetType(fino.ksp, KSPGMRES));
+  }  
 
-  // sobreescribimos con la linea de comandos
+  // read command-line options
   petsc_call(KSPSetFromOptions(fino.ksp));
 
   // set up  
   petsc_call(KSPSetUp(fino.ksp));
   
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_set_pc"
+#undef  __func__
+#define __func__ "fino_set_pc"
 int fino_set_pc(void) {
 
   PetscInt i, j, d;
@@ -161,11 +182,13 @@ int fino_set_pc(void) {
   Vec          *nullvec;  
   PetscReal    *coords;
   Vec          vec_coords;
-//  PetscViewer viewer;
+
+  PetscFunctionBegin;
   
   petsc_call(KSPGetPC(fino.ksp, &fino.pc));
   
-  // si nos pidieron mumps, hay que usar LU o cholesky y poner MatSolverType
+  // if we were asked for mumps, then either LU o cholesky needs to be used
+  // and MatSolverType to mumps
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
       (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
       fino.commandline_mumps == PETSC_TRUE) {
@@ -179,19 +202,18 @@ int fino_set_pc(void) {
 //  petsc_call(PCFactorGetMatrix(pc, &F));    
 #else
     wasora_push_error_message("solver MUMPS needs at least PETSc 3.9.x");
-    return WASORA_RUNTIME_ERROR;
+    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
 #endif
   } else {
 
     if (fino.pc_type != NULL) {
-      // si nos dieron uno, lo ponemos
       petsc_call(PCSetType(fino.pc, fino.pc_type));
     } else {
-      // si no nos dieron y estamos en mechanical, ponemos GAMG 
       if (fino.problem_family == problem_family_mechanical) {
         petsc_call(PCSetType(fino.pc, PCGAMG));
+      } else {
+        petsc_call(PCSetType(fino.pc, PCCHOLESKY));        
       }
-      // sino que quede el default
     }
   }  
   
@@ -228,9 +250,6 @@ int fino_set_pc(void) {
         }
 
         petsc_call(VecRestoreArray(vec_coords, &coords));
-//        petsc_call(PetscViewerBinaryOpen(PETSC_COMM_WORLD, "coords.bin", FILE_MODE_WRITE, &viewer));
-//        petsc_call(VecView(vec_coords, viewer));
-//        petsc_call(PetscViewerDestroy(&viewer));
         petsc_call(MatNullSpaceCreateRigidBody(vec_coords, &nullsp));
         petsc_call(MatSetNearNullSpace(fino.K, nullsp));
         petsc_call(MatNullSpaceDestroy(&nullsp));
@@ -264,7 +283,7 @@ int fino_set_pc(void) {
           VecNormalize(nullvec[i], PETSC_NULL);
         }
 
-        // tomado de MatNullSpaceCreateRigidBody()
+        // from MatNullSpaceCreateRigidBody()
         for (i = 3; i < nearnulldim; i++) {
           // Orthonormalize vec[i] against vec[0:i-1]
           VecMDot(nullvec[i], i, nullvec, dots);
@@ -285,10 +304,10 @@ int fino_set_pc(void) {
     }
   }
   
-  // esta linea trae problemas con GAMG en versiones viejas de PETSc y la verdad no hace falta
+  // this call has problems with GAMG in old PETSc versions
 #if PETSC_VERSION_GT(3,8,0)
     petsc_call(PCSetUp(fino.pc));
 #endif
   
-  return WASORA_RUNTIME_OK;
+  PetscFunctionReturn(WASORA_RUNTIME_OK);
 }

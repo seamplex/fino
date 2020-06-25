@@ -20,6 +20,7 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+#include <ctype.h>
 #include <math.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_vector.h>
@@ -64,8 +65,205 @@ double T0;  // este es el escalar que usamos para evaluar
 int uniform_properties;  // flag global para saber si hay que evaluar cada vez o no
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_build_element"
+
+#undef  __func__
+#define __func__ "fino_bc_process_mechanical"
+int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
+
+  int i;
+  bc_t *base_bc = NULL;
+  
+  PetscFunctionBegin;
+  
+  if (strcmp(name, "fixed") == 0) {
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement_fixed;
+
+  } else if (strncmp(name, "mimic(", 6) == 0) {
+    char *closing_bracket;
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement_mimic;
+
+    if (name[6] == 'u') {
+      bc->dof = 0;
+    } else if (name[6] == 'v') {
+      bc->dof = 1;
+    } else if (name[6] == 'w') {
+      bc->dof = 2;
+    } else {
+      wasora_push_error_message("expected either 'u_', 'v_' or 'w_' instead of '%s' in mimic()", name+5);
+      return WASORA_PARSER_ERROR;
+    }
+
+    if (name[7] != '_') {
+      wasora_push_error_message("expected underscore after '%c' instead of '%s' in mimic()", name[6], name+5);
+      return WASORA_PARSER_ERROR;
+    }
+
+    if ((closing_bracket = strchr(name, ')')) == NULL) {
+      wasora_push_error_message("cannot find closing bracket in '%s'", name);
+      return WASORA_PARSER_ERROR;
+    }
+    *closing_bracket = '\0';
+
+    if ((bc->slave = wasora_get_physical_entity_ptr(name+8, fino.mesh)) == NULL) {
+      wasora_push_error_message("unknown phyisical entity '%s'", name+8);
+      return WASORA_PARSER_ERROR;
+    }
+
+
+  } else if (strcmp(name, "u") == 0 ||
+             strcmp(name, "v") == 0 ||
+             strcmp(name, "w") == 0) {
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement;
+
+    if (name[0] == 'u') bc->dof = 0;
+    if (name[0] == 'v') bc->dof = 1;
+    if (name[0] == 'w') bc->dof = 2;
+
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
+
+  } else if (strcmp(name, "symmetry") == 0 || strcmp(name, "tangential") == 0) {
+
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement_symmetry;
+
+  } else if (strcmp(name, "radial") == 0 ||
+             (base_bc != NULL && base_bc->type_phys == bc_phys_displacement_radial &&
+               (strcmp(name, "x0") == 0 ||
+                strcmp(name, "y0") == 0 ||
+                strcmp(name, "z0") == 0))) {
+
+    // radial puede tener tres expresiones
+    // asi que las alocamos: x0 y0 z0 en la primera de las BCs
+    if (base_bc == NULL) {
+      bc->type_math = bc_math_dirichlet;
+      bc->type_phys = bc_phys_displacement_radial;
+
+      base_bc = bc;
+      base_bc->expr = calloc(3, sizeof(expr_t));
+    }
+
+    if (strcmp(name, "radial") != 0) {
+      i = -1;  // si alguna no aparece es cero (que por default es el baricentro de la entidad)
+      if (name[0] == 'x') i = 0;
+      if (name[0] == 'y') i = 1;
+      if (name[0] == 'z') i = 2;
+      if (i == -1) {
+        wasora_push_error_message("expecting 'x0', 'y0' or 'z0' instead of '%s'", name);
+        return WASORA_PARSER_ERROR;
+      }
+      wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));          
+    }
+
+  } else if (strcmp(name, "0") == 0 || strcmp(name, "implicit") == 0) {
+    char *dummy;
+
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement_constrained;
+
+    // el cuento es asi: aca quisieramos que el usuario escriba algo en funcion
+    // de x,y,z pero tambien de u,v y w. Pero u,v,w ya son funciones, asi que no
+    // se pueden usar como variables
+    // mi solucion: definir variables U,V,W y reemplazar u,v,w por U,V,W en
+    // esta expresion
+
+    // TODO: ver que haya un separador (i.e. un operador) antes y despues
+    dummy = expr;
+    while (*dummy != '\0') {
+      if (*dummy == 'u') {
+        *dummy = 'U';
+      } else if (*dummy == 'v') {
+        *dummy = 'V';
+      } else if (*dummy == 'w') {
+        *dummy = 'W';
+      }
+      dummy++;
+    }
+
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
+
+  } else if (strcasecmp(name, "tx") == 0 || strcasecmp(name, "ty") == 0 || strcasecmp(name, "tz") == 0 ||
+             strcasecmp(name, "fx") == 0 || strcasecmp(name, "fy") == 0 || strcasecmp(name, "fz") == 0) {
+
+    bc->type_math = bc_math_neumann;
+
+    if (isupper(name[0])) {
+      // Tx/Fx means force
+      bc->type_phys = bc_phys_force;
+    } else {
+      // tx/fx means stress
+      bc->type_phys = bc_phys_stress;
+    }
+
+    if (name[1] == 'x') bc->dof = 0;
+    if (name[1] == 'y') bc->dof = 1;
+    if (name[1] == 'z') bc->dof = 2;
+
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
+
+  } else if (strcmp(name, "traction") == 0 || strcmp(name, "p") == 0 ||
+             strcmp(name, "compression") == 0 || strcmp(name, "P") == 0) {
+
+    bc->type_math = bc_math_neumann;
+    if (strcmp(name, "traction") == 0 || strcmp(name, "p") == 0) {
+        bc->type_phys = bc_phys_pressure_normal;
+    } else if (strcmp(name, "compression") == 0 || strcmp(name, "P") == 0) {
+        bc->type_phys = bc_phys_pressure_real;
+    }
+
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
+
+  } else if (strcmp(name, "Mx") == 0 ||
+             strcmp(name, "My") == 0 ||
+             strcmp(name, "Mz") == 0 ||
+             (base_bc != NULL && base_bc->type_phys == bc_phys_moment &&
+               (strcmp(name, "x0") == 0 ||
+                strcmp(name, "y0") == 0 ||
+                strcmp(name, "z0") == 0))) {
+
+    // M necesita seis expresiones
+    // asi que las alocamos: Mx My Mz x0 y0 z0 en la primera de las BCs
+    if (base_bc == NULL) {
+      // solo ponemos el tipo a la base, las otras no hay que procesarlas en bulk
+      bc->type_math = bc_math_neumann;
+      bc->type_phys = bc_phys_moment;
+
+      base_bc = bc;
+      base_bc->expr = calloc(6, sizeof(expr_t));
+    }
+
+    i = -1;  // si alguna no aparece es cero (que por default es el baricentro de la entidad)
+    if (name[1] == 'x') i = 0;
+    if (name[1] == 'y') i = 1;
+    if (name[1] == 'z') i = 2;
+    if (name[0] == 'x') i = 3;
+    if (name[0] == 'y') i = 4;
+    if (name[0] == 'z') i = 5;
+    if (i == -1) {
+      wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
+      return WASORA_PARSER_ERROR;
+    }
+    wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
+
+  } else {
+    wasora_push_error_message("unknown boundary condition type '%s'", name);
+    PetscFunctionReturn(WASORA_PARSER_ERROR);
+  }
+  
+  
+  return WASORA_RUNTIME_OK;
+}
+
+
+
+#undef  __func__
+#define __func__ "fino_break_build_element"
 int fino_break_build_element(element_t *element, int v) {
 
   static size_t J;            // cantidad de nodos locales
