@@ -49,12 +49,11 @@ int fino_bc_string2parsed(void) {
     return WASORA_RUNTIME_OK;
   }
   
-  // barremos los physical entities y mapeamos cadenas a valores enteros
+  // sweep physical entities and map strings to numerical values
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
-    // TODO: ver https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
     LL_FOREACH(physical_entity->bcs, bc) {
 
-      // vemos si hay un "=>" que implica que la BC tiene una condicion
+      // see if there is a "=>" that implies that the BC has a condition
       if ((name = strstr(bc->string, "=>")) != NULL) {
         *name = '\0';
         name += 2;
@@ -63,7 +62,7 @@ int fino_bc_string2parsed(void) {
         name = bc->string;
       }
       
-      // si hay signo igual hay expresion, sino no
+      // if there is an equal sign there is an expression, otherwise not
       if ((equal_sign = strchr(name, '=')) != NULL) {
        *equal_sign = '\0';
        expr = equal_sign+1;
@@ -71,14 +70,14 @@ int fino_bc_string2parsed(void) {
         expr = NULL;
       } 
 
+      // TODO: function pointers
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
         fino_bc_process_mechanical(bc, name, expr);
       } else if (fino.problem_family == problem_family_thermal) {
         fino_bc_process_thermal(bc, name, expr, equal_sign);
       }
 
-      // restauramos el signo igual porque en parametrico en una epoca pasaba de nuevo por aca vamos a volver a pasar por aca
-      // ahora ya no pero por si acaso
+      // restore the equal sign
       if (equal_sign != NULL) {
         *equal_sign = '=';
       }
@@ -86,7 +85,7 @@ int fino_bc_string2parsed(void) {
     }
   }
   
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
 
@@ -105,27 +104,19 @@ void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sig
   return;
 }
 
-#undef  __func__
-#define __func__ "fino_set_essential_bc"
 // K - stiffness matrix: needs a one in the diagonal and the value in b and keep symmetry
 // M - mass matrix: needs a zero in the diagonal and the same symmetry scheme that K
 // J - Jacobian matrix: needs a one in the diagonal but does not need to keep the symmetry
 // b - RHS: needs to be updated when modifying K
 // x - solution: the BC values are set directly in order to be used as a initial condition or guess
 // r - residual: the BC values are set to the difference between the value and the solution
-int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
-
-  PetscScalar diag;
-  
+int fino_dirichlet_eval(Mat K, Vec b) {
+ 
   physical_entity_t *physical_entity = NULL;
   physical_entity_t *physical_entity_last = NULL;
   element_list_item_t *associated_element = NULL;
   bc_t *bc = NULL;
-
-  PetscScalar     *rhs;
-  PetscScalar     *diff;
-  PetscInt        *indexes;
-  dirichlet_row_t *row;
+  int assembly_needed = 0;
 
   double n[3] = {0, 0, 0};
 
@@ -135,8 +126,6 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
   int j, d;
   int k = 0;
   
-  Vec vec_rhs;
-
   PetscFunctionBegin;  
 
   if (fino.n_dirichlet_rows != 0) {
@@ -150,10 +139,8 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
   }  
   current_size = n_bcs;
 
-  indexes = calloc(n_bcs, sizeof(PetscInt));
-  rhs = calloc(n_bcs, sizeof(PetscScalar));
-  diff = calloc(n_bcs, sizeof(PetscScalar));
-  row = calloc(n_bcs, sizeof(dirichlet_row_t));
+  fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
+  fino.dirichlet_values = calloc(n_bcs, sizeof(PetscScalar));
   
   for (j = fino.first_node; j < fino.last_node; j++) {
 
@@ -172,9 +159,8 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
 
             if (k >= (current_size-16)) {            
               current_size += n_bcs;
-              indexes = realloc(indexes, current_size * sizeof(PetscInt));
-              rhs = realloc(rhs, current_size * sizeof(PetscScalar));
-              row = realloc(row, current_size * sizeof(dirichlet_row_t));
+              fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, current_size * sizeof(PetscInt));
+              fino.dirichlet_values  = realloc(fino.dirichlet_values,  current_size * sizeof(PetscScalar));
             }
 
             // TODO: see if the outward normal is needed or not
@@ -202,39 +188,26 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
               if (bc->type_phys == bc_phys_displacement_fixed) {  
 
                 for (d = 0; d < fino.degrees; d++) {
-                  row[k].physical_entity = physical_entity;
-                  row[k].dof = d;
-                  indexes[k] = fino.mesh->node[j].index_dof[d];
-                  rhs[k] = 0;
-                  if (phi != NULL && r != NULL) {
-                    // in this case the rhs is zero so the difference is just the solution
-                    petsc_call(VecGetValues(phi, 1, &k, &diff[k]));
-                  }
+                  fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[d];
+                  fino.dirichlet_values[k] = 0;
                   k++;
                 }
                 
               } else if (bc->type_phys == bc_phys_displacement ||
                          bc->type_phys == bc_phys_temperature) {
 
-                row[k].physical_entity = physical_entity;
-                row[k].dof = bc->dof;
-
-                indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
+                fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[bc->dof];
 
                 if (fino.math_type != math_type_eigen && (strcmp(bc->expr[0].string, "0") != 0)) {
-                  rhs[k] = wasora_evaluate_expression(&bc->expr[0]);
+                  fino.dirichlet_values[k] = wasora_evaluate_expression(&bc->expr[0]);
                 } else {
-                  rhs[k] = 0;
+                  fino.dirichlet_values[k] = 0;
                 }
                 
-                if (phi != NULL && r != NULL) {
-                  petsc_call(VecGetValues(phi, 1, &k, &diff[k]));
-                  diff[k] -= rhs[k];
-                }
-
                 k++;
                 
-
+// temporarily disabled
+/*                
               } else if (bc->type_phys == bc_phys_displacement_mimic) {
 
                 if (K != NULL) {
@@ -280,7 +253,7 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
                   gsl_matrix_free(P);
                   
                 }  
-                
+*/
               } else if (bc->type_phys == bc_phys_displacement_symmetry) {
 
                 int coordinate_direction = -1;
@@ -294,10 +267,8 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
 
                 if (coordinate_direction != -1) {
                   // traditional dirichlet on a single DOF
-                  row[k].physical_entity = physical_entity;
-                  row[k].dof = coordinate_direction;
-                  indexes[k] = fino.mesh->node[j].index_dof[coordinate_direction];
-                  rhs[k] = 0;
+                  fino.dirichlet_indexes[k] = fino.mesh->node[j].index_dof[coordinate_direction];
+                  fino.dirichlet_values[k] = 0;
                   k++;
 
                 } else {
@@ -319,6 +290,7 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
 
                     gsl_matrix_free(c);
                     gsl_matrix_free(P);
+                    assembly_needed = 1;
                   }
 
                 }  
@@ -375,7 +347,6 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
   
                     gsl_matrix_free(c);
                     gsl_matrix_free(P);
-  
                   }
   
                   // y-z
@@ -395,8 +366,9 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
   
                     gsl_matrix_free(c);
                     gsl_matrix_free(P);
-  
                   }
+                  
+                  assembly_needed = 1;
   
                 } else if (bc->type_phys == bc_phys_displacement_constrained) {
   
@@ -434,6 +406,7 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
                   // TODO: non-uniform RHS
                   gsl_matrix_free(c);
                   gsl_matrix_free(P);
+                  assembly_needed = 1;
                 }
               }  
             }  
@@ -448,76 +421,88 @@ int fino_set_essential_bcs(Mat K, Mat M, Mat J, Vec b, Vec phi, Vec r) {
     fino.n_dirichlet_rows = k;
     
     // if k == 0 this like freeing
-    indexes = realloc(indexes, fino.n_dirichlet_rows * sizeof(PetscInt));
-    rhs = realloc(rhs, fino.n_dirichlet_rows * sizeof(PetscScalar));
-    row = realloc(row, fino.n_dirichlet_rows * sizeof(dirichlet_row_t));
+    fino.dirichlet_indexes = realloc(fino.dirichlet_indexes, fino.n_dirichlet_rows * sizeof(PetscInt));
+    fino.dirichlet_values = realloc(fino.dirichlet_values, fino.n_dirichlet_rows * sizeof(PetscScalar));
   }
 
-  
-  if (K != NULL) {
-    // this is needed only if there were constrains
-    // TODO: raise a flag before
+  if (K != NULL && assembly_needed) {
+    // this is needed with multi-freedom BCs
     wasora_call(fino_assembly());
-  
-    // sometimes there are free nodes with no associated volumes
-    // this can trigger zeros on the diagonal and MatZeroRowsColumns complains
-    // TODO: change to MatGetDiagonal
-    for (k = fino.first_row; k < fino.last_row; k++) {
-      petsc_call(MatGetValues(K, 1, &k, 1, &k, &diag));
-      if (diag == 0) {
-        petsc_call(MatSetOption(K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
-        petsc_call(MatSetValue(K, k, k, 1.0, INSERT_VALUES));
-        petsc_call(MatSetOption(K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
-        wasora_call(fino_assembly());
-      }  
-    }
-    
-    // this vector holds the dirichlet values
-    petsc_call(MatCreateVecs(fino.K, &vec_rhs, NULL));
-    petsc_call(VecSetValues(vec_rhs, fino.n_dirichlet_rows, indexes, rhs, INSERT_VALUES));
-    // TODO: scale up the diagonal!
-    petsc_call(MatZeroRowsColumns(K, fino.n_dirichlet_rows, indexes, 1.0, vec_rhs, b));
-    petsc_call(VecDestroy(&vec_rhs));
   }  
   
-  if (M != NULL) {
-    // the mass matrix is like the stiffness one but with zero instead of one
-    petsc_call(MatZeroRowsColumns(M, fino.n_dirichlet_rows, indexes, 0.0, NULL, NULL));
-  }  
+  return WASORA_RUNTIME_OK;
+}
 
-  if (J != NULL) {
-    // the jacobian is exactly one for the dirichlet values and zero otherwise
-    petsc_call(MatZeroRows(J, fino.n_dirichlet_rows, indexes, 1.0, NULL, NULL));
-  }  
+
+int fino_dirichlet_set_K(Mat K, Vec b) {
   
-  if (phi != NULL) {
+  int k;
+  PetscScalar diag;
+  Vec rhs;
+  
+  // sometimes there are free nodes with no associated volumes
+  // this can trigger zeros on the diagonal and MatZeroRowsColumns complains
+  // TODO: change to MatGetDiagonal
+  for (k = fino.first_row; k < fino.last_row; k++) {
+    petsc_call(MatGetValues(K, 1, &k, 1, &k, &diag));
+    if (diag == 0) {
+      petsc_call(MatSetOption(K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+      petsc_call(MatSetValue(K, k, k, 1.0, INSERT_VALUES));
+      petsc_call(MatSetOption(K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_TRUE));
+      wasora_call(fino_assembly());
+    }  
+  }
     
-    PetscInt locked;
-    
-    petsc_call(VecLockGet(NULL, &locked));
-    if (locked == 0) {
-      // if the solution vector is not locked, put the desired condition in the solution
-      petsc_call(VecSetValues(phi, fino.n_dirichlet_rows, indexes, rhs, INSERT_VALUES));
-    }
-   
-    
-    if (r != NULL) {
-      // set the difference between the current solution and the dirichlet value as the residual
-      petsc_call(VecSetValues(r, fino.n_dirichlet_rows, indexes, diff, INSERT_VALUES));
-    }
-  }  
-
+  // this vector holds the dirichlet values and is used to re-write
+  // the actual rhs vector b in order to keep the symmetry of K
+  petsc_call(MatCreateVecs(fino.K, NULL, &rhs));
+  petsc_call(VecSetValues(rhs, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_values, INSERT_VALUES));
+  // TODO: scale up the diagonal!
+  // see alpha in https://scicomp.stackexchange.com/questions/3298/appropriate-space-for-weak-solutions-to-an-elliptical-pde-with-mixed-inhomogeneo/3300#3300
+  petsc_call(MatZeroRowsColumns(K, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, rhs, b));
+  petsc_call(VecDestroy(&rhs));
   
-  wasora_call(fino_assembly());
+  return WASORA_RUNTIME_OK;
+}
   
+int fino_dirichlet_set_M(Mat M) {
+
+  // the mass matrix is like the stiffness one but with zero instead of one
+  petsc_call(MatZeroRowsColumns(M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, NULL, NULL));
+
+  return WASORA_RUNTIME_OK;
+}
+
+int fino_dirichlet_set_J(Mat J) {
+
+  // the jacobian is exactly one for the dirichlet values and zero otherwise without keeping symmetry
+  petsc_call(MatZeroRows(J, fino.n_dirichlet_rows, fino.dirichlet_indexes, 1.0, NULL, NULL));
+
+  return WASORA_RUNTIME_OK;
+}
+
+int fino_dirichlet_set_phi(Vec phi) {
+
+  // this should be used only to set initial conditions and guesses
+  petsc_call(VecSetValues(phi, fino.n_dirichlet_rows, fino.dirichlet_indexes, fino.dirichlet_values, INSERT_VALUES));
+
+  return WASORA_RUNTIME_OK;
+}
+
+int fino_dirichlet_set_r(Vec r, Vec phi) {
+
+  int k;
   
-  free(indexes);
-  free(rhs);
-  free(row);
+  PetscScalar *diff = calloc(fino.n_dirichlet_rows, sizeof(PetscScalar));
+  petsc_call(VecGetValues(phi, fino.n_dirichlet_rows, fino.dirichlet_indexes, diff));
+  for (k = 0; k < fino.n_dirichlet_rows; k++) {
+    diff[k] -= fino.dirichlet_values[k];
+  }
+  
+  petsc_call(VecSetValues(r, fino.n_dirichlet_rows, fino.dirichlet_indexes, diff, INSERT_VALUES));
+  free(diff);
 
-
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-
+  return WASORA_RUNTIME_OK;
 }
 
 

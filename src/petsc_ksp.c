@@ -34,13 +34,13 @@ int fino_solve_petsc_linear(void) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
-  int i;
   
   PetscFunctionBegin;
 
   time_checkpoint(build_begin);
   wasora_call(fino_build_bulk());
-  wasora_call(fino_set_essential_bcs(fino.K, NULL, NULL, fino.b, fino.phi, NULL));
+  wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+  wasora_call(fino_dirichlet_set_K(fino.K, fino.b));
   time_checkpoint(build_end);
 
   time_checkpoint(solve_begin);
@@ -76,6 +76,7 @@ int fino_solve_petsc_linear(void) {
   }
 
   if (fino.progress_ascii == PETSC_TRUE) {
+    int i;
     if (wasora.nprocs == 1) {
       for (i = (int)(100*fino.progress_last); i < 100; i++) {
         printf(CHAR_PROGRESS_SOLVE);

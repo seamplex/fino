@@ -30,31 +30,35 @@
 
 PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
 
-  printf("phi\n");
-  fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
+//  printf("phi\n"); fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
   
   // pasamos phi a la solucion porque K puede depender de phi
   wasora_call(fino_phi_to_solution(phi));
   wasora_call(fino_build_bulk());
   
   petsc_call(MatMult(fino.K, phi, r));
-  petsc_call(VecAYPX(r, -1.0, fino.b));
-  wasora_call(fino_set_essential_bcs(NULL, NULL, NULL, NULL, fino.phi, NULL));
+//  printf("K * phi\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
   
-  printf("residual\n");
-  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+  petsc_call(VecAYPX(r, +1.0, fino.b));
+  
+//  printf("K * phi - b\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+  
+  wasora_call(fino_dirichlet_set_r(r, phi));
+  
+//  printf("residual with BC\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
   
   return 0;
 }
 
 PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
-//  printf("jacobiano\n");
-  petsc_call(MatCopy(fino.K, J, SAME_NONZERO_PATTERN));
-  wasora_call(fino_set_essential_bcs(NULL, NULL, J, NULL, NULL, NULL));
-  petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));
-  //MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+//  printf("K (no bc)\n"); fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);  
   
+  petsc_call(MatCopy(fino.K, J, SAME_NONZERO_PATTERN));
+  wasora_call(fino_dirichlet_set_J(J));
+  petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));
+  
+//  printf("jacobiano\n"); fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);  
   return 0;
    
 }
@@ -72,6 +76,7 @@ int fino_solve_petsc_nonlinear(void) {
       
   time_checkpoint(build_begin);
   wasora_call(fino_build_bulk());
+  wasora_call(fino_dirichlet_eval(fino.K, fino.b));
   time_checkpoint(build_end);
   
   if (fino.snes == NULL) {
@@ -93,17 +98,19 @@ int fino_solve_petsc_nonlinear(void) {
     // si nos dieron lo ponemos, sino dejamos el dafault
     petsc_call(SNESSetType(fino.snes, fino.snes_type));
   }
-  
+
+/*  
+  petsc_call(SNESGetKSP(fino.snes, &fino.ksp));
   wasora_call(fino_set_ksp());
   wasora_call(fino_set_pc());
-  
+*/
   petsc_call(SNESSetFromOptions(fino.snes));
 
   // monitor
   petsc_call(SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0));
   
   // initial guess
-  wasora_call(fino_set_essential_bcs(NULL, NULL, NULL, NULL, fino.phi, NULL));
+  wasora_call(fino_dirichlet_set_phi(fino.phi));
   
   // solve
   petsc_call(SNESSolve(fino.snes, NULL, fino.phi));

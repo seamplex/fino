@@ -138,29 +138,17 @@ struct fino_times_t {
 };
 
 
-// estructura admnistrativa
+// fino's main admin structure
 struct {
-
-  enum {
-    math_type_undefined,
-    math_type_linear,
-    math_type_nonlinear,
-    math_type_eigen,
-  } math_type;
-
-  enum {
-    transient_type_undefined,
-    transient_type_transient,
-    transient_type_quasistatic
-  } transient_type;
-
+  
+  // self-descriptive
   enum {
     problem_family_undefined,
     problem_family_mechanical,
     problem_family_thermal,
     problem_family_modal,
   } problem_family;
-  
+
   enum {
     problem_kind_undefined,
     problem_kind_full3d,
@@ -174,24 +162,38 @@ struct {
     symmetry_axis_x,
     symmetry_axis_y
   } symmetry_axis;
-
-  int spatial_unknowns;  // cant de incognitas espaciales (= celdas o nodos)
-  int degrees;
-  int dimensions;
   
-  int global_size;
-  int rough;             // con esto se mantienen las contribuciones de cada elemento a las derivadas
-  int roughish;          // con esto se promedian por entidad fisica 
+  enum {
+    math_type_undefined,
+    math_type_linear,
+    math_type_nonlinear,
+    math_type_eigen,
+  } math_type;
+
+  enum {
+    transient_type_undefined,
+    transient_type_transient,
+    transient_type_quasistatic
+  } transient_type;
+
+
+  int spatial_unknowns;  // number of spatial unknowns (= nodes)
+  int degrees;           // DoF per node
+  int dimensions;        // spatial dimension of the problem
+  
+  int global_size;       // total number of DoFs
+  
+  int rough;             // keep each element's contribution to the gradient?
+  int roughish;          // average only on the same physical group?
   
   mesh_t *mesh;
-  mesh_t *mesh_rough;   // esta es una malla donde cada node pertenece solo a un elemento
+  mesh_t *mesh_rough;    // in this mesh each elements has unique nodes (they are duplicated)
   
   fino_reaction_t *reactions;
   fino_linearize_t *linearizes;
-  
-  fino_debug_t *debugs;
+//  fino_debug_t *debugs;
 
-  // esto capaz que deberia ir en otro lado
+  // maybe this should go somewhere else
   PetscClassId petsc_classid;
 
   PetscLogStage petsc_stage_build;
@@ -210,7 +212,7 @@ struct {
   fino_times_t cpu;
   fino_times_t petsc;
   
-  // variables internas
+  // fino's internal variables
   struct {
     var_t *abstol;
     var_t *reltol;
@@ -281,7 +283,7 @@ struct {
     
   } vars;
 
-  // vectores
+  // vectors
   struct {
     vector_t *f;
     vector_t *omega;
@@ -297,20 +299,20 @@ struct {
   // flag
   PetscInt petscinit_called;
   
-  // cosas para paralelizacion
-//  PetscInt rank;     // estos ahora estan en wasora
-//  PetscInt nprocs;
+  // stuff for mpi parallelization
   PetscInt nodes_local, size_local;
   PetscInt first_row, last_row;
   PetscInt first_node, last_node;
   PetscInt first_element, last_element;
 
-  // objetos globales
-  Vec phi;       // el vector incognita
-  Vec b;         // el vector del miembro derecho para el steady-state
+  // global objects
+  // TODO: K_bc, K, etc
+  Vec phi;       // the unknown (solution) vector
+  Vec b;         // the right-hand side vector
   Vec b_nobc;
-  Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
-  Mat K_nobc;    // la matriz de rigidez antes de poner las condiciones de dirichlet (para reacciones)
+  // yo haria al reves, pondria K_bc y dejaria K como no bc
+  Mat K;         // stiffness matrix (i.e E for elasticity and k for heat)
+  Mat K_nobc;    // without bcs
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
   Mat J;         // jacobiano multiuso
   PetscScalar lambda; // el autovalor
@@ -318,6 +320,11 @@ struct {
   PetscScalar *eigenvalue;    // los autovalores
   Vec *eigenvector;           // los autovectores
 
+  // auxiliary arrays for dirichlet conditions
+  PetscInt        *dirichlet_indexes;
+  PetscScalar     *dirichlet_values;
+  
+  
   // contexto de solvers de PETSc
   TS ts;
   SNES snes;
@@ -527,7 +534,12 @@ extern int fino_bc_string2parsed(void);
 void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_bc_process_mechanical(bc_t *, char *, char *);
 extern int fino_bc_process_thermal(bc_t *, char *, char *, char *);
-extern int fino_set_essential_bcs(Mat, Mat, Mat, Vec, Vec, Vec);
+extern int fino_dirichlet_eval(Mat, Vec);
+extern int fino_dirichlet_set_K(Mat, Vec);
+extern int fino_dirichlet_set_M(Mat);
+extern int fino_dirichlet_set_J(Mat);
+extern int fino_dirichlet_set_phi(Vec);
+extern int fino_dirichlet_set_r(Vec, Vec);
 extern double fino_gsl_function_of_uvw(double, void *);
 
 // bulk.c
