@@ -129,14 +129,14 @@ int fino_build_bulk(void) {
   if (fino.K_nobc == NULL) {
     petsc_call(MatDestroy(&fino.K_nobc));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.K_nobc));
-    if (fino.has_rhs) {
+    if (fino.b != NULL) {
       petsc_call(VecDuplicate(fino.b, &fino.b_nobc));
     }  
   }
   
   // just in case we need the RHS vector before setting the BCs
   petsc_call(MatCopy(fino.K, fino.K_nobc, SAME_NONZERO_PATTERN));
-  if (fino.has_rhs) {
+  if (fino.b != NULL) {
     petsc_call(VecCopy(fino.b, fino.b_nobc));
   }  
 
@@ -207,7 +207,7 @@ int fino_build_element_volumetric(element_t *element) {
     if (fino.math_type != math_type_eigen) {
       petsc_call(VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES));
     }
-    if (fino.has_mass)  {
+    if (fino.M != NULL)  {
       petsc_call(MatSetValues(fino.M, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES));
     }
   }

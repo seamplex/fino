@@ -488,7 +488,6 @@ int fino_problem_init(void) {
   
   if (fino.math_type != math_type_eigen) {
     // the right-hand-side vector
-    fino.has_rhs = 1;
     petsc_call(MatCreateVecs(fino.K, NULL, &fino.b));
     petsc_call(PetscObjectSetName((PetscObject)fino.b, "b"));
     petsc_call(VecSetFromOptions(fino.b));
@@ -497,7 +496,6 @@ int fino_problem_init(void) {
   if (fino.problem_family == problem_family_modal ||
       (fino.problem_family == problem_family_thermal && wasora_var_value(wasora_special_var(end_time)) != 0)) {
     // the mass matrix for modal or heat transient
-    fino.has_mass = 1;
     petsc_call(MatCreate(PETSC_COMM_WORLD, &fino.M));
     petsc_call(PetscObjectSetName((PetscObject)fino.M, "M"));
     petsc_call(MatSetSizes(fino.M, fino.size_local, fino.size_local, fino.global_size, fino.global_size));
@@ -746,6 +744,8 @@ int fino_problem_free(void) {
   }
   
   fino.n_dirichlet_rows = 0;
+  free(fino.dirichlet_indexes);
+  free(fino.dirichlet_values);
      
   if (fino.phi != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.phi));
@@ -766,14 +766,16 @@ int fino_problem_free(void) {
   if (fino.b != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.b));
   }
-  if (fino.ksp != PETSC_NULL) {
-    petsc_call(KSPDestroy(&fino.ksp));
-  }
+
+  // mind the order!
   if (fino.ts != PETSC_NULL) {
     petsc_call(TSDestroy(&fino.ts));
   }
   if (fino.snes != PETSC_NULL) {
     petsc_call(SNESDestroy(&fino.snes));
+  }
+  if (fino.ksp != PETSC_NULL) {
+    petsc_call(KSPDestroy(&fino.ksp));
   }
   
 #ifdef HAVE_SLEPC  

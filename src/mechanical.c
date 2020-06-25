@@ -490,7 +490,7 @@ int fino_break_build_element(element_t *element, int v) {
     }
   }
   
-  if (fino.has_mass) {
+  if (fino.M != NULL) {
     // calculamos la matriz de masa Ht*rho*H
     mesh_compute_x_at_gauss(element, v);
     mesh_compute_H_at_gauss(element, v, fino.degrees);

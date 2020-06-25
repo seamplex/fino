@@ -104,12 +104,6 @@ void fino_bc_read_name_expr(bc_t *bc, char **name, char **expr, char **equal_sig
   return;
 }
 
-// K - stiffness matrix: needs a one in the diagonal and the value in b and keep symmetry
-// M - mass matrix: needs a zero in the diagonal and the same symmetry scheme that K
-// J - Jacobian matrix: needs a one in the diagonal but does not need to keep the symmetry
-// b - RHS: needs to be updated when modifying K
-// x - solution: the BC values are set directly in order to be used as a initial condition or guess
-// r - residual: the BC values are set to the difference between the value and the solution
 int fino_dirichlet_eval(Mat K, Vec b) {
  
   physical_entity_t *physical_entity = NULL;
@@ -130,12 +124,9 @@ int fino_dirichlet_eval(Mat K, Vec b) {
 
   if (fino.n_dirichlet_rows != 0) {
     // if we are here then we know more or less the number of BCs we need
-    n_bcs = fino.n_dirichlet_rows + 24;
+    n_bcs = fino.n_dirichlet_rows;
   } else {
-    n_bcs = (fino.global_size>999)?ceil(BC_FACTOR*fino.global_size):fino.global_size;
-    if (n_bcs < 32) {
-      n_bcs = 32;
-    }
+    n_bcs = fino.degrees * (fino.last_node - fino.first_node);
   }  
   current_size = n_bcs;
 
@@ -434,6 +425,8 @@ int fino_dirichlet_eval(Mat K, Vec b) {
 }
 
 
+// K - stiffness matrix: needs a one in the diagonal and the value in b and keep symmetry
+// b - RHS: needs to be updated when modifying K
 int fino_dirichlet_set_K(Mat K, Vec b) {
   
   int k;
@@ -465,6 +458,7 @@ int fino_dirichlet_set_K(Mat K, Vec b) {
   return WASORA_RUNTIME_OK;
 }
   
+// M - mass matrix: needs a zero in the diagonal and the same symmetry scheme that K
 int fino_dirichlet_set_M(Mat M) {
 
   // the mass matrix is like the stiffness one but with zero instead of one
@@ -473,6 +467,7 @@ int fino_dirichlet_set_M(Mat M) {
   return WASORA_RUNTIME_OK;
 }
 
+// J - Jacobian matrix: needs a one in the diagonal but does not need to keep the symmetry
 int fino_dirichlet_set_J(Mat J) {
 
   // the jacobian is exactly one for the dirichlet values and zero otherwise without keeping symmetry
@@ -481,6 +476,7 @@ int fino_dirichlet_set_J(Mat J) {
   return WASORA_RUNTIME_OK;
 }
 
+// phi - solution: the BC values are set directly in order to be used as a initial condition or guess
 int fino_dirichlet_set_phi(Vec phi) {
 
   // this should be used only to set initial conditions and guesses
@@ -489,6 +485,7 @@ int fino_dirichlet_set_phi(Vec phi) {
   return WASORA_RUNTIME_OK;
 }
 
+// r - residual: the BC values are set to the difference between the value and the solution
 int fino_dirichlet_set_r(Vec r, Vec phi) {
 
   int k;

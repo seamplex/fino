@@ -316,7 +316,7 @@ int fino_thermal_build_element(element_t *element, int v) {
     PetscFunctionReturn(WASORA_RUNTIME_ERROR);
   }
 
-  if (fino.has_mass) {
+  if (fino.M != NULL) {
     if (distribution_kappa.defined == 0) {
       wasora_call(fino_distribution_init(&distribution_kappa, "kappa"));
       if (distribution_kappa.defined == 0) {
@@ -357,7 +357,7 @@ int fino_thermal_build_element(element_t *element, int v) {
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
-  if (fino.has_mass) {
+  if (fino.M != NULL) {
     // calculamos la matriz de masa Ht*rho*cp*H
     if (distribution_kappa.defined)  {
       rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, element->x[v]);

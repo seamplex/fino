@@ -93,9 +93,6 @@ PetscErrorCode petsc_err;
 #define bc_dof_coordinates_offset        128
 
 
-#define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
-
-
 #define time_checkpoint(which) \
   petsc_call(PetscTime(&fino.wall.which)); \
   petsc_call(PetscGetCPUTime(&fino.petsc.which)); \
@@ -110,19 +107,6 @@ typedef struct fino_reaction_t fino_reaction_t;
 typedef struct fino_linearize_t fino_linearize_t;
 typedef struct fino_debug_t fino_debug_t;
 typedef struct fino_roughish_avg_t fino_roughish_avg_t;
-
-
-typedef struct {
-  physical_entity_t *physical_entity;
-  
-  PetscScalar *alg_val;
-  PetscInt *alg_col;
-  
-  int dof;
-  PetscInt ncols;
-  PetscInt *cols;
-  PetscScalar *vals;
-} dirichlet_row_t;
 
 
 // para medir tiempos (wall y cpu)
@@ -324,16 +308,16 @@ struct {
   PetscInt        *dirichlet_indexes;
   PetscScalar     *dirichlet_values;
   
+  // flag
+  PetscBool already_built;
   
-  // contexto de solvers de PETSc
+  
+  // PETSc's solvers
   TS ts;
   SNES snes;
   KSP ksp;
-  PC pc;
+//  PC pc;
   
-  int has_mass;
-  int has_rhs;
-
   loadable_routine_t *user_provided_linearsolver;
   
   // strings con tipos
@@ -596,8 +580,8 @@ extern void fino_license(FILE *);
 // petsc_ksp.c
 extern int fino_solve_petsc_linear(void);
 extern PetscErrorCode fino_ksp_monitor(KSP, PetscInt, PetscReal, void *);
-extern int fino_set_ksp(void);
-extern int fino_set_pc(void);
+extern int fino_set_ksp(KSP);
+extern int fino_set_pc(PC);
 
 // petsc_snes.c
 extern int fino_solve_petsc_nonlinear();
