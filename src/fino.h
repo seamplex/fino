@@ -321,7 +321,6 @@ struct {
   loadable_routine_t *user_provided_linearsolver;
   
   // strings con tipos
-  PetscBool commandline_mumps; // esta sobre-escribe todo
   KSPType ksp_type;
   PCType pc_type;
   TSType ts_type;

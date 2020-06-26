@@ -28,16 +28,12 @@
 #include "fino.h"
 #endif
 
-#undef  __func__
-#define __func__ "fino_solve_petsc_linear"
 int fino_solve_petsc_linear(void) {
 
   KSPConvergedReason reason;
   PetscInt iterations;
   PC pc;
   
-  PetscFunctionBegin;
-
   time_checkpoint(build_begin);
   wasora_call(fino_build_bulk());
   wasora_call(fino_dirichlet_eval(fino.K, fino.b));
@@ -74,7 +70,7 @@ int fino_solve_petsc_linear(void) {
   petsc_call(KSPGetConvergedReason(fino.ksp, &reason));
   if (reason < 0) {
     wasora_push_error_message("PETSc's linear solver did not converge with reason '%s' (%d)", KSPConvergedReasons[reason], reason);
-    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    return WASORA_RUNTIME_ERROR;
   }
 
   if (fino.progress_ascii == PETSC_TRUE) {
@@ -98,19 +94,15 @@ int fino_solve_petsc_linear(void) {
   time_checkpoint(solve_end);
 
 
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 
 }
 
-#undef  __func__
-#define __func__ "fino_ksp_monitor"
 PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy) {
 //  wasora_value(fino.vars.iterations) = (double)n;
 //  wasora_var_value(fino.vars.residual_norm) = rnorm;
   int i;
   double current_progress;
-  
-  PetscFunctionBegin;
   
   if (wasora.rank == 0) {
   
@@ -138,21 +130,16 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
     }
   }  
 
-  PetscFunctionReturn(0);
+  return 0;
 }
 
 
 
-#undef  __func__
-#define __func__ "fino_ksp_set"
 int fino_set_ksp(KSP ksp) {
 
-  PetscFunctionBegin;
-  
   // the KSP type
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
-      (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
-      fino.commandline_mumps == PETSC_TRUE) {
+      (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
     // mumps is a particular case, see fino_set_pc
     KSPSetType(ksp, KSPPREONLY);
   } else if (fino.ksp_type != NULL) {
@@ -165,11 +152,9 @@ int fino_set_ksp(KSP ksp) {
   // read command-line options
   petsc_call(KSPSetFromOptions(ksp));
 
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
-#undef  __func__
-#define __func__ "fino_set_pc"
 int fino_set_pc(PC pc) {
 
   PetscInt i, j, d;
@@ -182,13 +167,10 @@ int fino_set_pc(PC pc) {
   PetscReal    *coords;
   Vec          vec_coords;
 
-  PetscFunctionBegin;
-  
   // if we were asked for mumps, then either LU o cholesky needs to be used
   // and MatSolverType to mumps
   if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
-      (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0) ||
-      fino.commandline_mumps == PETSC_TRUE) {
+      (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
 #if PETSC_VERSION_GT(3,9,0)
     petsc_call(MatSetOption(fino.K, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
     petsc_call(PCSetType(pc, PCCHOLESKY));
@@ -198,7 +180,7 @@ int fino_set_pc(PC pc) {
 //  petsc_call(PCFactorGetMatrix(pc, &F));    
 #else
     wasora_push_error_message("solver MUMPS needs at least PETSc 3.9.x");
-    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    return WASORA_RUNTIME_ERROR;
 #endif
   } else {
 
@@ -300,5 +282,5 @@ int fino_set_pc(PC pc) {
     }
   }
   
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }

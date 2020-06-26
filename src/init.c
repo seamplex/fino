@@ -115,12 +115,6 @@ int plugin_init_before_parser(void) {
   petsc_call(PetscLogEventRegister("fino_solve", fino.petsc_classid, &fino.petsc_event_solve));
   petsc_call(PetscLogEventRegister("fino_stress", fino.petsc_classid, &fino.petsc_event_solve));
 
-  // see if the user asked for mumps in the command line
-  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &fino.commandline_mumps));
-
-    // see if the user asked for preogress in the command line
-  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--progress", &fino.progress_ascii));
-
   // initialize wasora's mesh framework
   if (!wasora_mesh.initialized) {
     wasora_call(wasora_mesh_init_before_parser());
@@ -422,9 +416,40 @@ int fino_problem_init(void) {
 
   int i, g;
   int width;
+  PetscBool flag;
   
   physical_entity_t *physical_entity;
 
+//---------------------------------
+// read command-line arguments that take precedence over the options in the input file
+//---------------------------------
+  
+  // check for further commandline options
+  // see if the user asked for mumps in the command line
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &flag));
+  if (flag == PETSC_TRUE) {
+    fino.ksp_type = strdup("mumps");
+    fino.pc_type = strdup("mumps");
+  }
+
+    // see if the user asked for progress in the command line
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--progress", &fino.progress_ascii));
+
+  // see if the user asked for a forced problem type
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--linear", &flag));
+  if (flag == PETSC_TRUE) {
+    fino.math_type = math_type_linear;
+  }
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--non-linear", &flag));
+  if (flag == PETSC_TRUE) {
+    fino.math_type = math_type_nonlinear;
+  }
+  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--nonlinear", &flag));
+  if (flag == PETSC_TRUE) {
+    fino.math_type = math_type_nonlinear;
+  }
+  
+  
 //---------------------------------
 // inicializamos parametros
 //---------------------------------

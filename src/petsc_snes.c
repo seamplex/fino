@@ -29,7 +29,7 @@
 
 
 PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
-
+  
 //  printf("phi\n"); fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
   
   
@@ -69,8 +69,6 @@ PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
    
 }
 
-#undef  __func__
-#define __func__ "fino_solve_petsc_linear"
 int fino_solve_petsc_nonlinear(void) {
 
   KSP ksp;
@@ -80,9 +78,6 @@ int fino_solve_petsc_nonlinear(void) {
   SNESConvergedReason reason;
   PetscInt       its;
   
-
-  PetscFunctionBegin;
-      
   time_checkpoint(build_begin);
   
   if (fino.snes == NULL) {
@@ -121,9 +116,10 @@ int fino_solve_petsc_nonlinear(void) {
 
   // customize ksp and pc (this needs to come after setting the jacobian)
   petsc_call(SNESGetKSP(fino.snes, &ksp));
+  wasora_call(fino_set_ksp(ksp));
+
   petsc_call(KSPGetPC(ksp, &pc));
   wasora_call(fino_set_pc(pc));
-  wasora_call(fino_set_ksp(ksp));
   
   // initial guess
   wasora_call(fino_dirichlet_set_phi(fino.phi));
