@@ -28,8 +28,6 @@
 #include "fino.h"
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_solve_eigen_slepc"
 int fino_solve_eigen_slepc(void) {
 
   int i;
@@ -164,8 +162,6 @@ int fino_solve_eigen_slepc(void) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_eigen_nev"
 int fino_eigen_nev() {
   int i, j, g;
 

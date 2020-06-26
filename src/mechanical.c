@@ -66,14 +66,10 @@ int uniform_properties;  // flag global para saber si hay que evaluar cada vez o
 
 
 
-#undef  __func__
-#define __func__ "fino_bc_process_mechanical"
 int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
 
   int i;
   bc_t *base_bc = NULL;
-  
-  PetscFunctionBegin;
   
   if (strcmp(name, "fixed") == 0) {
     bc->type_math = bc_math_dirichlet;
@@ -253,7 +249,7 @@ int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
 
   } else {
     wasora_push_error_message("unknown boundary condition type '%s'", name);
-    PetscFunctionReturn(WASORA_PARSER_ERROR);
+    return WASORA_PARSER_ERROR;
   }
   
   
@@ -262,8 +258,6 @@ int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
 
 
 
-#undef  __func__
-#define __func__ "fino_break_build_element"
 int fino_break_build_element(element_t *element, int v) {
 
   static size_t J;            // cantidad de nodos locales
@@ -294,8 +288,6 @@ int fino_break_build_element(element_t *element, int v) {
   double r_for_axisymmetric = 1.0;
   int j;
 
-  PetscFunctionBegin;
-  
   material = (element->physical_entity != NULL)?element->physical_entity->material:NULL;
   
   mesh_compute_integration_weight_at_gauss(element, v);
@@ -326,15 +318,15 @@ int fino_break_build_element(element_t *element, int v) {
     
     if (distribution_E.defined == 0) {
       wasora_push_error_message("cannot find Young modulus 'E'");
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+      return WASORA_RUNTIME_ERROR;
     } else if (distribution_nu.defined == 0) {
       wasora_push_error_message("cannot find Poisson coefficient 'nu'");
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+      return WASORA_RUNTIME_ERROR;
     }
     
     if (fino.math_type == math_type_eigen && distribution_rho.defined == 0) {
       wasora_push_error_message("cannot find density 'rho'");
-      PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+      return WASORA_RUNTIME_ERROR;
     }
     
     if (fino.problem_kind == problem_kind_full3d) {
@@ -498,17 +490,13 @@ int fino_break_build_element(element_t *element, int v) {
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rho, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
   
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_compute_C"
 int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
   
   double lambda, mu, lambda2mu;
-  
-  PetscFunctionBegin;
   
   // esto es mas elegante (y eficiente) pero la referencia posta es tabla 4.3 pag 194 Bathe
   lambda = E*nu/((1+nu)*(1-2*nu));
@@ -575,11 +563,9 @@ int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
     
   }
 
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }    
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_compute_nodal_stresses"
 int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, double mu, double alpha, double *sigmax, double *sigmay, double *sigmaz, double *tauxy, double *tauyz, double *tauzx) {
   
   double dudx = 0;
@@ -701,8 +687,6 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_compute_stresses"
 int fino_break_compute_stresses(void) {
   
   double sigmax = 0;
@@ -754,8 +738,6 @@ int fino_break_compute_stresses(void) {
   element_t *element;  
   element_list_item_t *associated_element;
   node_t *node;
-  
-  PetscFunctionBegin;
   
   mesh = (fino.rough == 0) ? fino.mesh : fino.mesh_rough;
   
@@ -1472,12 +1454,10 @@ int fino_break_compute_stresses(void) {
     }  
   }
 
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_break_set_neumann"
 int fino_break_set_neumann(element_t *element, bc_t *bc) {
   
   double x0, y0, z0;
@@ -1628,8 +1608,6 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
   return WASORA_RUNTIME_OK;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_principal_stress"
 int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx, double *sigma1, double *sigma2, double *sigma3) {
   
   double I1, I2, I3;
@@ -1665,16 +1643,12 @@ int fino_compute_principal_stress(double sigmax, double sigmay, double sigmaz, d
   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_vonmises_from_principal"
 double fino_compute_vonmises_from_principal(double sigma1, double sigma2, double sigma3) {
   
   return sqrt(0.5*(gsl_pow_2(sigma1-sigma2) + gsl_pow_2(sigma2-sigma3) + gsl_pow_2(sigma3-sigma1)));
   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_vonmises_from_stress_tensor"
 double fino_compute_vonmises_from_stress_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
   
   return sqrt(0.5*(gsl_pow_2(sigmax-sigmay) + gsl_pow_2(sigmay-sigmaz) + gsl_pow_2(sigmaz-sigmax) +
@@ -1682,8 +1656,6 @@ double fino_compute_vonmises_from_stress_tensor(double sigmax, double sigmay, do
   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_vonmises_from_strains"
 double fino_compute_vonmises_from_strains(double lambda, double mu,
                                           double dudx, double dudy, double dudz,
                                           double dvdx, double dvdy, double dvdz,
@@ -1698,8 +1670,6 @@ double fino_compute_vonmises_from_strains(double lambda, double mu,
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_tresca_from_principal"
 double fino_compute_tresca_from_principal(double sigma1, double sigma2, double sigma3) {
 
   double S12 = fabs(sigma1-sigma2);
@@ -1718,8 +1688,6 @@ double fino_compute_tresca_from_principal(double sigma1, double sigma2, double s
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_tresca_from_stress_tensor"
 double fino_compute_tresca_from_stress_tensor(double sigmax, double sigmay, double sigmaz, double tauxy, double tauyz, double tauzx) {
 
   double sigma1, sigma2, sigma3;
@@ -1730,8 +1698,6 @@ double fino_compute_tresca_from_stress_tensor(double sigmax, double sigmay, doub
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_strain_energy"
 int fino_compute_strain_energy(void) {
 
   PetscScalar e;

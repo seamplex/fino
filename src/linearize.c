@@ -25,7 +25,9 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_integration.h>
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 struct linearize_params_t {
   double x1, y1, z1;
@@ -35,8 +37,6 @@ struct linearize_params_t {
   function_t *function;
 };
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_linearize"
 int fino_instruction_linearize(void *arg) {
   
   fino_linearize_t *linearize = (fino_linearize_t *)arg;

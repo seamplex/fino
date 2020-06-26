@@ -33,8 +33,6 @@
 
 #define NAME_SIZE 32
 
-#undef  __FUNCT__
-#define __FUNCT__ "plugin_init_before_parser"
 int plugin_init_before_parser(void) {
 
   char *dummy;
@@ -342,8 +340,6 @@ fino.vars.reltol = wasora_define_variable("fino_reltol");
   return WASORA_PARSER_OK;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "plugin_init_after_parser"
 int plugin_init_after_parser(void) {
 
   int g;
@@ -377,8 +373,6 @@ int plugin_init_after_parser(void) {
   return WASORA_RUNTIME_OK;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "plugin_init_before_run"
 int plugin_init_before_run(void) {
 
   fino.global_size = 0;
@@ -391,8 +385,6 @@ int plugin_init_before_run(void) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "plugin_finalize"
 int plugin_finalize(void) {
 
   wasora_call(fino_problem_free());
@@ -409,8 +401,6 @@ int plugin_finalize(void) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_problem_init"
 // esto viene despues de haber leido la malla
 int fino_problem_init(void) {
 
@@ -601,8 +591,6 @@ int fino_problem_init(void) {
 }
 
   
-#undef  __FUNCT__
-#define __FUNCT__ "fino_init_rough_mesh"
 int fino_init_rough_mesh(void) {
   
   int i, i_global;
@@ -684,8 +672,6 @@ int fino_init_rough_mesh(void) {
 }
   
   
-#undef  __FUNCT__
-#define __FUNCT__ "fino_problem_free"
 int fino_problem_free(void) {
   int g, d;
 
@@ -813,8 +799,6 @@ int fino_problem_free(void) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_function_clean_nodal_data"
 int fino_function_clean_nodal_data(function_t *function) {
  
   if (function != NULL && function->data_value != NULL) {  
@@ -825,8 +809,6 @@ int fino_function_clean_nodal_data(function_t *function) {
   return 0;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_function_clean_nodal_arguments"
 int fino_function_clean_nodal_arguments(function_t *function) {
  
   int d;
@@ -841,8 +823,6 @@ int fino_function_clean_nodal_arguments(function_t *function) {
   return 0;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_define_result_function"
 int fino_define_result_function(char *name, function_t **function) {
 
   // aca la definimos para que este disponible en tiempo de parseo  

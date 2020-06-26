@@ -29,7 +29,9 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_deriv.h>
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 typedef struct {
   expr_t *expr;
@@ -120,8 +122,6 @@ int fino_dirichlet_eval(Mat K, Vec b) {
   int j, d;
   int k = 0;
   
-  PetscFunctionBegin;  
-
   if (fino.n_dirichlet_rows != 0) {
     // if we are here then we know more or less the number of BCs we need
     n_bcs = fino.n_dirichlet_rows;

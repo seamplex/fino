@@ -21,10 +21,10 @@
  */
 #define _GNU_SOURCE 
 #include <stdio.h>
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
-#undef  __FUNCT__
-#define __FUNCT__ "plugin_parse_line"
 int plugin_parse_line(char *line) {
   
   char *token;
@@ -881,8 +881,6 @@ int plugin_parse_line(char *line) {
 
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_define_functions"
 int fino_define_functions(void) {
   
   char *name = NULL;

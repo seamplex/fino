@@ -31,15 +31,13 @@
 #include "petscvec.h"
 
 #include "wasora.h"
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 
-#undef  __func__
-#define __func__ "fino_instruction_step"
 int fino_instruction_step(void *arg) {
 //  fino_step_t *fino_step = (fino_step_t *)arg;
-  
-  PetscFunctionBegin;
   
   //---------------------------------
   // initialize only if we did not initialized before
@@ -133,7 +131,7 @@ int fino_instruction_step(void *arg) {
   wasora_value(fino.vars.memory) = (double)(1024.0*fino.resource_usage.ru_maxrss);
 
   
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
 

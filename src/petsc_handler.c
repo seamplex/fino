@@ -22,8 +22,6 @@
 
 #include "fino.h"
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_handler"
 PetscErrorCode fino_handler(MPI_Comm comm, int line, const char *func, const char *file, PetscErrorCode n, PetscErrorType p, const char *mess, void *ctx) {
   wasora_push_error_message("PETSc error %d-%d '%s' in %s %s:%d", n, p, mess, file, func, line);
   wasora_runtime_error();

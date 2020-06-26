@@ -40,15 +40,15 @@
   
 #include <petscdraw.h>
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 #include "mat2sng.h"
 #include "version.h"
 
 #define fino_debug_insert_spaces(n)     for (j = 0; j < (n); j++) petsc_call(PetscViewerASCIIPrintf(debug->viewer, " "));
 #define wasora_null_free(p) if (p!=NULL) {free(p); p=NULL;}
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_debug_open"
 int fino_debug_open(fino_debug_t *debug) {
   int i;
   time_t tm;
@@ -120,8 +120,6 @@ int fino_debug_open(fino_debug_t *debug) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_debug"
 int fino_instruction_debug(void *arg) {
   
   fino_debug_t *debug = (fino_debug_t *)arg;
@@ -499,8 +497,6 @@ int fino_instruction_debug(void *arg) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_debug_close"
 int fino_debug_close(fino_debug_t *debug) {
 
   int c;
@@ -540,8 +536,6 @@ int fino_debug_close(fino_debug_t *debug) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_print_petsc_vector"
 int fino_print_petsc_vector(Vec b, PetscViewer viewer) {
 
   double xi;
@@ -564,8 +558,6 @@ int fino_print_petsc_vector(Vec b, PetscViewer viewer) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_print_petsc_matrix"
 int fino_print_petsc_matrix(Mat A, PetscViewer viewer) {
 
   double xi;
@@ -590,8 +582,6 @@ int fino_print_petsc_matrix(Mat A, PetscViewer viewer) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_print_petsc_matrix_struct"
 int fino_print_petsc_matrix_struct(Mat A, PetscViewer viewer) {
 
   double xi;
