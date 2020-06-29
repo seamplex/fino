@@ -21,9 +21,6 @@
  */
 
 #include <math.h>
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_integration.h>
 
 #ifndef _FINO_H
 #include "fino.h"
