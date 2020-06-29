@@ -23,12 +23,6 @@
 #include <ctype.h>
 #include <math.h>
 
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_vector.h>
-#include <gsl/gsl_matrix.h>
-#include <gsl/gsl_blas.h>
-#include <gsl/gsl_deriv.h>
-
 #include "fino.h"
 
 typedef struct {
