@@ -19,54 +19,36 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
-
-
-#include <petsc.h>
-#include <petscsys.h>
-#include <petscsnes.h>
-
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 
-PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
-  
-//  printf("phi\n"); fino_print_petsc_vector(phi, PETSC_VIEWER_STDOUT_SELF);
-  
+PetscErrorCode fino_snes_residual(SNES snes, Vec phi, Vec r,void *ctx) {
+
+  // pass phi to the solution becuase K (and the BCs) might depend on phi
+  wasora_call(fino_phi_to_solution(phi));
   
   if (fino.already_built == PETSC_FALSE) {
-    // pasamos phi a la solucion porque K puede depender de phi
-    wasora_call(fino_phi_to_solution(phi));
     wasora_call(fino_build_bulk());
   }  
   
   petsc_call(MatMult(fino.K, phi, r));
-//  printf("K * phi\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
-//  printf("b\n"); fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
-
   petsc_call(VecAXPY(r, -1.0, fino.b));
-  
-//  printf("K * phi - b\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
-  
   wasora_call(fino_dirichlet_set_r(r, phi));
-  
-//  printf("residual with BC\n"); fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
   
   fino.already_built = PETSC_FALSE;
   
   return 0;
 }
 
-PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
-  
-//  printf("K (no bc)\n"); fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);  
+PetscErrorCode fino_snes_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
   petsc_call(MatCopy(fino.K, J, SAME_NONZERO_PATTERN));
   wasora_call(fino_dirichlet_set_J(J));
   petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));
   
-//  printf("jacobiano\n"); fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);  
   return 0;
-   
 }
 
 int fino_solve_petsc_nonlinear(void) {
@@ -105,8 +87,8 @@ int fino_solve_petsc_nonlinear(void) {
   petsc_call(VecDuplicate(fino.phi, &r));
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &J));
   
-  petsc_call(SNESSetFunction(fino.snes, r, fino_solve_residual, NULL));
-  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_solve_jacobian, NULL));
+  petsc_call(SNESSetFunction(fino.snes, r, fino_snes_residual, NULL));
+  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_snes_jacobian, NULL));
   
   petsc_call(SNESSetTolerances(fino.snes, wasora_var(fino.vars.abstol),
                                           wasora_var(fino.vars.reltol),

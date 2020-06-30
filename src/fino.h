@@ -585,6 +585,12 @@ extern int fino_set_pc(PC);
 // petsc_snes.c
 extern int fino_solve_petsc_nonlinear();
 extern PetscErrorCode fino_snes_monitor(SNES, PetscInt, PetscReal, void *);
+
+// petsc_ts.c
+extern PetscErrorCode fino_ts_residual(TS, PetscReal, Vec, Vec, Vec, void *);
+extern PetscErrorCode fino_ts_jacobian(TS, PetscReal, Vec, Vec, PetscReal, Mat, Mat, void *);
+
+
 // slepc_eigen.c
 extern int fino_solve_eigen_slepc();
 extern int fino_eigen_nev(void);

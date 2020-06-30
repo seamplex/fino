@@ -422,8 +422,10 @@ int fino_problem_init(void) {
     fino.pc_type = strdup("mumps");
   }
 
-    // see if the user asked for progress in the command line
-  petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--progress", &fino.progress_ascii));
+  // see if the user asked for progress in the command line
+  if (fino.progress_ascii == PETSC_FALSE) {
+    petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--progress", &fino.progress_ascii));
+  }  
 
   // see if the user asked for a forced problem type
   petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--linear", &flag));
@@ -441,7 +443,7 @@ int fino_problem_init(void) {
   
   
 //---------------------------------
-// inicializamos parametros
+// initialize parameters
 //---------------------------------
 
   if ((fino.mesh = wasora_mesh.meshes) == NULL) {

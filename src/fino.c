@@ -22,11 +22,6 @@
 
 #include <sys/time.h>
 
-#include "petscsys.h"
-#include "petscksp.h"
-#include "petscmat.h"
-#include "petscvec.h"
-
 #ifndef _FINO_H
 #include "fino.h"
 #endif
@@ -34,7 +29,11 @@
 
 int fino_instruction_step(void *arg) {
 //  fino_step_t *fino_step = (fino_step_t *)arg;
-  
+
+  int j;
+  double xi;
+  function_t *ic = NULL;
+
   //---------------------------------
   // initialize only if we did not initialized before
   // TODO: how to handle changes in the mesh within steps?
@@ -42,12 +41,99 @@ int fino_instruction_step(void *arg) {
   if (fino.spatial_unknowns == 0) {
     wasora_call(fino_problem_init());
   }
+
+  if (wasora_var_value(wasora_special_var(in_static)) || fino.transient_type == transient_type_quasistatic) {
+    // check if we were given an initial temperature distribution
+    // TODO: generalize to other problems
+    if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
+
+      if (ic->n_arguments != fino.dimensions) {
+        wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+        return WASORA_RUNTIME_ERROR;
+      }
+
+      for (j = fino.first_node; j < fino.last_node; j++) {
+        xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+        petsc_call(VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES));
+      }
+
+      // TODO: assembly routine
+      petsc_call(VecAssemblyBegin(fino.phi));
+      petsc_call(VecAssemblyEnd(fino.phi));
+    
+    }
+  
+    // now, if the problem is steady-state or we do not have an initial condition then we just solve it
+    // we use T0 (if provided) plus Dirichlet BCs as an initial guess 
+    if (wasora_special_var(end_time) == 0 || ic == NULL) {
+      if (fino.math_type == math_type_linear) {
+        wasora_call(fino_solve_petsc_linear());
+      } else if (fino.math_type == math_type_nonlinear) {
+        wasora_call(fino_solve_petsc_nonlinear());
+      } else if (fino.math_type == math_type_eigen) {
+#ifdef HAVE_SLEPC
+        wasora_call(fino_solve_eigen_slepc());
+        wasora_call(fino_eigen_nev()); 
+#else 
+        wasora_push_error_message("Fino should be linked against SLEPc to be able to solve eigen-problems");
+        return WASORA_RUNTIME_ERROR;
+#endif      
+      }
+    }
+  
+    wasora_call(fino_phi_to_solution(fino.phi));
+    
+  } else {
+    
+    PetscInt ts_steps;
+
+    if (fino.ksp != NULL) {
+      petsc_call(KSPDestroy(&fino.ksp));
+      fino.ksp = NULL;
+    } else if (fino.snes != NULL) {
+      petsc_call(SNESDestroy(&fino.snes));
+    }
+   
+     if (fino.ts == NULL) {
+      petsc_call(TSCreate(PETSC_COMM_WORLD, &fino.ts));
+      petsc_call(TSSetProblemType(fino.ts, TS_NONLINEAR));
+      
+      petsc_call(TSSetIFunction(fino.ts, NULL, fino_ts_residual, NULL));
+      
+      // si nos dieron una condicion inicial entonces fino.K no existe
+      // en paralelo esto falla porque fino.J tiene que estar ensamblada y toda la milonga
+      if (wasora_get_function_ptr("T_0") != NULL) {      
+        wasora_call(fino_build_bulk());
+      }  
+      petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.J));
+      petsc_call(TSSetIJacobian(fino.ts, fino.J, fino.J, fino_ts_jacobian, NULL));
+   
+      petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
+      // TODO: the default depends on the problem type
+      if (fino.ts_type != NULL) {
+        petsc_call(TSSetType(fino.ts, fino.ts_type));
+      } else {
+        petsc_call(TSSetType(fino.ts, TSBDF));
+      }
+   
+      // TODO: choose
+      petsc_call(TSSetMaxStepRejections(fino.ts, 10000));
+      petsc_call(TSSetExactFinalTime(fino.ts, TS_EXACTFINALTIME_STEPOVER));
+      petsc_call(TSSetFromOptions(fino.ts));    
+    }
+   
+    petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
+    petsc_call(TSSetMaxSteps(fino.ts, ts_steps+1));
+   
+    petsc_call(TSSolve(fino.ts, fino.phi));
+    petsc_call(fino_phi_to_solution(fino.phi));
+   
+    petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
+    petsc_call(TSGetTimeStep(fino.ts, wasora_value_ptr(wasora_special_var(dt))));
+  }
   
 
-  // TODO: function pointers
-  if (fino.problem_family == problem_family_thermal) {
-    wasora_call(fino_thermal_step());
-  }  
+  
 /*  
   if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
       

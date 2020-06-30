@@ -20,8 +20,6 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
-#include <petsc.h>
-#include <petscsys.h>
 #include <petscksp.h>
 
 #ifndef _FINO_H

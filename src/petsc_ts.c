@@ -1,0 +1,72 @@
+/*------------ -------------- -------- --- ----- ---   --       -            -
+ *  fino's transient solver using PETSc routines
+ *
+ *  Copyright (C) 2020 jeremy theler
+ *
+ *  This file is part of Fino <https://www.seamplex.com/fino>.
+ *
+ *  fino is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  fino is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
+ *------------------- ------------  ----    --------  --     -       -         -
+ */
+#ifndef _FINO_H
+#include "fino.h"
+#endif
+
+
+PetscErrorCode fino_ts_residual(TS ts, PetscReal t, Vec phi, Vec phi_dot, Vec r, void *ctx) {
+  
+  // solve
+  //   K*phi + M*phi_dot - b = 0
+
+  Vec r_tran;
+
+  wasora_var_value(wasora_special_var(t)) = t;
+
+  // TODO: see if we need to build always
+  // TODO: separate volumetric from surface elements
+  // (in case only natural BCs change with time)
+  wasora_call(fino_phi_to_solution(phi));
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+    
+  // compute the residual
+  petsc_call(VecDuplicate(r, &r_tran));
+  petsc_call(MatMult(fino.K, phi, r));
+  petsc_call(MatMult(fino.M, phi_dot, r_tran));
+  
+  petsc_call(VecAXPY(r, +1.0, r_tran));
+  petsc_call(VecAXPY(r, -1.0, fino.b));
+  petsc_call(VecDestroy(&r_tran));
+  
+  wasora_call(fino_dirichlet_set_r(r, phi));
+  
+  return WASORA_RUNTIME_OK;
+}
+
+PetscErrorCode fino_ts_jacobian(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat J, Mat P,void *ctx) {
+
+  Mat M;
+  
+  petsc_call(MatCopy(fino.K, J, SUBSET_NONZERO_PATTERN));
+  wasora_call(fino_dirichlet_set_K(J, NULL));
+
+  petsc_call(MatDuplicate(fino.M, MAT_COPY_VALUES, &M));
+  wasora_call(fino_dirichlet_set_M(M));
+
+  petsc_call(MatAXPY(J, s, M, SAME_NONZERO_PATTERN));
+  petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));
+  petsc_call(MatDestroy(&M));
+  
+  return WASORA_RUNTIME_OK;
+}
