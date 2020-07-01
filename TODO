@@ -1,11 +1,12 @@
  * replace doc/reference by the man with a TOC
  * read/write $ElementNodeData
  * complete manual
+ * pass long options to PETSc (fino --ksp_view -> pass -ksp_view to PETSc)
+ * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
  * nonlinear
     - initial guess como en thermal T0
     - optimizar assemblies
     - elastoplastic materials - E_xyz(e_xyz)
-    - NETWON | PICARD
     - BC type radiation
  * log stages
  * refinement
