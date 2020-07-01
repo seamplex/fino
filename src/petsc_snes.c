@@ -26,10 +26,13 @@
 
 PetscErrorCode fino_snes_residual(SNES snes, Vec phi, Vec r,void *ctx) {
 
-  // pass phi to the solution becuase K (and the BCs) might depend on phi
-  wasora_call(fino_phi_to_solution(phi));
-  
+
+  // this check is only to avoid building the first time because we already
+  // built K in order to create the SNES, but the rest of the step we need
+  // to re-build always because we are sure the problem is non-linear
   if (fino.already_built == PETSC_FALSE) {
+    // pass phi to the solution becuase K (and the BCs) might depend on phi
+    wasora_call(fino_phi_to_solution(phi));
     wasora_call(fino_build_bulk());
   }  
   

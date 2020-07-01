@@ -109,16 +109,26 @@ int fino_instruction_step(void *arg) {
       petsc_call(TSSetIJacobian(fino.ts, fino.J, fino.J, fino_ts_jacobian, NULL));
    
       petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
+      
+      // if BCs depend on time we need DAEs
+//      petsc_call(TSSetEquationType(fino.ts, TS_EQ_DAE_IMPLICIT_INDEX1));
+//      petsc_call(TSSetEquationType(fino.ts, TS_EQ_IMPLICIT));      
+//      petsc_call(TSARKIMEXSetFullyImplicit(fino.ts, PETSC_TRUE)); 
+      
       // TODO: the default depends on the problem type
       if (fino.ts_type != NULL) {
         petsc_call(TSSetType(fino.ts, fino.ts_type));
       } else {
         petsc_call(TSSetType(fino.ts, TSBDF));
+//        petsc_call(TSSetType(fino.ts, TSARKIMEX));
       }
    
       // TODO: choose
       petsc_call(TSSetMaxStepRejections(fino.ts, 10000));
+      petsc_call(TSSetMaxSNESFailures(fino.ts, 1000));
       petsc_call(TSSetExactFinalTime(fino.ts, TS_EXACTFINALTIME_STEPOVER));
+      
+      // options overwrite
       petsc_call(TSSetFromOptions(fino.ts));    
     }
    
@@ -274,13 +284,13 @@ int fino_phi_to_solution(Vec phi) {
   petsc_call(VecScatterBegin(vscat, phi, phi0, INSERT_VALUES,SCATTER_FORWARD););
   petsc_call(VecScatterEnd(vscat, phi, phi0, INSERT_VALUES,SCATTER_FORWARD););
     
-  // fabricamos G funciones con la solucion
+  // make up G functions with the solution
   if (wasora.rank == 0) {
     for (j = 0; j < fino.spatial_unknowns; j++) {
       for (g = 0; g < fino.degrees; g++) {
         petsc_call(VecGetValues(phi0, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
 
-        // si tenemos una solucion la sumamos 
+        // if there is a base solution
         if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
           if (fino.base_solution[g]->mesh == fino.mesh) {
             fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
@@ -289,15 +299,15 @@ int fino_phi_to_solution(Vec phi) {
           }
         }
 
-        // si no estamos en rough rellenamos la solucion de los desplazamietos
-        // porque es facil, en rough hay que iterar sobre los elementos
+        // if we are not in rough mode we fill the solution here
+        // because it is esay, in rough mode we need to iterate over the elements
         if (fino.rough == 0) {
           fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
         }
 
         if (fino.nev > 1) {
           for (i = 0; i < fino.nev; i++) {
-            // las funciones ya vienen con el factor de excitacion
+            // the values already have the excitation factor
             petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
             fino.mode[g][i]->data_value[j] = xi;
             wasora_vector_set(fino.vectors.phi[i], j, xi);
@@ -313,9 +323,8 @@ int fino_phi_to_solution(Vec phi) {
     
   if (fino.rough) {
     node_t *node;  
-    // si estamos en rough rellenamos los desplazamientos iterando sobre elements
-    // y despues sobre cada nodo
-    // TODO: ver orden de fors! capaz que convenga que el g este afuera  
+    // in rough mode we need to iterate over the elements first and then over the nodes
+    // TODO: see if the order of the loops is the optimal one
     for (g = 0; g < fino.degrees; g++) {
       for (i = 0; i < fino.mesh_rough->n_elements; i++) {
         for (j = 0; j < fino.mesh_rough->element[i].type->nodes; j++) {

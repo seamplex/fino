@@ -151,19 +151,19 @@ int fino_thermal_build_element(element_t *element, int v) {
   r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
 
   if (distribution_Q.defined != 0) {
-    // el vector de fuente de calor volumetrica
+    // the volumetric heat source term
     for (j = 0; j < element->type->nodes; j++) {
       gsl_vector_add_to_element(fino.bi, j,
         element->w[v] * r_for_axisymmetric * element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * fino_distribution_evaluate(&distribution_Q, material, element->x[v]));
     }
   }
 
-  // calculamos la matriz de stiffness
+  // thermal stiffness matrix
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
   if (fino.M != NULL) {
-    // calculamos la matriz de masa Ht*rho*cp*H
+    // compute the mass matrix Ht*rho*cp*H
     if (distribution_kappa.defined)  {
       rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, element->x[v]);
     } else {

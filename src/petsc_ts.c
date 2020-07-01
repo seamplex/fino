@@ -26,28 +26,30 @@
 
 PetscErrorCode fino_ts_residual(TS ts, PetscReal t, Vec phi, Vec phi_dot, Vec r, void *ctx) {
   
-  // solve
+  // compute
   //   K*phi + M*phi_dot - b = 0
 
-  Vec r_tran;
+  Vec Mphi_dot;
 
   wasora_var_value(wasora_special_var(t)) = t;
+//  printf("%g\n", t);
 
-  // TODO: see if we need to build always
-  // TODO: separate volumetric from surface elements
-  // (in case only natural BCs change with time)
-  wasora_call(fino_phi_to_solution(phi));
-  wasora_call(fino_build_bulk());
-  wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+//  if (fino.math_type == math_type_nonlinear) {
+    // TODO: separate volumetric from surface elements
+    // (in case only natural BCs change with time)
+    wasora_call(fino_phi_to_solution(phi));
+    wasora_call(fino_build_bulk());
+    wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+//  }  
     
   // compute the residual
-  petsc_call(VecDuplicate(r, &r_tran));
+  petsc_call(VecDuplicate(r, &Mphi_dot));
   petsc_call(MatMult(fino.K, phi, r));
-  petsc_call(MatMult(fino.M, phi_dot, r_tran));
+  petsc_call(MatMult(fino.M, phi_dot, Mphi_dot));
   
-  petsc_call(VecAXPY(r, +1.0, r_tran));
+  petsc_call(VecAXPY(r, +1.0, Mphi_dot));
   petsc_call(VecAXPY(r, -1.0, fino.b));
-  petsc_call(VecDestroy(&r_tran));
+  petsc_call(VecDestroy(&Mphi_dot));
   
   wasora_call(fino_dirichlet_set_r(r, phi));
   
@@ -59,10 +61,14 @@ PetscErrorCode fino_ts_jacobian(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal 
   Mat M;
   
   petsc_call(MatCopy(fino.K, J, SUBSET_NONZERO_PATTERN));
-  wasora_call(fino_dirichlet_set_K(J, NULL));
-
+//  printf("J = K\n"); fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+  wasora_call(fino_dirichlet_set_J(J));
+//  printf("J con bc\n"); fino_print_petsc_matrix(J, PETSC_VIEWER_STDOUT_SELF);
+  
   petsc_call(MatDuplicate(fino.M, MAT_COPY_VALUES, &M));
-  wasora_call(fino_dirichlet_set_M(M));
+//  printf("M = M\n"); fino_print_petsc_matrix(M, PETSC_VIEWER_STDOUT_SELF);
+  wasora_call(fino_dirichlet_set_dRdphi_dot(M));
+//  printf("M con bc\n"); fino_print_petsc_matrix(M, PETSC_VIEWER_STDOUT_SELF);
 
   petsc_call(MatAXPY(J, s, M, SAME_NONZERO_PATTERN));
   petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));

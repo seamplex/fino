@@ -165,7 +165,7 @@ int fino_dirichlet_eval(Mat K, Vec b) {
             wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
             wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
             
-            // if there is a condition we evaluated it now
+            // if there is a condition we evaluate it now
             if (bc->condition.n_tokens == 0 || fabs(wasora_evaluate_expression(&bc->condition)) > 1e-3) {
 
               // let's see what the user asked for
@@ -185,6 +185,7 @@ int fino_dirichlet_eval(Mat K, Vec b) {
 
                 if (fino.math_type != math_type_eigen && (strcmp(bc->expr[0].string, "0") != 0)) {
                   fino.dirichlet_values[k] = wasora_evaluate_expression(&bc->expr[0]);
+//                  printf("%d bc = %g\n", k, fino.dirichlet_values[k]);
                 } else {
                   fino.dirichlet_values[k] = 0;
                 }
@@ -469,6 +470,16 @@ int fino_dirichlet_set_J(Mat J) {
 
   return WASORA_RUNTIME_OK;
 }
+
+// JM - Jacobian of the time-derivative matrix (the part of sigma*d(R)/d(phi_dot)): needs a zero in the diagonal but does not need to keep the symmetry
+int fino_dirichlet_set_dRdphi_dot(Mat M) {
+
+  // the jacobian is exactly zero for the dirichlet values and zero otherwise without keeping symmetry
+  petsc_call(MatZeroRows(M, fino.n_dirichlet_rows, fino.dirichlet_indexes, 0.0, NULL, NULL));
+
+  return WASORA_RUNTIME_OK;
+}
+
 
 // phi - solution: the BC values are set directly in order to be used as a initial condition or guess
 int fino_dirichlet_set_phi(Vec phi) {
