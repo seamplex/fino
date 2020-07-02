@@ -58,6 +58,8 @@ int fino_solve_petsc_linear(void) {
   wasora_call(fino_set_pc(pc));
   wasora_call(fino_set_ksp(fino.ksp));
 
+  // K is symmetric. Set symmetric flag to enable ICC/Cholesky preconditioner
+  petsc_call(MatSetOption(fino.K, MAT_SYMMETRIC, PETSC_TRUE));  
   
   // do the work!
   petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));

@@ -490,7 +490,7 @@ int fino_problem_init(void) {
   petsc_call(MatSetFromOptions(fino.K));
   petsc_call(MatMPIAIJSetPreallocation(fino.K, width, PETSC_NULL, width, PETSC_NULL));
   petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
-  petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN,PETSC_TRUE));
+  petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE));
   if (fino.degrees > 1) {
     petsc_call(MatSetBlockSize(fino.K, fino.degrees));
   }

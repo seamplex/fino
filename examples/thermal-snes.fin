@@ -1,9 +1,9 @@
 MESH FILE_PATH slab.msh DIMENSIONS 1
 FINO_PROBLEM thermal NON_LINEAR
 
-# k(x) := 1+T(x)
+k(x) := 1+T(x)
 # k(x) := 1+x
-k(x) := 1
+# k(x) := 1
 PHYSICAL_GROUP left  BC T=0
 PHYSICAL_GROUP right BC T=1
 

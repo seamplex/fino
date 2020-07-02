@@ -26,13 +26,7 @@
 
 PetscErrorCode fino_ts_residual(TS ts, PetscReal t, Vec phi, Vec phi_dot, Vec r, void *ctx) {
   
-  // compute
-  //   K*phi + M*phi_dot - b = 0
-
-  Vec Mphi_dot;
-
   wasora_var_value(wasora_special_var(t)) = t;
-//  printf("%g\n", t);
 
 //  if (fino.math_type == math_type_nonlinear) {
     // TODO: separate volumetric from surface elements
@@ -42,15 +36,12 @@ PetscErrorCode fino_ts_residual(TS ts, PetscReal t, Vec phi, Vec phi_dot, Vec r,
     wasora_call(fino_dirichlet_eval(fino.K, fino.b));
 //  }  
     
-  // compute the residual
-  petsc_call(VecDuplicate(r, &Mphi_dot));
+  // compute the residual R(t,phi,phi_dot) = K*phi + M*phi_dot - b
   petsc_call(MatMult(fino.K, phi, r));
-  petsc_call(MatMult(fino.M, phi_dot, Mphi_dot));
-  
-  petsc_call(VecAXPY(r, +1.0, Mphi_dot));
+  petsc_call(MatMultAdd(fino.M, phi_dot, r, r));
   petsc_call(VecAXPY(r, -1.0, fino.b));
-  petsc_call(VecDestroy(&Mphi_dot));
-  
+
+  // set dirichlet bcs  
   wasora_call(fino_dirichlet_set_r(r, phi));
   
   return WASORA_RUNTIME_OK;
