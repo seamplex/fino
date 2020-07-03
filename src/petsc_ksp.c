@@ -61,6 +61,11 @@ int fino_solve_petsc_linear(void) {
   // K is symmetric. Set symmetric flag to enable ICC/Cholesky preconditioner
   petsc_call(MatSetOption(fino.K, MAT_SYMMETRIC, PETSC_TRUE));  
   
+  // try to use the solution as the initial guess (it already has Dirichlet BCs
+  // but in quasi-static it has the previous solution which should be similar)
+  petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
+  
+  
   // do the work!
   petsc_call(KSPSolve(fino.ksp, fino.b, fino.phi));
   
@@ -201,6 +206,7 @@ int fino_set_pc(PC pc) {
 #else
     PCGAMGSetThreshold(pc, (PetscReal *)(wasora_value_ptr(fino.vars.gamg_threshold)), 1);
 #endif
+    petsc_call(PCGAMGSetNSmooths(pc, 1));
   }
 
   if (fino.problem_family == problem_family_mechanical) {
