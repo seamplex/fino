@@ -20,11 +20,11 @@
  *------------------- ------------  ----    --------  --     -       -         -
  */
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_post"
 int fino_instruction_post(void *arg) {
   
   mesh_t *mesh;

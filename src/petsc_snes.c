@@ -19,92 +19,108 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
-
-
-#include <petsc.h>
-#include <petscsys.h>
-#include <petscsnes.h>
-
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 
-PetscErrorCode fino_solve_residual(SNES snes, Vec phi, Vec r,void *ctx) {
+PetscErrorCode fino_snes_residual(SNES snes, Vec phi, Vec r,void *ctx) {
+
+
+  // this check is only to avoid building the first time because we already
+  // built K in order to create the SNES, but the rest of the step we need
+  // to re-build always because we are sure the problem is non-linear
+  if (fino.already_built == PETSC_FALSE) {
+    // pass phi to the solution becuase K (and the BCs) might depend on phi
+    wasora_call(fino_phi_to_solution(phi, 1));
+    wasora_call(fino_build_bulk());
+  }  
   
-  // pasamos phi a la solucion porque K puede depender de phi
-  wasora_call(fino_phi_to_solution(phi));
-  wasora_call(fino_build_bulk());
-  wasora_call(fino_set_essential_bc());
+  petsc_call(MatMult(fino.K, phi, r));
+  petsc_call(VecAXPY(r, -1.0, fino.b));
+  wasora_call(fino_dirichlet_set_r(r, phi));
   
-  MatMult(fino.K, phi, r);
-//  printf("residual\n");
-//  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
+  fino.already_built = PETSC_FALSE;
   
   return 0;
 }
 
-PetscErrorCode fino_solve_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
+PetscErrorCode fino_snes_jacobian(SNES snes,Vec phi, Mat J, Mat P, void *ctx) {
   
-//  printf("jacobiano\n");
-  MatDuplicate(fino.K, MAT_COPY_VALUES, &J);
+  petsc_call(MatCopy(fino.K, J, SAME_NONZERO_PATTERN));
+  wasora_call(fino_dirichlet_set_J(J));
+  petsc_call(MatCopy(J, P, SAME_NONZERO_PATTERN));
   
   return 0;
-   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_solve_nonlinear_petsc"
-int fino_solve_nonlinear_petsc(void) {
+int fino_solve_petsc_nonlinear(void) {
 
+  KSP ksp;
+  PC pc;
+  Mat J;
+  Vec r;
   SNESConvergedReason reason;
-  Mat            J;    // jacobiano
-  Vec            r;    // residuo
-  PetscInt       its;    
-
+  PetscInt       its;
+  
+  time_checkpoint(build_begin);
+  
   if (fino.snes == NULL) {
     petsc_call(SNESCreate(PETSC_COMM_WORLD, &fino.snes));
-  }
+
+    if (fino.snes_type != NULL) {
+      // if we have an explicit type, we set it
+      petsc_call(SNESSetType(fino.snes, fino.snes_type));
+    }
+    
+    // we build the matrices here and put a flag that it is already built
+    // so we do not build it again in the first step of the SNES
+    wasora_call(fino_build_bulk());
+    wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+    fino.already_built = PETSC_TRUE;
+    time_checkpoint(build_end);
+    
+    // monitor
+    petsc_call(SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0));
+
+    // options
+    petsc_call(SNESSetFromOptions(fino.snes));
+  }  
+    
   petsc_call(VecDuplicate(fino.phi, &r));
   petsc_call(MatDuplicate(fino.K, MAT_COPY_VALUES, &J));
   
-  petsc_call(SNESSetFunction(fino.snes, r, fino_solve_residual, NULL));
-  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_solve_jacobian, NULL));
+  petsc_call(SNESSetFunction(fino.snes, r, fino_snes_residual, NULL));
+  petsc_call(SNESSetJacobian(fino.snes, J, J, fino_snes_jacobian, NULL));
+  
   petsc_call(SNESSetTolerances(fino.snes, wasora_var(fino.vars.abstol),
                                           wasora_var(fino.vars.reltol),
                                           PETSC_DEFAULT,
                                           (PetscInt)wasora_var(fino.vars.max_iterations),
                                           PETSC_DEFAULT));
-  // el SNES 
-  if (fino.snes_type != NULL) {
-    // si nos dieron lo ponemos, sino dejamos el dafault
-    petsc_call(SNESSetType(fino.snes, fino.snes_type));
-  }
-  
-  wasora_call(fino_set_ksp());
-  wasora_call(fino_set_pc());
-  
-  petsc_call(SNESSetFromOptions(fino.snes));
 
-  // initial value
-  VecSet(fino.phi, 0);
+  // customize ksp and pc (this needs to come after setting the jacobian)
+  petsc_call(SNESGetKSP(fino.snes, &ksp));
+  wasora_call(fino_set_ksp(ksp));
 
-  // monitor
-  SNESMonitorSet(fino.snes, fino_snes_monitor, NULL, 0);
+  petsc_call(KSPGetPC(ksp, &pc));
+  wasora_call(fino_set_pc(pc));
+  
+  // initial guess
+  wasora_call(fino_dirichlet_set_phi(fino.phi));
   
   // solve
-  SNESSolve(fino.snes, fino.b, fino.phi);
+  petsc_call(SNESSolve(fino.snes, NULL, fino.phi));
   
-  // chequeamos que haya convergido
+  // check convergence
   petsc_call(SNESGetConvergedReason(fino.snes, &reason));
   if (reason < 0) {
     wasora_push_error_message("PETSc's non-linear solver did not converge with reason '%s' (%d)", SNESConvergedReasons[reason], reason);
     return WASORA_RUNTIME_ERROR;
   }
   
-  SNESGetIterationNumber(fino.snes, &its);  
+  petsc_call(SNESGetIterationNumber(fino.snes, &its));
   wasora_value(fino.vars.iterations) = (double)its;
-  
-//  petsc_call(SNESGetResidualNorm(snes, wasora_value_ptr(fino.vars.residual_norm)));
-  
   
   return WASORA_RUNTIME_OK;
 

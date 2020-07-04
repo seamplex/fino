@@ -93,7 +93,10 @@ PetscErrorCode petsc_err;
 #define bc_dof_coordinates_offset        128
 
 
-#define BC_FACTOR 1.00  // TODO: si esto es != 1 da cosas raras con los reallocs, pensar mejor
+#define time_checkpoint(which) \
+  petsc_call(PetscTime(&fino.wall.which)); \
+  petsc_call(PetscGetCPUTime(&fino.petsc.which)); \
+  fino.cpu.which = fino_get_cpu_time();
 
 
 // forward definitions
@@ -106,36 +109,30 @@ typedef struct fino_debug_t fino_debug_t;
 typedef struct fino_roughish_avg_t fino_roughish_avg_t;
 
 
-typedef struct {
-  physical_entity_t *physical_entity;
-  
-  PetscScalar *alg_val;
-  PetscInt *alg_col;
-  
-  int dof;
-  PetscInt ncols;
-  PetscInt *cols;
-  PetscScalar *vals;
-} dirichlet_row_t;
+// para medir tiempos (wall y cpu)
+struct fino_times_t {
+  PetscLogDouble init_begin;
+  PetscLogDouble init_end;
+  PetscLogDouble build_begin;
+  PetscLogDouble build_end;
+  PetscLogDouble stress_begin;
+  PetscLogDouble stress_end;
+  PetscLogDouble solve_begin;
+  PetscLogDouble solve_end;
+};
 
 
-// estructura admnistrativa
+// fino's main admin structure
 struct {
-
-  enum {
-    math_type_undefined,
-    math_type_linear,
-    math_type_nonlinear,
-    math_type_eigen,
-  } math_type;
   
+  // self-descriptive
   enum {
     problem_family_undefined,
     problem_family_mechanical,
     problem_family_thermal,
     problem_family_modal,
   } problem_family;
-  
+
   enum {
     problem_kind_undefined,
     problem_kind_full3d,
@@ -149,24 +146,38 @@ struct {
     symmetry_axis_x,
     symmetry_axis_y
   } symmetry_axis;
-
-  int spatial_unknowns;  // cant de incognitas espaciales (= celdas o nodos)
-  int degrees;
-  int dimensions;
   
-  int global_size;
-  int rough;             // con esto se mantienen las contribuciones de cada elemento a las derivadas
-  int roughish;          // con esto se promedian por entidad fisica 
+  enum {
+    math_type_undefined,
+    math_type_linear,
+    math_type_nonlinear,
+    math_type_eigen,
+  } math_type;
+
+  enum {
+    transient_type_undefined,
+    transient_type_transient,
+    transient_type_quasistatic
+  } transient_type;
+
+
+  int spatial_unknowns;  // number of spatial unknowns (= nodes)
+  int degrees;           // DoF per node
+  int dimensions;        // spatial dimension of the problem
+  
+  int global_size;       // total number of DoFs
+  
+  int rough;             // keep each element's contribution to the gradient?
+  int roughish;          // average only on the same physical group?
   
   mesh_t *mesh;
-  mesh_t *mesh_rough;   // esta es una malla donde cada node pertenece solo a un elemento
+  mesh_t *mesh_rough;    // in this mesh each elements has unique nodes (they are duplicated)
   
   fino_reaction_t *reactions;
   fino_linearize_t *linearizes;
-  
-  fino_debug_t *debugs;
+//  fino_debug_t *debugs;
 
-  // esto capaz que deberia ir en otro lado
+  // maybe this should go somewhere else
   PetscClassId petsc_classid;
 
   PetscLogStage petsc_stage_build;
@@ -181,8 +192,11 @@ struct {
   PetscLogDouble petsc_flops_solve;
   PetscLogDouble petsc_flops_stress;
 
+  fino_times_t wall;
+  fino_times_t cpu;
+  fino_times_t petsc;
   
-  // variables internas
+  // fino's internal variables
   struct {
     var_t *abstol;
     var_t *reltol;
@@ -253,7 +267,7 @@ struct {
     
   } vars;
 
-  // vectores
+  // vectors
   struct {
     vector_t *f;
     vector_t *omega;
@@ -269,20 +283,20 @@ struct {
   // flag
   PetscInt petscinit_called;
   
-  // cosas para paralelizacion
-//  PetscInt rank;     // estos ahora estan en wasora
-//  PetscInt nprocs;
+  // stuff for mpi parallelization
   PetscInt nodes_local, size_local;
   PetscInt first_row, last_row;
   PetscInt first_node, last_node;
   PetscInt first_element, last_element;
 
-  // objetos globales
-  Vec phi;       // el vector incognita
-  Vec b;         // el vector del miembro derecho para el steady-state
+  // global objects
+  // TODO: K_bc, K, etc
+  Vec phi;       // the unknown (solution) vector
+  Vec b;         // the right-hand side vector
   Vec b_nobc;
-  Mat K;         // la matriz de rigidez (con E para elastico y k para calor)
-  Mat K_nobc;    // la matriz de rigidez antes de poner las condiciones de dirichlet (para reacciones)
+  // yo haria al reves, pondria K_bc y dejaria K como no bc
+  Mat K;         // stiffness matrix (i.e E for elasticity and k for heat)
+  Mat K_nobc;    // without bcs
   Mat M;         // la matriz de masa (con rho para elastico y rho*cp para calor)
   Mat J;         // jacobiano multiuso
   PetscScalar lambda; // el autovalor
@@ -290,19 +304,23 @@ struct {
   PetscScalar *eigenvalue;    // los autovalores
   Vec *eigenvector;           // los autovectores
 
-  // contexto de solvers de PETSc
+  // auxiliary arrays for dirichlet conditions
+  PetscInt        *dirichlet_indexes;
+  PetscScalar     *dirichlet_values;
+  
+  // flag
+  PetscBool already_built;
+  
+  
+  // PETSc's solvers
   TS ts;
   SNES snes;
   KSP ksp;
-  PC pc;
+//  PC pc;
   
-  int has_mass;
-  int has_rhs;
-
   loadable_routine_t *user_provided_linearsolver;
   
   // strings con tipos
-  PetscBool commandline_mumps; // esta sobre-escribe todo
   KSPType ksp_type;
   PCType pc_type;
   TSType ts_type;
@@ -314,7 +332,7 @@ struct {
     set_near_nullspace_none
   } set_near_nullspace;
   
-  int do_not_set_block_size;
+//  int do_not_set_block_size;
   
   PetscBool progress_ascii;
   double progress_r0;
@@ -341,13 +359,9 @@ struct {
   gsl_vector *bi;               // el vector del miembro derecho elemental
   gsl_vector *Nb;               // para las BCs de neumann
 
-  // holder para poner las BCs dirichlet (y calcular las reacciones de vinculo)
+  // reusable number of dirichlet rows to know how much memory to allocaet
   int n_dirichlet_rows;
-  PetscScalar     *dirichlet_rhs;
-  PetscInt        *dirichlet_indexes;
-  dirichlet_row_t *dirichlet_row;
-  
- 
+    
   // user-provided functions para los objetos elementales, las linkeamos
   // a las que dio el usuario en el input en init
   function_t ***Ai_function;
@@ -428,9 +442,11 @@ struct fino_distribution_t {
   function_t *function;
 };
 
+
 struct fino_step_t {
-  int do_not_solve;
+  int dummy_for_a_future_flag;
 };
+
 
 struct fino_reaction_t {
   physical_entity_t *physical_entity;
@@ -484,18 +500,6 @@ struct fino_debug_t {
   fino_debug_t *next;
 };
 
-// para medir tiempos (wall y cpu)
-struct fino_times_t {
-  PetscLogDouble init_begin;
-  PetscLogDouble init_end;
-  PetscLogDouble build_begin;
-  PetscLogDouble build_end;
-  PetscLogDouble stress_begin;
-  PetscLogDouble stress_end;
-  PetscLogDouble solve_begin;
-  PetscLogDouble solve_end;
-};
-
 struct fino_roughish_avg_t {
   int smooth_element;
   int local_node;
@@ -506,14 +510,20 @@ struct fino_roughish_avg_t {
 // fino.c
 extern int fino_instruction_step(void *);
 extern int fino_assembly(void);
-extern int fino_phi_to_solution(Vec phi);
+extern int fino_phi_to_solution(Vec phi, int);
 
 // bc.c
 extern int fino_bc_string2parsed(void);
-void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
+extern void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_bc_process_mechanical(bc_t *, char *, char *);
 extern int fino_bc_process_thermal(bc_t *, char *, char *, char *);
-extern int fino_set_essential_bc(void);
+extern int fino_dirichlet_eval(Mat, Vec);
+extern int fino_dirichlet_set_K(Mat, Vec);
+extern int fino_dirichlet_set_M(Mat);
+extern int fino_dirichlet_set_J(Mat);
+extern int fino_dirichlet_set_dRdphi_dot(Mat);
+extern int fino_dirichlet_set_phi(Vec);
+extern int fino_dirichlet_set_r(Vec, Vec);
 extern double fino_gsl_function_of_uvw(double, void *);
 
 // bulk.c
@@ -570,12 +580,18 @@ extern void fino_license(FILE *);
 // petsc_ksp.c
 extern int fino_solve_petsc_linear(void);
 extern PetscErrorCode fino_ksp_monitor(KSP, PetscInt, PetscReal, void *);
-extern int fino_set_ksp(void);
-extern int fino_set_pc(void);
+extern int fino_set_ksp(KSP);
+extern int fino_set_pc(PC);
 
 // petsc_snes.c
-extern int fino_solve_nonlinear_petsc();
+extern int fino_solve_petsc_nonlinear();
 extern PetscErrorCode fino_snes_monitor(SNES, PetscInt, PetscReal, void *);
+
+// petsc_ts.c
+extern PetscErrorCode fino_ts_residual(TS, PetscReal, Vec, Vec, Vec, void *);
+extern PetscErrorCode fino_ts_jacobian(TS, PetscReal, Vec, Vec, PetscReal, Mat, Mat, void *);
+
+
 // slepc_eigen.c
 extern int fino_solve_eigen_slepc();
 extern int fino_eigen_nev(void);
@@ -608,9 +624,8 @@ extern double fino_compute_tresca_from_principal(double, double, double);
 extern double fino_compute_tresca_from_stress_tensor(double, double, double, double, double, double);
 extern int fino_compute_strain_energy(void);
 
-// bake.c
-extern int fino_thermal_step_initial();
-extern int fino_thermal_step_transient();
+// thermal.c
+extern int fino_thermal_step();
 extern int fino_thermal_build_element(element_t *, int);
 extern int fino_thermal_set_heat_flux(element_t *, bc_t *);
 extern int fino_thermal_set_convection(element_t *, bc_t *);

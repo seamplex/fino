@@ -21,12 +21,12 @@
  */
 #include <stdio.h>
 
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 #define NAME_SIZE 32
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_allocate_elemental_objects"
 int fino_allocate_elemental_objects(element_t *element) {
 
   fino_free_elemental_objects();
@@ -43,8 +43,6 @@ int fino_allocate_elemental_objects(element_t *element) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_free_elemental_objects"
 int fino_free_elemental_objects(void) {
 
   if (fino.n_local_nodes != 0 && fino.elemental_size != 0) {
@@ -61,8 +59,6 @@ int fino_free_elemental_objects(void) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_build_bulk"
 int fino_build_bulk(void) {
 
   bc_t *bc;
@@ -125,14 +121,14 @@ int fino_build_bulk(void) {
   if (fino.K_nobc == NULL) {
     petsc_call(MatDestroy(&fino.K_nobc));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.K_nobc));
-    if (fino.has_rhs) {
+    if (fino.b != NULL) {
       petsc_call(VecDuplicate(fino.b, &fino.b_nobc));
     }  
   }
   
   // just in case we need the RHS vector before setting the BCs
   petsc_call(MatCopy(fino.K, fino.K_nobc, SAME_NONZERO_PATTERN));
-  if (fino.has_rhs) {
+  if (fino.b != NULL) {
     petsc_call(VecCopy(fino.b, fino.b_nobc));
   }  
 
@@ -155,8 +151,6 @@ int fino_build_bulk(void) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_build_element_volumetric"
 int fino_build_element_volumetric(element_t *element) {
   int V;           // total number of Gauss points
   int v;           // gauss point index 
@@ -199,20 +193,18 @@ int fino_build_element_volumetric(element_t *element) {
     // the indices of the DOFs to ensamble
     mesh_compute_l(fino.mesh, element);
 
-    MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES);
+    petsc_call(MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES));
     if (fino.math_type != math_type_eigen) {
-      VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+      petsc_call(VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES));
     }
-    if (fino.has_mass)  {
-      MatSetValues(fino.M, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES);
+    if (fino.M != NULL)  {
+      petsc_call(MatSetValues(fino.M, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Mi, 0, 0), ADD_VALUES));
     }
   }
 
   return WASORA_RUNTIME_OK;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_build_element_bc"
 int fino_build_element_bc(element_t *element, bc_t *bc) {
 
   if (fino.n_local_nodes != element->type->nodes) {
@@ -253,8 +245,6 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_compute_r_for_axisymmetric"
 double fino_compute_r_for_axisymmetric(element_t *element, int v) {
 
   double r_for_axisymmetric = 1.0;
@@ -280,8 +270,6 @@ double fino_compute_r_for_axisymmetric(element_t *element, int v) {
   return r_for_axisymmetric;
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_print_gsl_vector"
 int fino_print_gsl_vector(gsl_vector *b, FILE *file) {
 
   double xi;
@@ -301,8 +289,6 @@ int fino_print_gsl_vector(gsl_vector *b, FILE *file) {
 
 }
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_print_gsl_matrix"
 int fino_print_gsl_matrix(gsl_matrix *A, FILE *file) {
 
   double xi;

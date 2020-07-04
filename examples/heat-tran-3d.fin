@@ -17,9 +17,10 @@ cp = 1
 
 
 # unitary temperatures
-T_0(x,y,z) := if(x < eps, 1, 0)
+hot_temp(x,y,z) := 0.5+y
+T_0(x,y,z) := if(x < eps, hot_temp(x,y,z), 0)
 
-PHYSICAL_GROUP NAME hot       BC T=0.5+y
+PHYSICAL_GROUP NAME hot       BC T=hot_temp(x,y,z)
 PHYSICAL_GROUP NAME cool      BC Tref=0 h=1
 
 FINO_STEP

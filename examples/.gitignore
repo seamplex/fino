@@ -86,4 +86,6 @@ temp-*.png
 valve.brep
 valve.geo
 
+slab.msh
+
 beam-modal.msh

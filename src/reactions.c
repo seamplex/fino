@@ -19,11 +19,11 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
+#ifndef _FINO_H
 #include "fino.h"
+#endif
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_reaction"
 int fino_instruction_reaction(void *arg) {
 
   fino_reaction_t *reaction = (fino_reaction_t *)arg;

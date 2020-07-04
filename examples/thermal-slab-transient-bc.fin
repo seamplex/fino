@@ -1,0 +1,27 @@
+n = 60
+MESH DIMENSIONS 1 STRUCTURED LENGTH_X 1 NCELLS_X n-1
+FINO_PROBLEM thermal
+# FINO_SOLVER TS_TYPE arkimex
+
+end_time = 2
+
+# T0(x) := x
+
+# unitary non-dimensional properties
+k = 1
+rho = 1
+cp = 1
+
+# boundary conditions
+PHYSICAL_GROUP left  BC T=0
+PHYSICAL_GROUP right BC T=limit(1-t,0,1)
+
+FINO_STEP
+
+PRINT %e t dt T(0) T(0.1) T(0.9) T(1)
+
+MESH_POST FILE_PATH temp-slab.msh T
+
+IF done
+ PRINT "\# open temp-anim-slab.geo in Gmsh to see the result!"
+ENDIF

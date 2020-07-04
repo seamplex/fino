@@ -23,198 +23,86 @@
 
 #include "fino.h"
 
-fino_distribution_t distribution_k;     // conductividad
-fino_distribution_t distribution_Q;     // heat source
+fino_distribution_t distribution_k;     // conductivity 
+fino_distribution_t distribution_Q;     // volumetric heat source
 fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
-PetscErrorCode fino_thermal_IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx);
-PetscErrorCode fino_thermal_IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx);
+int fino_bc_process_thermal(bc_t *bc, char *name, char *expr, char *equal_sign) {
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_step_initial"
-int fino_thermal_step_initial(void) {
-  
-  int j;
-  double xi;
-  function_t *ic;
-  
-  PetscFunctionBeginUser;
-      
-  if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
+  int i;
+  bc_t *base_bc = NULL;
+  bc_t *tmp = NULL;
 
-    if (ic->n_arguments != fino.dimensions) {
-      wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
-      return WASORA_RUNTIME_ERROR;
-    }
+  if (strcmp(name, "T") == 0) {
+    // fixed temperature, dirichlet bondition
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_temperature;
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
-    for (j = fino.first_node; j < fino.last_node; j++) {
-      xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-      petsc_call(VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES));
-    }
-
-    petsc_call(VecAssemblyBegin(fino.phi));
-    petsc_call(VecAssemblyEnd(fino.phi));
-    
-  } else {
-    
-    // TODO: re-pensar y re-implementar esto  
-    wasora_call(fino_build_bulk());           // ensamblamos objetos elementales
-    wasora_call(fino_set_essential_bc());     // condiciones de contorno esenciales
-    wasora_call(fino_solve_petsc_linear());
-    
-  }
-  
-  wasora_call(fino_phi_to_solution(fino.phi));
-  
-    
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-  
-}
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_step_transient"
-int fino_thermal_step_transient(void) {
-
-  PetscInt ts_steps;
-
-  PetscFunctionBeginUser;
-
-  if (fino.ksp != NULL) {
-    petsc_call(KSPDestroy(&fino.ksp));
-    fino.ksp = NULL;
-  }
-  
-  if (fino.ts == NULL) {
-    petsc_call(TSCreate(PETSC_COMM_WORLD, &fino.ts));
-    petsc_call(TSSetProblemType(fino.ts, TS_NONLINEAR));
-    
-    // TODO: tener apuntadores a funcion en la estructura fino, en tiempo de parseo
-    // hacerlos apuntar aca y meter esto en un file generico petsc_ts y no en thermal
-    petsc_call(TSSetIFunction(fino.ts, NULL, fino_thermal_IFunctionHeat, NULL));
-    
-    // si nos dieron una condicion inicial entonces fino.K no existe
-    // en paralelo esto falla porque fino.J tiene que estar ensamblada y toda la milonga
-    if (wasora.nprocs > 1 && wasora_get_function_ptr("T_0") != NULL) {
-      wasora_call(fino_build_bulk());
-      wasora_call(fino_set_essential_bc());
-    }  
-    petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.J));
-    petsc_call(TSSetIJacobian(fino.ts, fino.J, fino.J, fino_thermal_IJacobianHeat, NULL));
-
-    petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
-    if (fino.ts_type != NULL) {
-      petsc_call(TSSetType(fino.ts, fino.ts_type));
+  } else if (strcmp(name, "q") == 0 || strcmp(name, "Q") == 0) {
+    // fixed heat flux, neumann
+    bc->type_math = bc_math_neumann;
+    if (strcmp(name, "Q") == 0) {
+      bc->type_phys = bc_phys_heat_total;
     } else {
-      petsc_call(TSSetType(fino.ts, TSBDF));
+      bc->type_phys = bc_phys_heat_flux;
     }
+    bc->expr = calloc(1, sizeof(expr_t));
+    wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
-    petsc_call(TSSetMaxStepRejections(fino.ts, 10000));
+  } else if ((strcmp(name, "h") == 0) ||
+             (strcmp(name, "Tref") == 0) ||
+             (strcmp(name, "Tinf") == 0)) {
+
+    // convection, robins
     
-    petsc_call(TSSetExactFinalTime(fino.ts, TS_EXACTFINALTIME_STEPOVER));
-    petsc_call(TSSetFromOptions(fino.ts));    
-  }
+    bc->type_math = bc_math_robin;
+    bc->type_phys = bc_phys_convection;
 
-  petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
-  petsc_call(TSSetMaxSteps(fino.ts, ts_steps+1));
+    // conveccion necesita dos expresione
+    // las alocamos en la primera de las BCs
+    base_bc = bc;
+    base_bc->expr = calloc(2, sizeof(expr_t));
 
-  petsc_call(TSSolve(fino.ts, fino.phi));
-  petsc_call(fino_phi_to_solution(fino.phi));
+    do {
+      // volvemos a poner el equal sign, en la primera pasada
+      // es para volver a parser, en las siguientes para no romper
+      // la ultima se vuelve a arreglar fuera del loop grande
+      if (equal_sign != NULL) {
+        *equal_sign = '=';
+      }
+      fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
+      i = -1;
+      if (name[0] == 'h') i = 0;
+      if (name[0] == 'T') i = 1;
+      if (i == -1) {
+        wasora_push_error_message("expecting 'h' or 'Tref' instead of '%s'", name);
+        return WASORA_PARSER_ERROR;
+      }             
+      wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
+      tmp = bc; // esto es para "volver para atras"
+    } while ((bc = bc->next) != NULL);
 
-  petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
-  petsc_call(TSGetTimeStep(fino.ts, wasora_value_ptr(wasora_special_var(dt))));
+    // ahora bc quedo apuntando a null, tenemos que volver para atras
+    // sino el FOREACH de arriba palma
+    bc = tmp;
 
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-}
-
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_IFunctionHeat"
-PetscErrorCode fino_thermal_IFunctionHeat(TS ts, PetscReal t, Vec T, Vec T_dot, Vec r, void *ctx) {
-  
-  // resolvemos 
-  //   K*T + M*T_dot - b = 0
-
-  Vec r_tran;
-
-  PetscFunctionBeginUser;
-
-  wasora_var_value(wasora_special_var(t)) = t;
-  
-  // TODO: ver como hacer esto mas eficiente
-  // esto no camina porque el transient seguro esta en b
-  // pero si b tiene conveccion ya hay que recalcular K
-/*  
-  if (fino.K_nobc == NULL) {
-    petsc_call(MatZeroEntries(fino.K));
-    petsc_call(MatZeroEntries(fino.M));
-    petsc_call(VecZeroEntries(fino.b));
-    wasora_call(fino_build_bulk());
   } else {
-    wasora_call(MatCopy(fino.K_nobc, fino.K, SAME_NONZERO_PATTERN));
-    wasora_call(VecCopy(fino.b_nobc, fino.b));
+    // TODO: radiation
+    wasora_push_error_message("unknown boundary condition type '%s'", name);
+    return WASORA_PARSER_ERROR;
   }
-*/
   
-  wasora_call(fino_build_bulk());
-  wasora_call(fino_set_essential_bc());
-    
   
-/*  
-  printf("t = %g\n", t);
-  printf("T\n");
-  fino_print_petsc_vector(T, PETSC_VIEWER_STDOUT_SELF);
-  printf("T_dot\n");
-  fino_print_petsc_vector(T_dot, PETSC_VIEWER_STDOUT_SELF);
-  printf("K\n");
-  fino_print_petsc_matrix(fino.K, PETSC_VIEWER_STDOUT_SELF);
-  printf("M\n");
-  fino_print_petsc_matrix(fino.M, PETSC_VIEWER_STDOUT_SELF);
-  printf("b\n");
-  fino_print_petsc_vector(fino.b, PETSC_VIEWER_STDOUT_SELF);
-*/  
-  // armamos el residuo
-  petsc_call(MatMult(fino.K, T, r));
-/*  
-  printf("KT\n");
-  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
-*/
-  petsc_call(VecDuplicate(r, &r_tran));
-//  petsc_call(VecZeroEntries(r_tran));
-  petsc_call(MatMult(fino.M, T_dot, r_tran));
-/*  
-  printf("MT_dot\n");
-  fino_print_petsc_vector(r_tran, PETSC_VIEWER_STDOUT_SELF);
-*/
-  
-  petsc_call(VecAXPY(r, +1.0, r_tran));
-  petsc_call(VecAXPY(r, -1.0, fino.b));
-/*  
-  printf("r\n");
-  fino_print_petsc_vector(r, PETSC_VIEWER_STDOUT_SELF);
-*/  
-  VecDestroy(&r_tran);
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
-}
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_IJacobianHeat"
-PetscErrorCode fino_thermal_IJacobianHeat(TS ts, PetscReal t, Vec T, Vec T_dot, PetscReal s, Mat A, Mat B,void *ctx) {
-
-  PetscFunctionBeginUser;
-
-  petsc_call(MatCopy(fino.K, A, SUBSET_NONZERO_PATTERN));
-  petsc_call(MatAXPY(A, s, fino.M, SAME_NONZERO_PATTERN));
-  petsc_call(MatCopy(A, B, SAME_NONZERO_PATTERN));
-  
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_build_element"
+
+
 int fino_thermal_build_element(element_t *element, int v) {
   
   double k, rhocp;
@@ -230,10 +118,10 @@ int fino_thermal_build_element(element_t *element, int v) {
   }
   if (distribution_k.defined == 0) {
     wasora_push_error_message("cannot find thermal conductivity 'k'");
-    PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+    return WASORA_RUNTIME_ERROR;
   }
 
-  if (fino.has_mass) {
+  if (fino.M != NULL) {
     if (distribution_kappa.defined == 0) {
       wasora_call(fino_distribution_init(&distribution_kappa, "kappa"));
       if (distribution_kappa.defined == 0) {
@@ -241,11 +129,11 @@ int fino_thermal_build_element(element_t *element, int v) {
         wasora_call(fino_distribution_init(&distribution_cp, "cp"));
         if (distribution_cp.defined == 0) {
           wasora_push_error_message("cannot find neither thermal diffusivity 'kappa' nor heat capacity 'cp'");
-          PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+          return WASORA_RUNTIME_ERROR;
         }
         if (distribution_rho.defined == 0) {
           wasora_push_error_message("cannot find neither thermal diffusivity 'kappa' nor density 'rho'");
-          PetscFunctionReturn(WASORA_RUNTIME_ERROR);
+          return WASORA_RUNTIME_ERROR;
         }
       }
     }
@@ -263,19 +151,19 @@ int fino_thermal_build_element(element_t *element, int v) {
   r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
 
   if (distribution_Q.defined != 0) {
-    // el vector de fuente de calor volumetrica
+    // the volumetric heat source term
     for (j = 0; j < element->type->nodes; j++) {
       gsl_vector_add_to_element(fino.bi, j,
         element->w[v] * r_for_axisymmetric * element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * fino_distribution_evaluate(&distribution_Q, material, element->x[v]));
     }
   }
 
-  // calculamos la matriz de stiffness
+  // thermal stiffness matrix
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
-  if (fino.has_mass) {
-    // calculamos la matriz de masa Ht*rho*cp*H
+  if (fino.M != NULL) {
+    // compute the mass matrix Ht*rho*cp*H
     if (distribution_kappa.defined)  {
       rhocp = k / fino_distribution_evaluate(&distribution_kappa, material, element->x[v]);
     } else {
@@ -289,8 +177,6 @@ int fino_thermal_build_element(element_t *element, int v) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_set_heat_flux"
 int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
   double r_for_axisymmetric;
   double q;
@@ -324,8 +210,6 @@ int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
 
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_set_convection"
 int fino_thermal_set_convection(element_t *element, bc_t *bc) {
   double r_for_axisymmetric;
   double h = 0;
@@ -371,8 +255,6 @@ int fino_thermal_set_convection(element_t *element, bc_t *bc) {
 }
 
 
-#undef  __FUNCT__
-#define __FUNCT__ "fino_thermal_compute_fluxes"
 int fino_thermal_compute_fluxes(void) {
   
 //  material_t *material = NULL;
@@ -383,8 +265,6 @@ int fino_thermal_compute_fluxes(void) {
   double T_min = +INFTY;
   
   int j;
-  
-  PetscFunctionBegin;
   
   // evaluamos k, si es uniformes esto ya nos sirve para siempre
   if (distribution_k.variable != NULL) {
@@ -437,6 +317,6 @@ int fino_thermal_compute_fluxes(void) {
   wasora_var(fino.vars.T_min) = T_min;
 
   
-  PetscFunctionReturn(WASORA_RUNTIME_OK);
+  return WASORA_RUNTIME_OK;
 }
 
