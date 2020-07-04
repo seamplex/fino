@@ -31,7 +31,7 @@ PetscErrorCode fino_ts_residual(TS ts, PetscReal t, Vec phi, Vec phi_dot, Vec r,
 //  if (fino.math_type == math_type_nonlinear) {
     // TODO: separate volumetric from surface elements
     // (in case only natural BCs change with time)
-    wasora_call(fino_phi_to_solution(phi));
+    wasora_call(fino_phi_to_solution(phi, 1));
     wasora_call(fino_build_bulk());
     wasora_call(fino_dirichlet_eval(fino.K, fino.b));
 //  }  

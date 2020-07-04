@@ -81,7 +81,7 @@ int fino_instruction_step(void *arg) {
       }
     }
   
-    wasora_call(fino_phi_to_solution(fino.phi));
+    wasora_call(fino_phi_to_solution(fino.phi, 1));
     
   } else {
     
@@ -111,8 +111,8 @@ int fino_instruction_step(void *arg) {
       petsc_call(TSSetTimeStep(fino.ts, wasora_var_value(wasora_special_var(dt))));
       
       // if BCs depend on time we need DAEs
+      petsc_call(TSSetEquationType(fino.ts, TS_EQ_IMPLICIT));      
 //      petsc_call(TSSetEquationType(fino.ts, TS_EQ_DAE_IMPLICIT_INDEX1));
-//      petsc_call(TSSetEquationType(fino.ts, TS_EQ_IMPLICIT));      
 //      petsc_call(TSARKIMEXSetFullyImplicit(fino.ts, PETSC_TRUE)); 
       
       // TODO: the default depends on the problem type
@@ -136,7 +136,7 @@ int fino_instruction_step(void *arg) {
     petsc_call(TSSetMaxSteps(fino.ts, ts_steps+1));
    
     petsc_call(TSSolve(fino.ts, fino.phi));
-    petsc_call(fino_phi_to_solution(fino.phi));
+    petsc_call(fino_phi_to_solution(fino.phi, 1));
    
     petsc_call(TSGetStepNumber(fino.ts, &ts_steps));
     petsc_call(TSGetTimeStep(fino.ts, wasora_value_ptr(wasora_special_var(dt))));
@@ -272,23 +272,23 @@ int fino_assembly(void) {
 }
 
 
-int fino_phi_to_solution(Vec phi) {
+int fino_phi_to_solution(Vec phi, int compute_gradients) {
 
   double xi;
   int i, j, g;
 
-  Vec                phi0;
+  Vec                phi_full;
   VecScatter         vscat;
 
-  petsc_call(VecScatterCreateToZero(phi, &vscat, &phi0));
-  petsc_call(VecScatterBegin(vscat, phi, phi0, INSERT_VALUES,SCATTER_FORWARD););
-  petsc_call(VecScatterEnd(vscat, phi, phi0, INSERT_VALUES,SCATTER_FORWARD););
+  petsc_call(VecScatterCreateToZero(phi, &vscat, &phi_full));
+  petsc_call(VecScatterBegin(vscat, phi, phi_full, INSERT_VALUES,SCATTER_FORWARD););
+  petsc_call(VecScatterEnd(vscat, phi, phi_full, INSERT_VALUES,SCATTER_FORWARD););
     
   // make up G functions with the solution
   if (wasora.rank == 0) {
     for (j = 0; j < fino.spatial_unknowns; j++) {
       for (g = 0; g < fino.degrees; g++) {
-        petsc_call(VecGetValues(phi0, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
+        petsc_call(VecGetValues(phi_full, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
 
         // if there is a base solution
         if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
@@ -317,7 +317,7 @@ int fino_phi_to_solution(Vec phi) {
     }
   }
     
-  petsc_call(VecDestroy(&phi0));
+  petsc_call(VecDestroy(&phi_full));
   petsc_call(VecScatterDestroy(&vscat));
     
     
@@ -334,6 +334,26 @@ int fino_phi_to_solution(Vec phi) {
       }
     }
   }
+
+  
+  if (compute_gradients) {
+    // TODO: function pointers
+    if (fino.problem_family == problem_family_mechanical) {
+  
+      time_checkpoint(stress_begin);
+      wasora_call(fino_compute_strain_energy());
+      if (fino.gradient_evaluation != gradient_none) {
+        wasora_call(fino_break_compute_stresses());
+      }  
+      time_checkpoint(stress_end);
+      
+    } else if (fino.problem_family == problem_family_thermal) {
+       
+      wasora_call(fino_thermal_compute_fluxes());
+    }  
+  }
+    
+  
   
   return WASORA_RUNTIME_OK;
 }

@@ -32,7 +32,7 @@ PetscErrorCode fino_snes_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   // to re-build always because we are sure the problem is non-linear
   if (fino.already_built == PETSC_FALSE) {
     // pass phi to the solution becuase K (and the BCs) might depend on phi
-    wasora_call(fino_phi_to_solution(phi));
+    wasora_call(fino_phi_to_solution(phi, 1));
     wasora_call(fino_build_bulk());
   }  
   

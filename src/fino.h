@@ -510,7 +510,7 @@ struct fino_roughish_avg_t {
 // fino.c
 extern int fino_instruction_step(void *);
 extern int fino_assembly(void);
-extern int fino_phi_to_solution(Vec phi);
+extern int fino_phi_to_solution(Vec phi, int);
 
 // bc.c
 extern int fino_bc_string2parsed(void);
