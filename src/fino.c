@@ -34,17 +34,6 @@ int fino_instruction_step(void *arg) {
   double xi;
   function_t *ic = NULL;
 
-
-#undef  __FUNCT__
-#define __FUNCT__ "fino_instruction_step"
-int fino_instruction_step(void *arg) {
-  fino_step_t *fino_step = (fino_step_t *)arg;
-  fino_times_t wall;
-  fino_times_t cpu;
-  fino_times_t petsc;
-  
-  PetscFunctionBegin;
-  
   //---------------------------------
   // initialize only if we did not initialized before
   // TODO: how to handle changes in the mesh within steps?
