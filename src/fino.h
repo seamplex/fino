@@ -316,7 +316,6 @@ struct {
   TS ts;
   SNES snes;
   KSP ksp;
-//  PC pc;
   
   loadable_routine_t *user_provided_linearsolver;
   
@@ -427,7 +426,6 @@ struct {
   STType st_type;
   
   EPS eps;      // contexto eigensolver (SLEPc)
-  ST st;        // contexto de la transformacion espectral asociada
   EPSWhich eigen_spectrum;
 #endif
   

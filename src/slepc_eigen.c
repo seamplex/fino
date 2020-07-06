@@ -31,9 +31,18 @@
 int fino_solve_eigen_slepc(void) {
 
   int i;
+  PC pc;
+  KSP ksp;
+  ST st;
   PetscReal xi = 1.0;
   PetscInt nconv;
 
+  time_checkpoint(build_begin);
+  wasora_call(fino_build_bulk());
+  wasora_call(fino_dirichlet_eval(fino.K, fino.b));
+  wasora_call(fino_dirichlet_set_K(fino.K, fino.b));
+  time_checkpoint(build_end);
+  
   // creamos el contexto del eigensolver
   if (fino.eps != NULL) {
     petsc_call(EPSDestroy(&fino.eps));
@@ -41,20 +50,19 @@ int fino_solve_eigen_slepc(void) {
   petsc_call(EPSCreate(PETSC_COMM_WORLD, &fino.eps));
   petsc_call(PetscObjectSetName((PetscObject)fino.eps, "eigenvalue-problem_solver"));
  
-  // y obtenemos los contextos asociados
-  petsc_call(EPSGetST(fino.eps, &fino.st));
-  petsc_call(PetscObjectSetName((PetscObject)fino.st, "spectral_transformation"));
-  petsc_call(STGetKSP(fino.st, &fino.ksp));
-  petsc_call(PetscObjectSetName((PetscObject)fino.ksp, "linear_solver"));
-  petsc_call(KSPGetPC(fino.ksp, &fino.pc));
-  petsc_call(PetscObjectSetName((PetscObject)fino.pc, "preconditioner"));
+  // get the associated contexts
+  petsc_call(EPSGetST(fino.eps, &st));
+  petsc_call(PetscObjectSetName((PetscObject)st, "spectral_transformation"));
+  petsc_call(STGetKSP(st, &ksp));
+  petsc_call(PetscObjectSetName((PetscObject)ksp, "linear_solver"));
+  petsc_call(KSPGetPC(ksp, &pc));
+  petsc_call(PetscObjectSetName((PetscObject)pc, "preconditioner"));
 
   petsc_call(EPSSetOperators(fino.eps, fino.M, fino.K));
   petsc_call(EPSSetWhichEigenpairs(fino.eps, EPS_LARGEST_MAGNITUDE));
   petsc_call(EPSSetProblemType(fino.eps, EPS_GHEP));    
   
-  // TODO: ver bien esto del guess inicial
-  //petsc_call(EPSSetInitialSpace(fino.eps, 1, &fino.guess));
+  petsc_call(EPSSetInitialSpace(fino.eps, 1, &fino.phi));
 
   // elegimos el metodo de solucion del eps
   if (fino.eps_type != NULL) {
@@ -63,31 +71,24 @@ int fino_solve_eigen_slepc(void) {
   
   // la transformada espectral
   if (fino.st_type != NULL) {
-    petsc_call(STSetType(fino.st, fino.st_type));
+    petsc_call(STSetType(st, fino.st_type));
   }
   // si no esta seteado el tipo se queja la SLEPc
   if (fino.st_shift.n_tokens != 0) {
-    petsc_call(STSetShift(fino.st, wasora_evaluate_expression(&fino.st_shift)));
+    petsc_call(STSetShift(st, wasora_evaluate_expression(&fino.st_shift)));
   }
   if (fino.st_anti_shift.n_tokens != 0) {
-    petsc_call(STCayleySetAntishift(fino.st, wasora_evaluate_expression(&fino.st_anti_shift)));
+    petsc_call(STCayleySetAntishift(st, wasora_evaluate_expression(&fino.st_anti_shift)));
   }
 
-  // el KSP
-  if (fino.ksp_type != NULL) {
-    petsc_call(KSPSetType(fino.ksp, fino.ksp_type));
-  }
+  // preconditioner and linear solver
+  wasora_call(fino_set_pc(pc));
+  wasora_call(fino_set_ksp(ksp));
 
-  // el precondicionador
-  if (fino.pc_type != NULL) {
-    petsc_call(PCSetType(fino.pc, fino.pc_type));
-  }
-  
-  // convergencia con respecto a la norma de las matrices
+  // convergence with respect to the matrix norm
   petsc_call(EPSSetConvergenceTest(fino.eps, EPS_CONV_NORM));
   
-  // tolerancia
-  // TODO
+  // tolerance
   if (wasora_var(fino.vars.reltol) != 0) {
     petsc_call(EPSSetTolerances(fino.eps, wasora_var(fino.vars.reltol), PETSC_DECIDE));
   }
