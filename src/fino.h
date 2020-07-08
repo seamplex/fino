@@ -308,8 +308,9 @@ struct {
   PetscInt        *dirichlet_indexes;
   PetscScalar     *dirichlet_values;
   
-  // flag
-  PetscBool already_built;
+  // flags
+  PetscBool first_build;    // avoids showing building progress in subsequent builds for SNES
+  PetscBool already_built;  // avoids building twice in the first step of SNES
   
   
   // PETSc's solvers
@@ -514,7 +515,7 @@ extern int fino_phi_to_solution(Vec phi, int);
 extern int fino_bc_string2parsed(void);
 extern void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
 extern int fino_bc_process_mechanical(bc_t *, char *, char *);
-extern int fino_bc_process_thermal(bc_t *, char *, char *, char *);
+extern int fino_bc_process_thermal(bc_t **, char *, char *, char *);
 extern int fino_dirichlet_eval(Mat, Vec);
 extern int fino_dirichlet_set_K(Mat, Vec);
 extern int fino_dirichlet_set_M(Mat);

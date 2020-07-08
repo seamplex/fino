@@ -46,6 +46,8 @@ int fino_bc_string2parsed(void) {
   }
   
   // sweep physical entities and map strings to numerical values
+  // we cannot use the LL_FOREACH macro because physical entities (a.k.a. groups)
+  // are hashes by name and by tag so we need to choose one of the next links
   for (physical_entity = fino.mesh->physical_entities; physical_entity != NULL; physical_entity = physical_entity->hh.next) {
     LL_FOREACH(physical_entity->bcs, bc) {
 
@@ -68,9 +70,11 @@ int fino_bc_string2parsed(void) {
 
       // TODO: function pointers
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
-        fino_bc_process_mechanical(bc, name, expr);
+        wasora_call(fino_bc_process_mechanical(bc, name, expr));
       } else if (fino.problem_family == problem_family_thermal) {
-        fino_bc_process_thermal(bc, name, expr, equal_sign);
+        // TODO: fix this, we need to pass a pointer to the bc because convection
+        // reads two expressions so it needs to modify the pointer bc
+        wasora_call(fino_bc_process_thermal(&bc, name, expr, equal_sign));
       }
 
       // restore the equal sign

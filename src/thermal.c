@@ -29,9 +29,10 @@ fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
-int fino_bc_process_thermal(bc_t *bc, char *name, char *expr, char *equal_sign) {
+int fino_bc_process_thermal(bc_t **bc_pointer, char *name, char *expr, char *equal_sign) {
 
   int i;
+  bc_t *bc = *(bc_pointer);
   bc_t *base_bc = NULL;
   bc_t *tmp = NULL;
 
@@ -54,23 +55,21 @@ int fino_bc_process_thermal(bc_t *bc, char *name, char *expr, char *equal_sign) 
     wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
 
   } else if ((strcmp(name, "h") == 0) ||
-             (strcmp(name, "Tref") == 0) ||
-             (strcmp(name, "Tinf") == 0)) {
+             (strcmp(name, "Tref") == 0) || (strcmp(name, "T_ref") == 0) ||
+             (strcmp(name, "Tinf") == 0) || (strcmp(name, "T_inf") == 0)) {
 
-    // convection, robins
-    
+    // convection, robin
     bc->type_math = bc_math_robin;
     bc->type_phys = bc_phys_convection;
 
-    // conveccion necesita dos expresione
-    // las alocamos en la primera de las BCs
+    // convection needs two expressions
     base_bc = bc;
     base_bc->expr = calloc(2, sizeof(expr_t));
 
     do {
-      // volvemos a poner el equal sign, en la primera pasada
-      // es para volver a parser, en las siguientes para no romper
-      // la ultima se vuelve a arreglar fuera del loop grande
+      // put back the equal sign, the first time is to parse again
+      // the next one is not to break the string
+      // the last time is fixed outside the large loop
       if (equal_sign != NULL) {
         *equal_sign = '=';
       }
@@ -86,9 +85,8 @@ int fino_bc_process_thermal(bc_t *bc, char *name, char *expr, char *equal_sign) 
       tmp = bc; // esto es para "volver para atras"
     } while ((bc = bc->next) != NULL);
 
-    // ahora bc quedo apuntando a null, tenemos que volver para atras
-    // sino el FOREACH de arriba palma
-    bc = tmp;
+    // bc is now pointing to null, we need to put it back otherwise the foreach loop breaks
+    *bc_pointer = tmp;
 
   } else {
     // TODO: radiation

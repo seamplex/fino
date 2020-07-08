@@ -76,6 +76,7 @@ int fino_solve_petsc_linear(void) {
     return WASORA_RUNTIME_ERROR;
   }
 
+  // finish the progress line
   if (fino.progress_ascii == PETSC_TRUE) {
     int i;
     if (wasora.nprocs == 1) {

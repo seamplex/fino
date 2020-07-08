@@ -378,6 +378,8 @@ int plugin_init_before_run(void) {
   fino.global_size = 0;
   fino.spatial_unknowns = 0;
   fino.progress_r0 = 0;
+  fino.already_built = PETSC_FALSE;
+  fino.first_build = PETSC_TRUE;
 
   wasora_call(fino_problem_free());
   
@@ -491,6 +493,10 @@ int fino_problem_init(void) {
   petsc_call(MatMPIAIJSetPreallocation(fino.K, width, PETSC_NULL, width, PETSC_NULL));
   petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
   petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE));
+
+  // TODO: add an option
+//  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  
   if (fino.degrees > 1) {
     petsc_call(MatSetBlockSize(fino.K, fino.degrees));
   }

@@ -35,7 +35,7 @@ int fino_instruction_step(void *arg) {
   function_t *ic = NULL;
 
   //---------------------------------
-  // initialize only if we did not initialized before
+  // initialize only if we did not initialize before
   // TODO: how to handle changes in the mesh within steps?
   //---------------------------------
   if (fino.spatial_unknowns == 0) {

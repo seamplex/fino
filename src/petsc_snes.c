@@ -31,7 +31,7 @@ PetscErrorCode fino_snes_residual(SNES snes, Vec phi, Vec r,void *ctx) {
   // built K in order to create the SNES, but the rest of the step we need
   // to re-build always because we are sure the problem is non-linear
   if (fino.already_built == PETSC_FALSE) {
-    // pass phi to the solution becuase K (and the BCs) might depend on phi
+    // pass phi to the solution becuase K (and the BCs) might depend on phi (and its spatial derivatives)
     wasora_call(fino_phi_to_solution(phi, 1));
     wasora_call(fino_build_bulk());
   }  
@@ -117,6 +117,21 @@ int fino_solve_petsc_nonlinear(void) {
   if (reason < 0) {
     wasora_push_error_message("PETSc's non-linear solver did not converge with reason '%s' (%d)", SNESConvergedReasons[reason], reason);
     return WASORA_RUNTIME_ERROR;
+  }
+  
+  
+  // finish the progress line
+  if (fino.progress_ascii == PETSC_TRUE) {
+    int i;
+    if (wasora.nprocs == 1) {
+      for (i = (int)(100*fino.progress_last); i < 100; i++) {
+        printf(CHAR_PROGRESS_SOLVE);
+      }
+    }
+    if (wasora.rank == 0) {
+      printf("\n");
+      fflush(stdout);
+    }  
   }
   
   petsc_call(SNESGetIterationNumber(fino.snes, &its));

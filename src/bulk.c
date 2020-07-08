@@ -85,7 +85,10 @@ int fino_build_bulk(void) {
   for (i = fino.first_element; i < fino.last_element; i++) {
 
 // ------ progress bar ------------------------------------------    
-    if ((fino.progress_ascii == PETSC_TRUE) && (i % step) == 0) {
+    // only the first time we build
+    if (fino.progress_ascii == PETSC_TRUE &&
+        fino.first_build == PETSC_TRUE &&
+        (i % step) == 0) {
       printf(CHAR_PROGRESS_BUILD);  
       fflush(stdout);
       ascii_progress_chars++;
@@ -99,8 +102,8 @@ int fino_build_bulk(void) {
       wasora_call(fino_build_element_volumetric(&fino.mesh->element[i]));
       
     } else if (fino.mesh->element[i].type->dim < fino.dimensions &&
-               fino.mesh->element[i].physical_entity != NULL &&
-               fino.math_type != math_type_eigen) {
+               fino.mesh->element[i].physical_entity != NULL) {
+      
       LL_FOREACH(fino.mesh->element[i].physical_entity->bcs, bc) {
         
         if (bc->type_math == bc_math_neumann || bc->type_math == bc_math_robin) {
@@ -132,7 +135,7 @@ int fino_build_bulk(void) {
     petsc_call(VecCopy(fino.b, fino.b_nobc));
   }  
 
-  if (fino.progress_ascii == PETSC_TRUE) {
+  if (fino.progress_ascii == PETSC_TRUE && fino.first_build == PETSC_TRUE) {
     if (wasora.nprocs == 1) {
       while (ascii_progress_chars++ < 100) {
         printf(CHAR_PROGRESS_BUILD);
@@ -143,6 +146,9 @@ int fino_build_bulk(void) {
       fflush(stdout);
     }  
   }
+  
+  // mark a flag that we already built the matrices
+  fino.first_build = PETSC_FALSE;
   
   // C and et are lost here (they are static)
   wasora_call(fino_free_elemental_objects());
@@ -194,7 +200,7 @@ int fino_build_element_volumetric(element_t *element) {
     mesh_compute_l(fino.mesh, element);
 
     petsc_call(MatSetValues(fino.K, fino.elemental_size, element->l, fino.elemental_size, element->l, gsl_matrix_ptr(fino.Ki, 0, 0), ADD_VALUES));
-    if (fino.math_type != math_type_eigen) {
+    if (fino.b != NULL) {
       petsc_call(VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES));
     }
     if (fino.M != NULL)  {
