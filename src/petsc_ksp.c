@@ -193,7 +193,9 @@ int fino_set_pc(PC pc) {
       if (fino.problem_family == problem_family_mechanical) {
         petsc_call(PCSetType(pc, PCGAMG));
       } else {
-        petsc_call(PCSetType(pc, PCCHOLESKY));        
+        // leave default
+          ;
+//        petsc_call(PCSetType(pc, PCCHOLESKY));        
       }
     }
   }  
