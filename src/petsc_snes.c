@@ -110,6 +110,7 @@ int fino_solve_petsc_nonlinear(void) {
   wasora_call(fino_dirichlet_set_phi(fino.phi));
   
   // solve
+  fino.progress_last = 0; // reset the progress bar counter
   petsc_call(SNESSolve(fino.snes, NULL, fino.phi));
   
   // check convergence
