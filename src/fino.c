@@ -277,46 +277,55 @@ int fino_phi_to_solution(Vec phi, int compute_gradients) {
   double xi;
   int i, j, g;
 
-  Vec                phi_full;
   VecScatter         vscat;
+  Vec                phi_full;
+  PetscScalar        *phi_full_array;
+  PetscInt           nlocal;
 
-  petsc_call(VecScatterCreateToZero(phi, &vscat, &phi_full));
+  // TODO: if nprocs == 1 then we already have the full vector
+  petsc_call(VecScatterCreateToAll(phi, &vscat, &phi_full));
   petsc_call(VecScatterBegin(vscat, phi, phi_full, INSERT_VALUES,SCATTER_FORWARD););
   petsc_call(VecScatterEnd(vscat, phi, phi_full, INSERT_VALUES,SCATTER_FORWARD););
-    
+
+  petsc_call(VecGetLocalSize(phi_full, &nlocal));
+  if (nlocal != fino.global_size) {
+    wasora_push_error_message("internal check of problem size with scatter failed, %d != %d\n", nlocal, fino.global_size);
+    return WASORA_RUNTIME_OK;
+  }
+  petsc_call(VecGetArray(phi_full, &phi_full_array));
+  
   // make up G functions with the solution
-  if (wasora.rank == 0) {
-    for (j = 0; j < fino.spatial_unknowns; j++) {
-      for (g = 0; g < fino.degrees; g++) {
-        petsc_call(VecGetValues(phi_full, 1, &fino.mesh->node[j].index_dof[g], &fino.mesh->node[j].phi[g]));
+  for (j = 0; j < fino.spatial_unknowns; j++) {
+    for (g = 0; g < fino.degrees; g++) {
+      fino.mesh->node[j].phi[g] = phi_full_array[fino.mesh->node[j].index_dof[g]];
 
-        // if there is a base solution
-        if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
-          if (fino.base_solution[g]->mesh == fino.mesh) {
-            fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
-          } else {
-            fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
-          }
+      // if there is a base solution
+      if (fino.base_solution != NULL && fino.base_solution[g] != NULL) {
+        if (fino.base_solution[g]->mesh == fino.mesh) {
+          fino.mesh->node[j].phi[g] += fino.base_solution[g]->data_value[j];
+        } else {
+          fino.mesh->node[j].phi[g] += wasora_evaluate_function(fino.base_solution[g], fino.mesh->node[j].x);
         }
+      }
 
-        // if we are not in rough mode we fill the solution here
-        // because it is esay, in rough mode we need to iterate over the elements
-        if (fino.rough == 0) {
-          fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
-        }
+      // if we are not in rough mode we fill the solution here
+      // because it is esay, in rough mode we need to iterate over the elements
+      if (fino.rough == 0) {
+        fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
+      }
 
-        if (fino.nev > 1) {
-          for (i = 0; i < fino.nev; i++) {
-            // the values already have the excitation factor
-            petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
-            fino.mode[g][i]->data_value[j] = xi;
-            wasora_vector_set(fino.vectors.phi[i], j, xi);
-          }
+      if (fino.nev > 1) {
+        for (i = 0; i < fino.nev; i++) {
+          // the values already have the excitation factor
+          petsc_call(VecGetValues(fino.eigenvector[i], 1, &fino.mesh->node[j].index_dof[g], &xi));
+          fino.mode[g][i]->data_value[j] = xi;
+          wasora_vector_set(fino.vectors.phi[i], j, xi);
         }
       }
     }
   }
-    
+
+  petsc_call(VecRestoreArray(phi_full, &phi_full_array));
   petsc_call(VecDestroy(&phi_full));
   petsc_call(VecScatterDestroy(&vscat));
     
