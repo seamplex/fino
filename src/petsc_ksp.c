@@ -63,7 +63,11 @@ int fino_solve_petsc_linear(void) {
   
   // try to use the solution as the initial guess (it already has Dirichlet BCs
   // but in quasi-static it has the previous solution which should be similar)
-  petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
+  if ((fino.ksp_type == NULL || strcasecmp(fino.ksp_type, "mumps") != 0) &&
+      (fino.pc_type  == NULL || strcasecmp(fino.pc_type,  "mumps") != 0)) {
+    // mumps cannot be used with a non-zero guess  
+    petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
+  } 
   
   
   // do the work!
