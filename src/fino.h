@@ -160,7 +160,7 @@ struct {
     transient_type_quasistatic
   } transient_type;
 
-
+  
   int spatial_unknowns;  // number of spatial unknowns (= nodes)
   int degrees;           // DoF per node
   int dimensions;        // spatial dimension of the problem
@@ -384,6 +384,7 @@ struct {
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
   
+  // mind the definition of GAUSS_POINTS_FULL and GAUSS_POINTS_REDUCED in wasora.h
   enum {
     gradient_gauss_extrapolated,
     gradient_at_nodes,

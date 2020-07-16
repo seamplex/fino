@@ -220,7 +220,7 @@ int fino_set_pc(PC pc) {
     // las coordenadas (solo para break)
   // http://computation.llnl.gov/casc/linear_solvers/pubs/Baker-2009-elasticity.pdf
     // ojo que si estamos en node ordering no podemos usar set_near_nullspace_rigidbody
-    if (fino.mesh->ordering == ordering_unknown_based && fino.set_near_nullspace == set_near_nullspace_rigidbody) {
+    if (fino.mesh->ordering == ordering_dof_major && fino.set_near_nullspace == set_near_nullspace_rigidbody) {
       fino.set_near_nullspace = set_near_nullspace_fino;
     }
 

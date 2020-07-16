@@ -168,7 +168,7 @@ int fino_build_element_volumetric(element_t *element) {
     
   } else {
 
-    V = element->type->gauss[GAUSS_POINTS_CANONICAL].V;
+    V = element->type->gauss[fino.mesh->integration].V;
     
     if (fino.n_local_nodes != element->type->nodes) {
       wasora_call(fino_allocate_elemental_objects(element));
@@ -251,15 +251,15 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   
 }
 
-double fino_compute_r_for_axisymmetric(element_t *element, int v) {
+inline double fino_compute_r_for_axisymmetric(element_t *element, int v) {
 
   double r_for_axisymmetric = 1.0;
   
-  if (element->x == NULL || element->x[v] == NULL) {
-    mesh_compute_x_at_gauss(element, v);
-  }
-  
   if (fino.problem_kind == problem_kind_axisymmetric) {
+    if (element->x == NULL || element->x[v] == NULL) {
+      mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
+    }
+  
     if (fino.symmetry_axis == symmetry_axis_y) {
       if ((r_for_axisymmetric = element->x[v][0]) < ZERO) {
         wasora_push_error_message("axisymmetric problems with respect to y cannot have nodes with x <~ 0");

@@ -85,9 +85,9 @@ int fino_instruction_linearize(void *arg) {
     sigmax_b = sigmay_b = sigmaz_b = tauxy_b = tauyz_b = tauzx_b = 0;
     for (i = 0; i < linearize->physical_entity->n_elements; i++) {
       element = &fino.mesh->element[linearize->physical_entity->element[i]];
-      for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-        mesh_compute_integration_weight_at_gauss(element, v);
-        mesh_compute_x_at_gauss(element,v );
+      for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
+        mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+        mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
 
         t_prime = gsl_hypot3(element->x[v][0]-params.x1, element->x[v][1]-params.y1, element->x[v][2]-params.z1);
         t_over_two_minus_t_prime = params.t/2 - t_prime;
@@ -95,7 +95,7 @@ int fino_instruction_linearize(void *arg) {
         integrand_mx = integrand_my = integrand_mz = integrand_mxy = integrand_myz = integrand_mzx = 0;
         integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
         for (j = 0; j < element->type->nodes; j++) {
-          h = element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j];
+          h = element->type->gauss[GAUSS_POINTS_FULL].h[v][j];
           k = element->node[j]->index_mesh;
           integrand_mx   += h * fino.sigmax->data_value[k];
           integrand_my   += h * fino.sigmay->data_value[k];

@@ -142,17 +142,17 @@ int fino_thermal_build_element(element_t *element, int v) {
     material = element->physical_entity->material;
   }
   
-  mesh_compute_integration_weight_at_gauss(element, v);
-  mesh_compute_H_at_gauss(element, v, fino.degrees);
-  mesh_compute_B_at_gauss(element, v, fino.degrees);
-  mesh_compute_x_at_gauss(element, v);
+  mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+  mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+  mesh_compute_B_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+  mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
   r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
 
   if (distribution_Q.defined != 0) {
     // the volumetric heat source term
     for (j = 0; j < element->type->nodes; j++) {
       gsl_vector_add_to_element(fino.bi, j,
-        element->w[v] * r_for_axisymmetric * element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * fino_distribution_evaluate(&distribution_Q, material, element->x[v]));
+        element->w[v] * r_for_axisymmetric * element->type->gauss[fino.mesh->integration].h[v][j] * fino_distribution_evaluate(&distribution_Q, material, element->x[v]));
     }
   }
 
@@ -185,11 +185,11 @@ int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
     return WASORA_RUNTIME_ERROR;
   }
   
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+  for (v = 0; v < element->type->gauss[GAUSS_POINTS_FULL].V; v++) {
     
-    mesh_compute_integration_weight_at_gauss(element, v);
-    mesh_compute_H_at_gauss(element, v, fino.degrees);
-    mesh_compute_x_at_gauss(element, v);
+    mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+    mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     mesh_update_coord_vars(element->x[v]);
     r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     
@@ -222,11 +222,11 @@ int fino_thermal_set_convection(element_t *element, bc_t *bc) {
   gsl_matrix_set_zero(fino.Ki);
   gsl_vector_set_zero(fino.bi);
 
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
+  for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
     
-    mesh_compute_integration_weight_at_gauss(element, v);
-    mesh_compute_H_at_gauss(element, v, fino.degrees);
-    mesh_compute_x_at_gauss(element, v);
+    mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+    mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     mesh_update_coord_vars(element->x[v]);
     r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     

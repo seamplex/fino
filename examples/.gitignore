@@ -89,3 +89,4 @@ valve.geo
 slab.msh
 
 beam-modal.msh
+2dbeam-hex-struct.msh

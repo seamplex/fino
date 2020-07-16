@@ -286,11 +286,11 @@ int fino_break_build_element(element_t *element, int v) {
 
   material = (element->physical_entity != NULL)?element->physical_entity->material:NULL;
   
-  mesh_compute_integration_weight_at_gauss(element, v);
-  mesh_compute_dhdx_at_gauss(element, v);
+  mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+  mesh_compute_dhdx_at_gauss(element, v, fino.mesh->integration);
 
   dhdx = element->dhdx[v];
-  h = element->type->gauss[GAUSS_POINTS_CANONICAL].h[v];
+  h = element->type->gauss[fino.mesh->integration].h[v];
   
   // if the stress-strain matrix C is null then we have to allocate some stuff
   // and resolve the special distributions with material properties
@@ -434,7 +434,7 @@ int fino_break_build_element(element_t *element, int v) {
         (distribution_fx.defined != 0 || distribution_fy.defined != 0 || distribution_fz.defined != 0)) {
       // the volumetric force vector
       c = r_for_axisymmetric * element->w[v] * h[j];
-      mesh_compute_x_at_gauss(element, v);
+      mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
       if (distribution_fx.defined) {
         gsl_vector_add_to_element(fino.bi, fino.degrees*j+0, c * fino_distribution_evaluate(&distribution_fx, material, element->x[v]));
       }
@@ -451,7 +451,7 @@ int fino_break_build_element(element_t *element, int v) {
   // if E and nu are scalar variables C is uniform and we already have it
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
-    mesh_compute_x_at_gauss(element, v);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     wasora_call(fino_break_compute_C(C,
         fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
         fino_distribution_evaluate(&distribution_nu, material, element->x[v])));
@@ -464,7 +464,7 @@ int fino_break_build_element(element_t *element, int v) {
   // thermal expansion 
   if (distribution_alpha.defined != 0) {
     // note that alpha should be the mean expansion coefficient in the range
-    mesh_compute_x_at_gauss(element, v);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     alphaDT = fino_distribution_evaluate(&distribution_alpha, material, element->x[v]);
     if (alphaDT != 0) {
       alphaDT *= fino_distribution_evaluate(&distribution_T, material, element->x[v])-T0;
@@ -480,8 +480,8 @@ int fino_break_build_element(element_t *element, int v) {
   
   if (fino.M != NULL) {
     // calculamos la matriz de masa Ht*rho*H
-    mesh_compute_x_at_gauss(element, v);
-    mesh_compute_H_at_gauss(element, v, fino.degrees);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
+    mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
     rho = fino_distribution_evaluate(&distribution_rho, material, element->x[v]);
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rho, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
@@ -823,13 +823,13 @@ int fino_break_compute_stresses(void) {
       element = &mesh->element[i];
       if (element->type->dim == fino.dimensions){
         
-        V = element->type->gauss[GAUSS_POINTS_CANONICAL].V;
+        V = element->type->gauss[fino.mesh->integration].V;
         element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
         
         for (v = 0; v < V; v++) {
         
           element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v);
+          mesh_compute_dhdx_at_gauss(element, v, fino.mesh->integration);
 
           // aca habria que hacer una matriz con los phi globales
           // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
@@ -859,7 +859,7 @@ int fino_break_compute_stresses(void) {
     if (element->type->dim == fino.dimensions) {
 
       element->dphidx_node = calloc(element->type->nodes, sizeof(gsl_matrix *));
-      V = element->type->gauss[GAUSS_POINTS_CANONICAL].V;
+      V = element->type->gauss[GAUSS_POINTS_FULL].V;
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
@@ -888,7 +888,7 @@ int fino_break_compute_stresses(void) {
         element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
         j_global = element->node[j]->index_mesh;
         
-        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[GAUSS_POINTS_CANONICAL].extrap != NULL) {
+        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[GAUSS_POINTS_FULL].extrap != NULL) {
           gsl_vector *inner = gsl_vector_alloc(V);
           gsl_vector *outer = gsl_vector_alloc(V);
           
@@ -899,7 +899,7 @@ int fino_break_compute_stresses(void) {
                 gsl_vector_set(inner, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
               }  
                 
-              gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[GAUSS_POINTS_CANONICAL].extrap, inner, 0, outer);
+              gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[fino.mesh->integration].extrap, inner, 0, outer);
               gsl_matrix_set(element->dphidx_node[j], g, m, gsl_vector_get(outer, j));
               
             }
@@ -1506,16 +1506,16 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
     Iz = 0;
     for (i = 0; i < physical_entity->n_elements; i++) {
       tmp_element = &fino.mesh->element[physical_entity->element[i]];
-      for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-        mesh_compute_integration_weight_at_gauss(element, v);
+      for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
+        mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
 
         xix = 0;
         xiy = 0;
         xiz = 0;
         for (j = 0; j < element->type->nodes; j++) {
-          xix += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[0]);
-          xiy += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[1]);
-          xiz += element->type->gauss[GAUSS_POINTS_CANONICAL].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[2]);
+          xix += element->type->gauss[fino.mesh->integration].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[0]);
+          xiy += element->type->gauss[fino.mesh->integration].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[1]);
+          xiz += element->type->gauss[fino.mesh->integration].h[v][j] * gsl_pow_2(tmp_element->node[j]->x[2]);
         }
 
         Ix += element->w[v] * xix;
@@ -1526,10 +1526,10 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
   }  
   
   
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_CANONICAL].V; v++) {
-    mesh_compute_integration_weight_at_gauss(element, v);
-    mesh_compute_H_at_gauss(element, v, fino.degrees);
-    mesh_compute_x_at_gauss(element, v);
+  for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
+    mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
+    mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+    mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     mesh_update_coord_vars(element->x[v]);
     r_for_axisymmetric = fino_compute_r_for_axisymmetric(element, v);
     
