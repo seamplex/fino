@@ -1,0 +1,17 @@
+MESH FILE_PATH 2dbeam-hex-struct.msh DIMENSIONS 2 INTEGRATION $1
+FINO_PROBLEM mechanical plane_stress
+FINO_SOLVER GRADIENT nodes
+MESH_INTEGRATE EXPRESSION 1 OVER bulk RESULT vol
+PRINT vol
+
+E = 200e3
+nu = 0.3
+
+PHYSICAL_GROUP left  BC fixed
+PHYSICAL_GROUP right BC fy=-100
+
+FINO_STEP
+
+PRINT u(10,2.5) v(10,2.5)
+
+MESH_POST FILE_PATH 2dbeam-$1.vtk VECTOR u v 0 sigma sigmax sigmay tauxy 

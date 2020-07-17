@@ -256,19 +256,18 @@ int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
 
 int fino_break_build_element(element_t *element, int v) {
 
-  static size_t J;            // cantidad de nodos locales
+  static size_t J;            // number of local nodes
   // TODO: hacer un campo descripcion en fino_distribution_t para documentar
  
   static size_t stress_strain_size = 0;
-  // matrices de la formulacion del problema
+  // matrices needed for the problem formulation
   static gsl_matrix *C = NULL;
   static gsl_matrix *B = NULL;
-  // vector para calcular las tensiones termicas
+  // this vector is needed to compute thermal expansion
   static gsl_vector *et = NULL;
 
-  // matriz intermedia
+  // intermediate objects
   static gsl_matrix *CB;
-  // vector intermedio
   static gsl_vector *Cet;
   
   double *h;
@@ -289,6 +288,7 @@ int fino_break_build_element(element_t *element, int v) {
   mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
   mesh_compute_dhdx_at_gauss(element, v, fino.mesh->integration);
 
+  // convenience variables
   dhdx = element->dhdx[v];
   h = element->type->gauss[fino.mesh->integration].h[v];
   
@@ -320,7 +320,7 @@ int fino_break_build_element(element_t *element, int v) {
       return WASORA_RUNTIME_ERROR;
     }
     
-    if (fino.math_type == math_type_eigen && distribution_rho.defined == 0) {
+    if (fino.problem_family == problem_family_modal && distribution_rho.defined == 0) {
       wasora_push_error_message("cannot find density 'rho'");
       return WASORA_RUNTIME_ERROR;
     }
@@ -357,7 +357,7 @@ int fino_break_build_element(element_t *element, int v) {
         wasora_push_error_message("nu is negative");
         return WASORA_RUNTIME_ERROR;
       }
-      wasora_call(fino_break_compute_C(C, E, nu));
+      wasora_call(fino_break_compute_C(E, nu, C));
     }
     
   }
@@ -452,15 +452,19 @@ int fino_break_build_element(element_t *element, int v) {
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
-    wasora_call(fino_break_compute_C(C,
-        fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
-        fino_distribution_evaluate(&distribution_nu, material, element->x[v])));
+    wasora_call(fino_break_compute_C(fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
+                                     fino_distribution_evaluate(&distribution_nu, material, element->x[v]), C));
   }
 
-  // compute the elementals Bt*C*B
+  // compute the elemental B'*C*B
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, r_for_axisymmetric, C, B, 0, CB);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v], B, CB, 1.0, fino.Ki);
 
+#ifdef FEM_DUMP  
+  printf("Ki(%d,%d) = \n", element->index, v);
+  gsl_matrix_fprintf(stdout, fino.Ki, "%g");  
+#endif
+  
   // thermal expansion 
   if (distribution_alpha.defined != 0) {
     // note that alpha should be the mean expansion coefficient in the range
@@ -479,9 +483,10 @@ int fino_break_build_element(element_t *element, int v) {
   }
   
   if (fino.M != NULL) {
-    // calculamos la matriz de masa Ht*rho*H
+    // compute the mass matrix H'*rho*H
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
+    // TODO: check for uniform properties
     rho = fino_distribution_evaluate(&distribution_rho, material, element->x[v]);
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rho, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
@@ -490,11 +495,11 @@ int fino_break_build_element(element_t *element, int v) {
   
 }
 
-int fino_break_compute_C(gsl_matrix *C, double E, double nu) {
+int fino_break_compute_C(double E, double nu, gsl_matrix *C) {
   
   double lambda, mu, lambda2mu;
   
-  // esto es mas elegante (y eficiente) pero la referencia posta es tabla 4.3 pag 194 Bathe
+  // using Lame coefficients is more elegant and efficient, but the reference is table 4.3 pag 194 Bathe
   lambda = E*nu/((1+nu)*(1-2*nu));
   mu = 0.5*E/(1+nu);
   lambda2mu = lambda + 2*mu;
@@ -735,10 +740,11 @@ int fino_break_compute_stresses(void) {
   element_list_item_t *associated_element;
   node_t *node;
   
+  // the mesh for "rough" mode is different
   mesh = (fino.rough == 0) ? fino.mesh : fino.mesh_rough;
   
   
-  // depende de si es gauss o node
+  // the progress depends on wheter we extrapolate from gauss or we evaluate at the nodes
   if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
     step = ceil((double)(2*mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0);
   } else if (fino.gradient_evaluation == gradient_at_nodes) {
@@ -750,16 +756,16 @@ int fino_break_compute_stresses(void) {
   
   
   if (fino.sigma->data_value == NULL) {
-    // gradiente
+    // gradient vector
     for (g = 0; g < fino.degrees; g++) {
       for (m = 0; m < fino.dimensions; m++) {
-        // derivada del grado de libertad g con respecto a la dimension m
+        // derivative of the degree of freedom g with respect to dimension m
         fino_fill_result_function(gradient[g][m]);
         fino_fill_result_function(delta_gradient[g][m]);
       }
     }
     
-    // tensor de tensiones
+    // stress tensor
     fino_fill_result_function(sigmax);
     fino_fill_result_function(sigmay);
     fino_fill_result_function(tauxy);
@@ -770,7 +776,7 @@ int fino_break_compute_stresses(void) {
       fino_fill_result_function(sigmaz);
     }
 
-    // tensiones principales
+    // principal stresses
     fino_fill_result_function(sigma1);
     fino_fill_result_function(sigma2);
     fino_fill_result_function(sigma3);
@@ -783,7 +789,7 @@ int fino_break_compute_stresses(void) {
     fino_fill_result_function(tresca);
   }
   
-  // evaluamos nu, E y alpha, si son uniformes esto ya nos sirve para siempre
+  // evaluate nu, E and alpha, if they are uniform these values are kept
   if (distribution_nu.variable != NULL ) {
     nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
     if (nu > 0.499) {
@@ -805,13 +811,16 @@ int fino_break_compute_stresses(void) {
   }
   
   if (uniform_properties) {
-    // esto ya sirve para toda la cosecha  
+    // this works for the rest of the routine
     lambda = E*nu/((1+nu)*(1-2*nu));
     mu = 0.5*E/(1+nu);
   }  
 
 
-  // paso 0 (solo si es gauss extrapolate): calculamos las derivadas en los puntos de gauss
+  // step 0 (only if we need to extrapolate from gauss): compute the derivatives in the gauss points
+  // note that as we are going to extrapolate to the nodes we use the set of gauss points which
+  // give one point close to one node independently of the integration scheme used in the computation
+  // (i.e. full or reduced)
   if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
     for (i = 0; i < mesh->n_elements; i++) {
       if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
@@ -823,13 +832,13 @@ int fino_break_compute_stresses(void) {
       element = &mesh->element[i];
       if (element->type->dim == fino.dimensions){
         
-        V = element->type->gauss[fino.mesh->integration].V;
+        V = element->type->gauss[integration_full].V;
         element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
         
         for (v = 0; v < V; v++) {
         
           element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v, fino.mesh->integration);
+          mesh_compute_dhdx_at_gauss(element, v, integration_full);
 
           // aca habria que hacer una matriz con los phi globales
           // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
@@ -847,7 +856,7 @@ int fino_break_compute_stresses(void) {
     }  
   }  
   
-  // paso 1. barremos elementos y calculamos los tensores en cada nodo de cada elemento
+  // step 1. sweep elements and compute tensors at each node of each element
   for (i = 0; i < mesh->n_elements; i++) {
     if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
       printf(CHAR_PROGRESS_GRADIENT);  
@@ -859,7 +868,7 @@ int fino_break_compute_stresses(void) {
     if (element->type->dim == fino.dimensions) {
 
       element->dphidx_node = calloc(element->type->nodes, sizeof(gsl_matrix *));
-      V = element->type->gauss[GAUSS_POINTS_FULL].V;
+      V = element->type->gauss[integration_full].V;
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
@@ -878,7 +887,7 @@ int fino_break_compute_stresses(void) {
         }
       }
       
-      // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
+      // if nu, E and/or alpha are not uniform, we need to evalaute them at the nodes
       if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
         element->property_node = calloc(element->type->nodes, sizeof(double *));
       }
@@ -888,7 +897,9 @@ int fino_break_compute_stresses(void) {
         element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
         j_global = element->node[j]->index_mesh;
         
-        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[GAUSS_POINTS_FULL].extrap != NULL) {
+        // TODO: tiene que haber una matriz rectangular que pueda manejar todos los casos
+        // de cantidad de nodos y de puntos de gauss
+        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[integration_full].extrap != NULL) {
           gsl_vector *inner = gsl_vector_alloc(V);
           gsl_vector *outer = gsl_vector_alloc(V);
           
@@ -899,7 +910,7 @@ int fino_break_compute_stresses(void) {
                 gsl_vector_set(inner, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
               }  
                 
-              gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[fino.mesh->integration].extrap, inner, 0, outer);
+              gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[integration_full].extrap, inner, 0, outer);
               gsl_matrix_set(element->dphidx_node[j], g, m, gsl_vector_get(outer, j));
               
             }
@@ -942,7 +953,7 @@ int fino_break_compute_stresses(void) {
         
 
         
-        // si nu, E y/o alpha no son uniformes, los tenemos que evaluar en los nodos
+        // if nu, E and/or alpha are not uniform, we need to evaluate them at the nodes
         if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
           
           element->property_node[j] = calloc(ELASTIC_PROPERTIES, sizeof(double));
@@ -983,7 +994,7 @@ int fino_break_compute_stresses(void) {
         }
         
         if (fino.rough) {
-          // si estamos en rough ya calculamos los valores nodales y ya
+          // if we are in rough mode, we already have the nodal values
           element->node[j]->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
           element->node[j]->dphidx = element->dphidx_node[j];
 
@@ -1000,7 +1011,7 @@ int fino_break_compute_stresses(void) {
     }
   }
 
-  // paso intermedio: roughish
+  // intermediate step for roughish
   if (fino.roughish) {
     int k;
     double sigmax, sigmay, sigmaz;
@@ -1159,7 +1170,7 @@ int fino_break_compute_stresses(void) {
     free(avg);
   }
 
-  // paso 2. barremos nodos de la malla de salida (la misma en smooth, rough en rough)
+  // step 2. sweep nodes of the output mesh (same as input in smooth, rough in rough)
   for (j_global = 0; j_global < mesh->n_nodes; j_global++) {
     if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
       printf(CHAR_PROGRESS_GRADIENT);  

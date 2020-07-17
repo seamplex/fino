@@ -309,7 +309,7 @@ int fino_phi_to_solution(Vec phi, int compute_gradients) {
       }
 
       // if we are not in rough mode we fill the solution here
-      // because it is esay, in rough mode we need to iterate over the elements
+      // because it is easy, in rough mode we need to iterate over the elements
       if (fino.rough == 0) {
         fino.solution[g]->data_value[j] = fino.mesh->node[j].phi[g];
       }

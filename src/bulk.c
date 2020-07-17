@@ -183,8 +183,7 @@ int fino_build_element_volumetric(element_t *element) {
     gsl_matrix_set_zero(fino.Mi);
     gsl_vector_set_zero(fino.bi);
 
-    // TODO: hacer el loop de gauss adentro de cada funcion asi podemos
-    // hacer evaluaciones nodo por nodo o lo que sea para cada punto de gauss
+    // TODO: see whether it would be convenient to do the gauss loop inside each function
     for (v = 0; v < V; v++) {
       
       // build elementary matrices
@@ -245,7 +244,7 @@ int fino_build_element_bc(element_t *element, bc_t *bc) {
   }
   
   mesh_compute_l(fino.mesh, element);
-  VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES);
+  petsc_call(VecSetValues(fino.b, fino.elemental_size, element->l, gsl_vector_ptr(fino.bi, 0), ADD_VALUES));
   
   return WASORA_RUNTIME_OK;
   
