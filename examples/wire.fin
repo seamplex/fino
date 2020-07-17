@@ -2,9 +2,10 @@
 # see https://www.seamplex.com/fino/doc/alambre.pdf (in spanish)
 # (note that there is a systematic error of a factor of two in the measured values)
 
-DEFAULT_ARGUMENT_VALUE 1 copper    # material, either copper or aluminum
+DEFAULT_ARGUMENT_VALUE 1 hex       # mesh, either hex, axisymetric or general
+DEFAULT_ARGUMENT_VALUE 2 copper    # material, either copper or aluminum
 
-MESH FILE_PATH wire-general.msh DIMENSIONS 3
+MESH FILE_PATH wire-$1.msh DIMENSIONS 3
 
 l = 0.5*303e-3   # cantilever wire length [ m ]
 d = 1.948e-3     # wire diameter [ m ]
@@ -19,8 +20,8 @@ m_aluminum = 0.5*2.67e-3
 E_aluminum = 2*40.2e9
 
 # problem’s properties
-E = E_$1                     # [ MPa ]
-rho = m_$1/(pi*(0.5*d)^2*l)  # [ kg / m^3 ] density = mass (measured) / volume 
+E = E_$2                     # [ MPa ]
+rho = m_$2/(pi*(0.5*d)^2*l)  # [ kg / m^3 ] density = mass (measured) / volume 
 nu = 0                       # Poisson’s ratio (does not appear in Euler-Bernoulli)
 
 # analytical solution
@@ -38,24 +39,24 @@ f_euler(i) = 1/(2*pi) * kl(i)^2 * sqrt((E * I)/(rho * A * l^4))
 
 # now compute the modes numerically with FEM
 # note that each mode is duplicated as it is degenerated
-FINO_PROBLEM modal N_MODES 10  
+FINO_PROBLEM modal N_MODES 10
 PHYSICAL_GROUP NAME fixed   BC fixed
 FINO_STEP
 
 # compare the frequencies
-PRINT "\# $1 wire, frequencies in Hz"
+PRINT "\# $2 wire over $1 mesh, frequencies in Hz"
 PRINT "\# -------------------------------------------------"
 PRINT        "\# n"    "FEM"    "Euler"   "Relative difference [%]"
 PRINT_VECTOR i         f(2*i-1) f_euler   100*(f_euler(i)-f(2*i-1))/f_euler(i)
 
 # write the modes into a vtk file
-MESH_POST FILE_PATH wire-$1.vtk \
+MESH_POST FILE_PATH wire-$1-$2.vtk \
  VECTOR u1 v1 w1 VECTOR u2 v2 w2 VECTOR u3 v3 w3 \
  VECTOR u4 v4 w4 VECTOR u5 v5 w5 VECTOR u6 v6 w6 \
  VECTOR u7 v7 w7 VECTOR u8 v8 w8 VECTOR u9 v9 w9 VECTOR u10 v10 w10
 
 # and into a msh file
-MESH_POST FILE_PATH wire-$1.msh {
+MESH_POST FILE_PATH wire-$1-$2.msh {
  u1 v1 w1
  u2 v2 w2
  u3 v3 w3

@@ -12,14 +12,14 @@ if [ $? -eq 1 ]; then
 fi  
 
 outcome=0
-if [ ! -e wire-general.msh ]; then
-  gmsh -v 0 -3 wire-general.geo
+if [ ! -e wire-hex.msh ]; then
+  gmsh -v 0 -3 wire-hex.geo
 fi  
 if [ $? -ne 0 ]; then
   exit 99
 fi
 
-runfino wire.fin | tee wire.dat
+runfino wire.fin hex copper | tee wire.dat
 if [ $? -eq 1 ]; then
   exit 99
 fi
