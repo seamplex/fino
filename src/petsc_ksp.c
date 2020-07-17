@@ -153,8 +153,8 @@ int fino_set_ksp(KSP ksp) {
   } else if (fino.ksp_type != NULL) {
     petsc_call(KSPSetType(ksp, fino.ksp_type));
   } else {
-    // by default we use GMRES
-    petsc_call(KSPSetType(ksp, KSPGMRES));
+    // by default use whatever PETSc/SLEPc like
+//    petsc_call(KSPSetType(ksp, KSPGMRES));
   }  
 
   // read command-line options

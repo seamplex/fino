@@ -1,5 +1,10 @@
 # https://autofem.com/examples/determining_natural_frequencie.html
 
+#   67.307     67.0
+#  418.736    420.2
+# 1157.75    1176.7
+
+
 # the original mesh is in meters, so if k=1 SI units are to be used
 # now, if k=1e3 then Fino sees the mesh as if it was in mm
 k = 1e3
@@ -14,10 +19,10 @@ rho = 7800/k^3
 # now, E is in Pa = N/m^2 = (kg * m / s^2) / m^2 so scales as 1/k
 E = 2.1e11/k
 
-FINO_PROBLEM modal N_MODES 10
-PHYSICAL_GROUP NAME fixed   BC fixed
+FINO_PROBLEM modal N_MODES 6
+PHYSICAL_GROUP NAME fixed BC fixed
 
-FINO_SOLVER PROGRESS_ASCII
+FINO_SOLVER PROGRESS
 FINO_STEP
 
 PRINT_VECTOR FORMAT %.2f f  L Gamma mu Mu

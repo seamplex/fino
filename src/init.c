@@ -475,7 +475,7 @@ int fino_problem_init(void) {
   
 
 //---------------------------------
-// aloccate global objects
+// allocate global objects
 //---------------------------------
 
   width = GSL_MAX(fino.mesh->max_nodes_per_element, fino.mesh->max_first_neighbor_nodes) * fino.degrees;

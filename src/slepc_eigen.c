@@ -41,6 +41,7 @@ int fino_solve_eigen_slepc(void) {
   wasora_call(fino_build_bulk());
   wasora_call(fino_dirichlet_eval(fino.K, fino.b));
   wasora_call(fino_dirichlet_set_K(fino.K, fino.b));
+  wasora_call(fino_dirichlet_set_M(fino.M));
   time_checkpoint(build_end);
   
   // creamos el contexto del eigensolver
@@ -82,8 +83,8 @@ int fino_solve_eigen_slepc(void) {
   }
 
   // preconditioner and linear solver
-  wasora_call(fino_set_pc(pc));
-  wasora_call(fino_set_ksp(ksp));
+//  wasora_call(fino_set_pc(pc));
+//  wasora_call(fino_set_ksp(ksp));
 
   // convergence with respect to the matrix norm
   petsc_call(EPSSetConvergenceTest(fino.eps, EPS_CONV_NORM));
