@@ -1,13 +1,8 @@
- * replace doc/reference by the man with a TOC
  * read/write $ElementNodeData
  * complete manual
  * pass long options to PETSc (fino --ksp_view -> pass -ksp_view to PETSc)
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
- * nonlinear
-    - initial guess como en thermal T0
-    - optimizar assemblies
-    - elastoplastic materials - E_xyz(e_xyz)
-    - BC type radiation
+ * optimizar assemblies -> gmsh partition
  * log stages
  * refinement
     - stressrefine
@@ -23,22 +18,23 @@
     - instead of having max_neighbours try to get the actual number of neighbors per node
     - preallocation
  * non-linearities
-    - material:
+    - materials
        * bi-linear elastoplastic 
        * anisotropy
-    - geometry
+    - BCs
+       * type radiation
+    - transient
+       * check the time derivative of the mass matrix in thermal
+    - geometries
        * total lagrangain
     - contact
        * hertz?
-
  * write a toolbox for FreeCAD
  * test suite
     - transient heat
-    - shake
+    - modal
     - thermo-mechanical
     - parametric (cantilever)
-    - multimaterial (two-cubes)
     - multifreedom (radial, conic)
-    - linearization
+    - stress linearization
     - space-dependent properties
-    - plane stress/strain (nafems challenge)

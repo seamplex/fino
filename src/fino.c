@@ -32,7 +32,7 @@ int fino_instruction_step(void *arg) {
 
   int j;
   double xi;
-  function_t *ic = NULL;
+  function_t *ic = NULL;    // initial condition
 
   //---------------------------------
   // initialize only if we did not initialize before
@@ -42,27 +42,24 @@ int fino_instruction_step(void *arg) {
     wasora_call(fino_problem_init());
   }
 
-  if (wasora_var_value(wasora_special_var(in_static)) || fino.transient_type == transient_type_quasistatic) {
-    // check if we were given an initial temperature distribution
-    // TODO: generalize to other problems
-    if ((ic = wasora_get_function_ptr("T_0")) != NULL) {
-
-      if (ic->n_arguments != fino.dimensions) {
-        wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
-        return WASORA_RUNTIME_ERROR;
-      }
-
-      for (j = fino.first_node; j < fino.last_node; j++) {
-        xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
-        petsc_call(VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES));
-      }
-
-      // TODO: assembly routine
-      petsc_call(VecAssemblyBegin(fino.phi));
-      petsc_call(VecAssemblyEnd(fino.phi));
-    
+  // check if we were given an initial temperature distribution
+  if (wasora_var_value(wasora_special_var(in_static)) && (ic = wasora_get_function_ptr("T_0")) != NULL) {
+    if (ic->n_arguments != fino.dimensions) {
+      wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
+      return WASORA_RUNTIME_ERROR;
     }
+
+    for (j = fino.first_node; j < fino.last_node; j++) {
+      xi = wasora_evaluate_function(ic, fino.mesh->node[j].x);
+      petsc_call(VecSetValue(fino.phi, fino.mesh->node[j].index_dof[0], xi, INSERT_VALUES));
+    }
+
+    // TODO: assembly routine
+    petsc_call(VecAssemblyBegin(fino.phi));
+    petsc_call(VecAssemblyEnd(fino.phi));
+  }  
   
+  if (wasora_var_value(wasora_special_var(in_static)) || fino.transient_type == transient_type_quasistatic) {
     // now, if the problem is steady-state or we do not have an initial condition then we just solve it
     // we use T0 (if provided) plus Dirichlet BCs as an initial guess 
     if (wasora_special_var(end_time) == 0 || ic == NULL) {
