@@ -29,6 +29,13 @@ fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
+double hourglass_2d[] = {+1, -1, +1, -1};
+double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
+                         +1, -1, -1, +1, -1, +1, +1, -1,
+                         +1, -1, +1, -1, +1, -1, +1, -1,
+                         -1, +1, -1, +1, +1, -1, +1, -1};
+
+
 int fino_bc_process_thermal(bc_t **bc_pointer, char *name, char *expr, char *equal_sign) {
 
   int i;
@@ -165,10 +172,12 @@ int fino_thermal_build_element(element_t *element, int v) {
   // see if we need to do hourglass control
   if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
     gsl_matrix *Gamma = NULL;  // matrix with the gamma vectors, one vector per row
-    gsl_matrix *H = NULL;      // hourglass vectors, one vector per row (not to confuse with shape functions)
+    gsl_matrix_view H;         // hourglass vectors, one vector per row (not to confuse with shape functions)
     gsl_matrix *X = NULL;      // matrix with the coordinates of the nodes
     gsl_matrix *HX = NULL;     // product H*X
     gsl_matrix *BBt = NULL;    // product (B*B') (the elemental matrix is B'*B)
+    double *ptr_h = NULL;
+    int n_h = 0;
 
 //    gsl_matrix *Kstab;
     
@@ -179,19 +188,19 @@ int fino_thermal_build_element(element_t *element, int v) {
     
     if (element->type->dim == 2 && element->type->nodes == 4) {
       // quad4
-      H = gsl_matrix_calloc(1, 4);
-      Gamma = gsl_matrix_calloc(1, 4);
-      // hourglass vector for 2D
-      gsl_matrix_set(H, 0, 0, +1.0);
-      gsl_matrix_set(H, 0, 1, -1.0);
-      gsl_matrix_set(H, 0, 2, +1.0);
-      gsl_matrix_set(H, 0, 3, -1.0);
+      n_h = 1;
+      ptr_h = hourglass_2d;
+    } else if (element->type->dim == 3 && element->type->nodes == 8 ) {
+      n_h = 4;
+      ptr_h = hourglass_3d;
     }
     
-    if (H != NULL) {
+    if (n_h != 0) {
     
+      Gamma = gsl_matrix_calloc(n_h, element->type->nodes);
+      H = gsl_matrix_view_array(ptr_h, n_h, element->type->nodes);
       X = gsl_matrix_calloc(element->type->nodes, fino.dimensions);   // either this or the transpose
-      HX = gsl_matrix_calloc(1, fino.dimensions);
+      HX = gsl_matrix_calloc(n_h, fino.dimensions);
       BBt = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
 //      Kstab = gsl_matrix_calloc(element->type->nodes, element->type->nodes);
 
@@ -201,25 +210,27 @@ int fino_thermal_build_element(element_t *element, int v) {
           gsl_matrix_set(X, j, m, element->node[j]->x[m]);
         }
       }
-//       printf("Ki %d =\n", element->tag);
-//       fino_print_gsl_matrix(fino.Ki, stdout);
+//      printf("Ki %d =\n", element->tag);
+//      fino_print_gsl_matrix(fino.Ki, stdout);
 
-//       printf("H %d =\n", element->tag);
-//       fino_print_gsl_matrix(H, stdout);
+//      printf("H %d =\n", element->tag);
+//      fino_print_gsl_matrix(&H.matrix, stdout);
 
-//       printf("X %d =\n", element->tag);
-//       fino_print_gsl_matrix(X, stdout);
+//      printf("X %d =\n", element->tag);
+//      fino_print_gsl_matrix(X, stdout);
 
-      gsl_matrix_memcpy(Gamma, H);
-      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, H, X, 0.0, HX);
+//      printf("HX %d =\n", element->tag);
+//      fino_print_gsl_matrix(HX, stdout);
+      
+      gsl_matrix_memcpy(Gamma, &H.matrix);
+      
+      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &H.matrix, X, 0.0, HX);
+      
       gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, -1.0, HX, element->B[v], 1.0, Gamma);
 
-//       printf("HX %d =\n", element->tag);
-//       fino_print_gsl_matrix(HX, stdout);
 
-    
-//       printf("Gamma %d =\n", element->tag);
-//       fino_print_gsl_matrix(Gamma, stdout);
+//      printf("Gamma %d =\n", element->tag);
+//      fino_print_gsl_matrix(Gamma, stdout);
     
       // trace of B*B' for normalization
       gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, element->B[v], element->B[v], 1.0, BBt);
@@ -239,7 +250,7 @@ int fino_thermal_build_element(element_t *element, int v) {
       gsl_matrix_free(X);
 
       gsl_matrix_free(Gamma);
-      gsl_matrix_free(H);
+//      gsl_matrix_free(H);
     }
   }
   
