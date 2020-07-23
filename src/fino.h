@@ -384,7 +384,6 @@ struct {
   // soluciones anteriores (por ejemplos desplazamientos)
   function_t **base_solution;
   
-  // mind the definition of GAUSS_POINTS_FULL and GAUSS_POINTS_REDUCED in wasora.h
   enum {
     gradient_gauss_extrapolated,
     gradient_at_nodes,
@@ -403,6 +402,7 @@ struct {
     gradient_actual
   } gradient_highorder_nodes;
   
+  double hourglass_epsilon;
 //  double gradient_quality_threshold;
   
   // tensor de tensiones

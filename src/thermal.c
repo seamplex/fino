@@ -160,6 +160,90 @@ int fino_thermal_build_element(element_t *element, int v) {
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
+//  fino_print_gsl_matrix(element->B[v], stdout);
+  
+  // see if we need to do hourglass control
+  if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
+    gsl_matrix *Gamma = NULL;  // matrix with the gamma vectors, one vector per row
+    gsl_matrix *H = NULL;      // hourglass vectors, one vector per row (not to confuse with shape functions)
+    gsl_matrix *X = NULL;      // matrix with the coordinates of the nodes
+    gsl_matrix *HX = NULL;     // product H*X
+    gsl_matrix *BBt = NULL;    // product (B*B') (the elemental matrix is B'*B)
+
+//    gsl_matrix *Kstab;
+    
+    double trace = 0;
+    double eps_tilde;
+    int m;
+
+    
+    if (element->type->dim == 2 && element->type->nodes == 4) {
+      // quad4
+      H = gsl_matrix_calloc(1, 4);
+      Gamma = gsl_matrix_calloc(1, 4);
+      // hourglass vector for 2D
+      gsl_matrix_set(H, 0, 0, +1.0);
+      gsl_matrix_set(H, 0, 1, -1.0);
+      gsl_matrix_set(H, 0, 2, +1.0);
+      gsl_matrix_set(H, 0, 3, -1.0);
+    }
+    
+    if (H != NULL) {
+    
+      X = gsl_matrix_calloc(element->type->nodes, fino.dimensions);   // either this or the transpose
+      HX = gsl_matrix_calloc(1, fino.dimensions);
+      BBt = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
+//      Kstab = gsl_matrix_calloc(element->type->nodes, element->type->nodes);
+
+      // coordinates 
+      for (j = 0; j < element->type->nodes; j++) {
+        for (m = 0; m < fino.dimensions; m++) {
+          gsl_matrix_set(X, j, m, element->node[j]->x[m]);
+        }
+      }
+//       printf("Ki %d =\n", element->tag);
+//       fino_print_gsl_matrix(fino.Ki, stdout);
+
+//       printf("H %d =\n", element->tag);
+//       fino_print_gsl_matrix(H, stdout);
+
+//       printf("X %d =\n", element->tag);
+//       fino_print_gsl_matrix(X, stdout);
+
+      gsl_matrix_memcpy(Gamma, H);
+      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, H, X, 0.0, HX);
+      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, -1.0, HX, element->B[v], 1.0, Gamma);
+
+//       printf("HX %d =\n", element->tag);
+//       fino_print_gsl_matrix(HX, stdout);
+
+    
+//       printf("Gamma %d =\n", element->tag);
+//       fino_print_gsl_matrix(Gamma, stdout);
+    
+      // trace of B*B' for normalization
+      gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, element->B[v], element->B[v], 1.0, BBt);
+      for (m = 0; m < fino.dimensions; m++) {
+        trace += gsl_matrix_get(BBt, m, m);
+      }
+    
+      eps_tilde = 1.0/12.0 * fino.hourglass_epsilon * trace;
+//      gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k * eps_tilde, Gamma, Gamma, 1.0, Kstab);
+//      printf("Ks %d =\n", element->tag);
+//      fino_print_gsl_matrix(Kstab, stdout);
+
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k * eps_tilde, Gamma, Gamma, 1.0, fino.Ki);
+  
+      gsl_matrix_free(BBt);
+      gsl_matrix_free(HX);
+      gsl_matrix_free(X);
+
+      gsl_matrix_free(Gamma);
+      gsl_matrix_free(H);
+    }
+  }
+  
+
   if (fino.M != NULL) {
     // compute the mass matrix Ht*rho*cp*H
     if (distribution_kappa.defined)  {
