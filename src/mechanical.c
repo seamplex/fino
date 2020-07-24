@@ -60,6 +60,11 @@ double T0;  // este es el escalar que usamos para evaluar
 
 int uniform_properties;  // flag global para saber si hay que evaluar cada vez o no
 
+double hourglass_2d[] = {+1, -1, +1, -1};
+double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
+                         +1, -1, -1, +1, -1, +1, +1, -1,
+                         +1, -1, +1, -1, +1, -1, +1, -1,
+                         -1, +1, -1, +1, +1, -1, +1, -1};
 
 
 int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
@@ -368,7 +373,7 @@ int fino_break_build_element(element_t *element, int v) {
     J = element->type->nodes;
     gsl_matrix_free(B);
     B = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
-    
+
     gsl_matrix_free(CB);
     CB = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
@@ -445,7 +450,6 @@ int fino_break_build_element(element_t *element, int v) {
         gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, element->x[v]));
       }
     }
-    
   }
   
   // if E and nu are scalar variables C is uniform and we already have it
@@ -464,6 +468,96 @@ int fino_break_build_element(element_t *element, int v) {
   printf("Ki(%d,%d) = \n", element->index, v);
   gsl_matrix_fprintf(stdout, fino.Ki, "%g");  
 #endif
+  
+  // see if we need to do hourglass control
+  if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
+    gsl_matrix *gamma = NULL;  // lowercase = matrix of plain gamma vectors , one vector per row
+    gsl_matrix *Gamma = NULL;  // uppercase = matrix of gamma vectors separated by degree of freedoms
+    gsl_matrix_view H;         // hourglass vectors, one vector per row (not to confuse with shape functions)
+    gsl_matrix *X = NULL;      // matrix with the coordinates of the nodes
+    gsl_matrix *HX = NULL;     // product H*X
+    gsl_matrix *BBt = NULL;    // product (B*B') (the elemental matrix is B'*B)
+    double *ptr_h = NULL;
+    double trace;
+    double lambda, mu;
+    double eps_tilde;
+    
+    int n_h = 0;
+    int m, alpha;
+    
+    
+    if (element->type->dim == 2 && element->type->nodes == 4) {
+      // quad4
+      n_h = 1;
+      ptr_h = hourglass_2d;
+    } else if (element->type->dim == 3 && element->type->nodes == 8) {
+      // hex8
+      n_h = 4;
+      ptr_h = hourglass_3d;
+    }
+    
+    if (n_h != 0) {
+      gamma = gsl_matrix_calloc(n_h, element->type->nodes);  
+      Gamma = gsl_matrix_calloc(n_h*fino.degrees, element->type->nodes*fino.degrees);  
+      H = gsl_matrix_view_array(ptr_h, n_h, element->type->nodes);
+      X = gsl_matrix_calloc(element->type->nodes, fino.dimensions);   // either this or the transpose
+      HX = gsl_matrix_calloc(n_h, fino.dimensions);
+      BBt = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
+
+      // coordinates 
+      for (j = 0; j < element->type->nodes; j++) {
+        for (m = 0; m < fino.dimensions; m++) {
+          gsl_matrix_set(X, j, m, element->node[j]->x[m]);
+        }
+      }
+      
+      printf("H %d =\n", element->tag);
+      fino_print_gsl_matrix(&H.matrix, stdout);
+
+      printf("X %d =\n", element->tag);
+      fino_print_gsl_matrix(X, stdout);
+
+      gsl_matrix_memcpy(gamma, &H.matrix);
+      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &H.matrix, X, 0.0, HX);
+
+      printf("HX %d =\n", element->tag);
+      fino_print_gsl_matrix(HX, stdout);
+
+      printf("dhdx %d =\n", element->tag);
+      fino_print_gsl_matrix(element->dhdx[v], stdout);
+      
+      gsl_blas_dgemm(CblasNoTrans, CblasTrans, -1.0, HX, element->dhdx[v], 1.0, gamma);
+      printf("gamma %d =\n", element->tag);
+      fino_print_gsl_matrix(gamma, stdout);
+      
+      for (alpha = 0; alpha < n_h; alpha++) {
+        for (m = 0; m < fino.degrees; m++) {
+          for (j = 0; j < element->type->nodes; j++) {
+            gsl_matrix_set(Gamma, alpha*fino.degrees+m, fino.degrees*j+m, gsl_matrix_get(gamma, alpha, j));
+          }
+        }
+      }
+      printf("Gamma %d =\n", element->tag);
+      fino_print_gsl_matrix(Gamma, stdout);
+  
+      // trace of B*B' for normalization
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, element->dhdx[v], element->dhdx[v], 1.0, BBt);
+      printf("B*B' %d =\n", element->tag);
+      fino_print_gsl_matrix(BBt, stdout);
+      
+      for (m = 0; m < fino.dimensions; m++) {
+        trace += gsl_matrix_get(BBt, m, m);
+      }
+    
+      lambda = E*nu/((1+nu)*(1-2*nu));
+      mu = 0.5*E/(1+nu);
+      eps_tilde = fino.hourglass_epsilon * (lambda + 2*mu)/3.0 * trace;
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * eps_tilde, Gamma, Gamma, 1.0, fino.Ki);
+      
+
+      gsl_matrix_free(Gamma);
+    }  
+  }
   
   // thermal expansion 
   if (distribution_alpha.defined != 0) {

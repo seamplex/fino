@@ -29,11 +29,8 @@ fino_distribution_t distribution_kappa; // thermal diffusivity
 fino_distribution_t distribution_rho;   // density
 fino_distribution_t distribution_cp;    // heat capacity
 
-double hourglass_2d[] = {+1, -1, +1, -1};
-double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
-                         +1, -1, -1, +1, -1, +1, +1, -1,
-                         +1, -1, +1, -1, +1, -1, +1, -1,
-                         -1, +1, -1, +1, +1, -1, +1, -1};
+extern double hourglass_2d[];
+extern double hourglass_3d[];
 
 
 int fino_bc_process_thermal(bc_t **bc_pointer, char *name, char *expr, char *equal_sign) {
@@ -167,8 +164,7 @@ int fino_thermal_build_element(element_t *element, int v) {
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
-//  fino_print_gsl_matrix(element->B[v], stdout);
-  
+ 
   // see if we need to do hourglass control
   if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
     gsl_matrix *Gamma = NULL;  // matrix with the gamma vectors, one vector per row
@@ -176,11 +172,10 @@ int fino_thermal_build_element(element_t *element, int v) {
     gsl_matrix *X = NULL;      // matrix with the coordinates of the nodes
     gsl_matrix *HX = NULL;     // product H*X
     gsl_matrix *BBt = NULL;    // product (B*B') (the elemental matrix is B'*B)
+    gsl_matrix *Kstab;
     double *ptr_h = NULL;
     int n_h = 0;
 
-//    gsl_matrix *Kstab;
-    
     double trace = 0;
     double eps_tilde;
     int m;
@@ -202,7 +197,7 @@ int fino_thermal_build_element(element_t *element, int v) {
       X = gsl_matrix_calloc(element->type->nodes, fino.dimensions);   // either this or the transpose
       HX = gsl_matrix_calloc(n_h, fino.dimensions);
       BBt = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
-//      Kstab = gsl_matrix_calloc(element->type->nodes, element->type->nodes);
+      Kstab = gsl_matrix_alloc(element->type->nodes, element->type->nodes);
 
       // coordinates 
       for (j = 0; j < element->type->nodes; j++) {
@@ -210,27 +205,25 @@ int fino_thermal_build_element(element_t *element, int v) {
           gsl_matrix_set(X, j, m, element->node[j]->x[m]);
         }
       }
-//      printf("Ki %d =\n", element->tag);
-//      fino_print_gsl_matrix(fino.Ki, stdout);
+      printf("Ki %d =\n", element->tag);
+      fino_print_gsl_matrix(fino.Ki, stdout);
 
-//      printf("H %d =\n", element->tag);
-//      fino_print_gsl_matrix(&H.matrix, stdout);
+      printf("H %d =\n", element->tag);
+      fino_print_gsl_matrix(&H.matrix, stdout);
 
-//      printf("X %d =\n", element->tag);
-//      fino_print_gsl_matrix(X, stdout);
+      printf("X %d =\n", element->tag);
+      fino_print_gsl_matrix(X, stdout);
 
-//      printf("HX %d =\n", element->tag);
-//      fino_print_gsl_matrix(HX, stdout);
+      printf("HX %d =\n", element->tag);
+      fino_print_gsl_matrix(HX, stdout);
       
       gsl_matrix_memcpy(Gamma, &H.matrix);
-      
       gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &H.matrix, X, 0.0, HX);
-      
       gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, -1.0, HX, element->B[v], 1.0, Gamma);
 
 
-//      printf("Gamma %d =\n", element->tag);
-//      fino_print_gsl_matrix(Gamma, stdout);
+      printf("Gamma %d =\n", element->tag);
+      fino_print_gsl_matrix(Gamma, stdout);
     
       // trace of B*B' for normalization
       gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, element->B[v], element->B[v], 1.0, BBt);
@@ -239,9 +232,10 @@ int fino_thermal_build_element(element_t *element, int v) {
       }
     
       eps_tilde = 1.0/12.0 * fino.hourglass_epsilon * trace;
-//      gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k * eps_tilde, Gamma, Gamma, 1.0, Kstab);
-//      printf("Ks %d =\n", element->tag);
-//      fino_print_gsl_matrix(Kstab, stdout);
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, k * eps_tilde, Gamma, Gamma, 0.0, Kstab);
+      
+      printf("Ks %d =\n", element->tag);
+      fino_print_gsl_matrix(Kstab, stdout);
 
       gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k * eps_tilde, Gamma, Gamma, 1.0, fino.Ki);
   
