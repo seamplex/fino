@@ -1,0 +1,21 @@
+MESH NAME mech FILE_PATH cylinder.msh DIMENSIONS 3
+FINO_PROBLEM mechanical QUASISTATIC DIMENSIONS 3
+
+end_time = 1  # final time [ non-dimensional units ]
+dt = 0.1
+
+# unitary material properties
+E = 1
+nu = 0.3
+alpha = 1
+
+PHYSICAL_GROUP NAME cool      BC fixed
+
+MESH NAME temp FILE_PATH temp-cylinder.msh DIMENSIONS 3 READ_FUNCTION T
+
+
+FINO_STEP
+
+# print the temperature at the center of the base vs time
+PRINT %e t u(0,0,0) v(0,0,0) w(0,0,0)
+
