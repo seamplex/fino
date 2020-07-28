@@ -145,6 +145,7 @@ FINO_PROBLEM
 
     FINO_PROBLEM [ mechanical | thermal | modal ]
      [ AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN ] [ SYMMETRY_AXIS { x | y } ] [ LINEAR | NON_LINEAR ]
+     [ QUASISTATIC | TRANSIENT ]
      [ DIMENSIONS <expr> ] [ MESH <identifier> ] 
      [ N_MODES <expr> ] 
 
@@ -263,7 +264,7 @@ FINO_STEP
 
   Ask Fino to solve the problem and advance one step.
 
-    FINO_STEP [ JUST_BUILD ]
+    FINO_STEP
 
 The location of the FINO_STEP keyword within the input file marks the
 logical location where the problem is solved and the result functions
@@ -283,6 +284,7 @@ MESH
 
     MESH [ NAME <name> ] { FILE <file_id> | FILE_PATH <file_path> } [ DIMENSIONS <num_expr> ]
      [ SCALE <expr> ] [ OFFSET <expr_x> <expr_y> <expr_z> ]
+     [ INTEGRATION { full | reduced } ] [ RE_READ ]
      [ READ_SCALAR <name_in_mesh> AS <function_name> ] [...]
      [ READ_FUNCTION <function_name> ] [...]
 
