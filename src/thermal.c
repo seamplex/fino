@@ -274,7 +274,7 @@ int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
     return WASORA_RUNTIME_ERROR;
   }
   
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_FULL].V; v++) {
+  for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
     
     mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
     mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
