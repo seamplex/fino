@@ -164,7 +164,6 @@ int fino_thermal_build_element(element_t *element, int v) {
   k = fino_distribution_evaluate(&distribution_k, material, element->x[v]);
   gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * k, element->B[v], element->B[v], 1.0, fino.Ki);
 
- 
   // see if we need to do hourglass control
   if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
     gsl_matrix *Gamma = NULL;  // matrix with the gamma vectors, one vector per row
@@ -274,7 +273,7 @@ int fino_thermal_set_heat_flux(element_t *element, bc_t *bc) {
     return WASORA_RUNTIME_ERROR;
   }
   
-  for (v = 0; v < element->type->gauss[GAUSS_POINTS_FULL].V; v++) {
+  for (v = 0; v < element->type->gauss[fino.mesh->integration].V; v++) {
     
     mesh_compute_integration_weight_at_gauss(element, v, fino.mesh->integration);
     mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);

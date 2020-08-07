@@ -175,7 +175,7 @@ struct {
   
   fino_reaction_t *reactions;
   fino_linearize_t *linearizes;
-//  fino_debug_t *debugs;
+  fino_debug_t *debugs;  // deprecated
 
   // maybe this should go somewhere else
   PetscClassId petsc_classid;

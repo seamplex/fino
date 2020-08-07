@@ -911,7 +911,7 @@ int fino_break_compute_stresses(void) {
   }  
 
 
-  // step 0 (only if we need to extrapolate from gauss): compute the derivatives in the gauss points
+  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
   // note that as we are going to extrapolate to the nodes we use the set of gauss points which
   // give one point close to one node independently of the integration scheme used in the computation
   // (i.e. full or reduced)
@@ -963,6 +963,7 @@ int fino_break_compute_stresses(void) {
 
       element->dphidx_node = calloc(element->type->nodes, sizeof(gsl_matrix *));
       V = element->type->gauss[integration_full].V;
+      J = element->type->nodes;
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
@@ -991,17 +992,15 @@ int fino_break_compute_stresses(void) {
         element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
         j_global = element->node[j]->index_mesh;
         
-        // TODO: tiene que haber una matriz rectangular que pueda manejar todos los casos
-        // de cantidad de nodos y de puntos de gauss
         if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[integration_full].extrap != NULL) {
-          gsl_vector *inner = gsl_vector_alloc(V);
-          gsl_vector *outer = gsl_vector_alloc(V);
+          gsl_vector *gauss = gsl_vector_alloc(V);
+          gsl_vector *nodes = gsl_vector_alloc(J);
           
           for (g = 0; g < fino.degrees; g++) {
             for (m = 0; m < fino.dimensions; m++) {
               
               for (v = 0; v < V; v++) {
-                gsl_vector_set(inner, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
+                gsl_vector_set(gauss, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
               }  
                 
               gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[integration_full].extrap, inner, 0, outer);
