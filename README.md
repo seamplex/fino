@@ -17,7 +17,7 @@ lang: en-US
 
 [Fino](https://www.seamplex.com/fino) is a [free](https://www.gnu.org/philosophy/free-sw.en.html) and [open source](https://opensource.com/resources/what-open-source) tool released under the terms of the [GPLv3+](#licensing) that uses the finite-element method to solve
 
- * steady-state thermo-mechanical problems, or
+ * steady or quasistatic thermo-mechanical problems, or
  * steady or transient heat conduction problems, or
  * modal analysis problems.
 

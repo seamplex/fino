@@ -302,7 +302,7 @@ int fino_print_gsl_matrix(gsl_matrix *A, FILE *file) {
   for (i = 0; i < A->size1; i++) {
     for (j = 0; j < A->size2; j++) {
       xi = gsl_matrix_get(A, i, j);
-      fprintf(file, "% .3g ", (fabs(xi) > 1e-12)?xi:0.0);
+      fprintf(file, "% g ", (fabs(xi) > 1e-12)?xi:0.0);
     }
     fprintf(file, "\n");
   }

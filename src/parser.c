@@ -392,6 +392,11 @@ int plugin_parse_line(char *line) {
 ///kw+FINO_SOLVER+usage } ]@
 ///kw+FINO_SOLVER+detail @
           
+///kw+FINO_SOLVER+detail Hourglass control can be triggered by providing a positive coefficient in `HOURGLASS`.
+///kw+MESH+usage [ HOURGLASS <num_expr> ] @
+        } else if (strcasecmp(token, "HOURGLASS") == 0) {
+          wasora_call(wasora_parser_expression_in_string(&fino.hourglass_epsilon));
+          
 //kw+FINO_SOLVER+usage [ GRADIENT_QUALITY_THRESHOLD <expr> ]@
 //kw+FINO_SOLVER+detail If the `GRADIENT_QUALITY_THRESHOLD` 
 /*          
@@ -789,8 +794,6 @@ int plugin_parse_line(char *line) {
 // ---------------------------------------------------------------------
 //kw+FINO_DEBUG+usage FINO_DEBUG
 //kw+FINO_DEBUG+desc Generates debugging and benchmarking output and/or dumps the matrices into files or the screen.
-// temporarily disabled
-/*      
     } else if ((strcasecmp(token, "FINO_DEBUG") == 0)) {
       
       fino_debug_t *debug;
@@ -866,7 +869,7 @@ int plugin_parse_line(char *line) {
       wasora_define_instruction(fino_instruction_debug, debug);
 
       return WASORA_PARSER_OK;
-*/
+
     }
   }
   
