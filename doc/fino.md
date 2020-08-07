@@ -14,7 +14,7 @@ lang: en-US
 
 Fino is a free and open source tool released under the terms of the GPLv3+ that uses the finite-element method to solve
 
- * steady-state thermo-mechanical problems, or
+ * steady or quasistatic thermo-mechanical problems, or
  * steady or transient heat conduction problems, or
  * modal analysis problems.
 
