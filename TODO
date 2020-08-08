@@ -1,8 +1,9 @@
  * read/write $ElementNodeData
  * complete manual
+    - sort reference by relevance not just alphabetically
  * pass long options to PETSc (fino --ksp_view -> pass -ksp_view to PETSc)
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
- * optimizar assemblies -> gmsh partition
+ * optimize assemblies -> gmsh partition
  * log stages
  * refinement
     - stressrefine
@@ -25,6 +26,7 @@
        * type radiation
     - transient
        * check the time derivative of the mass matrix in thermal
+       * be smart when to re-compute the matrices
     - geometries
        * total lagrangain
     - contact

@@ -60,6 +60,11 @@ double T0;  // este es el escalar que usamos para evaluar
 
 int uniform_properties;  // flag global para saber si hay que evaluar cada vez o no
 
+double hourglass_2d[] = {+1, -1, +1, -1};
+double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
+                         +1, -1, -1, +1, -1, +1, +1, -1,
+                         +1, -1, +1, -1, +1, -1, +1, -1,
+                         -1, +1, -1, +1, +1, -1, +1, -1};
 
 
 int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
@@ -368,7 +373,7 @@ int fino_break_build_element(element_t *element, int v) {
     J = element->type->nodes;
     gsl_matrix_free(B);
     B = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
-    
+
     gsl_matrix_free(CB);
     CB = gsl_matrix_alloc(stress_strain_size, fino.degrees*J);
     
@@ -445,7 +450,6 @@ int fino_break_build_element(element_t *element, int v) {
         gsl_vector_add_to_element(fino.bi, fino.degrees*j+2, c * fino_distribution_evaluate(&distribution_fz, material, element->x[v]));
       }
     }
-    
   }
   
   // if E and nu are scalar variables C is uniform and we already have it
@@ -464,6 +468,96 @@ int fino_break_build_element(element_t *element, int v) {
   printf("Ki(%d,%d) = \n", element->index, v);
   gsl_matrix_fprintf(stdout, fino.Ki, "%g");  
 #endif
+  
+  // see if we need to do hourglass control
+  if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
+    gsl_matrix *gamma = NULL;  // lowercase = matrix of plain gamma vectors , one vector per row
+    gsl_matrix *Gamma = NULL;  // uppercase = matrix of gamma vectors separated by degree of freedoms
+    gsl_matrix_view H;         // hourglass vectors, one vector per row (not to confuse with shape functions)
+    gsl_matrix *X = NULL;      // matrix with the coordinates of the nodes
+    gsl_matrix *HX = NULL;     // product H*X
+    gsl_matrix *BBt = NULL;    // product (B*B') (the elemental matrix is B'*B)
+    double *ptr_h = NULL;
+    double trace;
+    double lambda, mu;
+    double eps_tilde;
+    
+    int n_h = 0;
+    int m, alpha;
+    
+    
+    if (element->type->dim == 2 && element->type->nodes == 4) {
+      // quad4
+      n_h = 1;
+      ptr_h = hourglass_2d;
+    } else if (element->type->dim == 3 && element->type->nodes == 8) {
+      // hex8
+      n_h = 4;
+      ptr_h = hourglass_3d;
+    }
+    
+    if (n_h != 0) {
+      gamma = gsl_matrix_calloc(n_h, element->type->nodes);  
+      Gamma = gsl_matrix_calloc(n_h*fino.degrees, element->type->nodes*fino.degrees);  
+      H = gsl_matrix_view_array(ptr_h, n_h, element->type->nodes);
+      X = gsl_matrix_calloc(element->type->nodes, fino.dimensions);   // either this or the transpose
+      HX = gsl_matrix_calloc(n_h, fino.dimensions);
+      BBt = gsl_matrix_calloc(fino.dimensions, fino.dimensions);
+
+      // coordinates 
+      for (j = 0; j < element->type->nodes; j++) {
+        for (m = 0; m < fino.dimensions; m++) {
+          gsl_matrix_set(X, j, m, element->node[j]->x[m]);
+        }
+      }
+      
+      printf("H %d =\n", element->tag);
+      fino_print_gsl_matrix(&H.matrix, stdout);
+
+      printf("X %d =\n", element->tag);
+      fino_print_gsl_matrix(X, stdout);
+
+      gsl_matrix_memcpy(gamma, &H.matrix);
+      gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, &H.matrix, X, 0.0, HX);
+
+      printf("HX %d =\n", element->tag);
+      fino_print_gsl_matrix(HX, stdout);
+
+      printf("dhdx %d =\n", element->tag);
+      fino_print_gsl_matrix(element->dhdx[v], stdout);
+      
+      gsl_blas_dgemm(CblasNoTrans, CblasTrans, -1.0, HX, element->dhdx[v], 1.0, gamma);
+      printf("gamma %d =\n", element->tag);
+      fino_print_gsl_matrix(gamma, stdout);
+      
+      for (alpha = 0; alpha < n_h; alpha++) {
+        for (m = 0; m < fino.degrees; m++) {
+          for (j = 0; j < element->type->nodes; j++) {
+            gsl_matrix_set(Gamma, alpha*fino.degrees+m, fino.degrees*j+m, gsl_matrix_get(gamma, alpha, j));
+          }
+        }
+      }
+      printf("Gamma %d =\n", element->tag);
+      fino_print_gsl_matrix(Gamma, stdout);
+  
+      // trace of B*B' for normalization
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1.0, element->dhdx[v], element->dhdx[v], 1.0, BBt);
+      printf("B*B' %d =\n", element->tag);
+      fino_print_gsl_matrix(BBt, stdout);
+      
+      for (m = 0; m < fino.dimensions; m++) {
+        trace += gsl_matrix_get(BBt, m, m);
+      }
+    
+      lambda = E*nu/((1+nu)*(1-2*nu));
+      mu = 0.5*E/(1+nu);
+      eps_tilde = fino.hourglass_epsilon * (lambda + 2*mu)/3.0 * trace;
+      gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * eps_tilde, Gamma, Gamma, 1.0, fino.Ki);
+      
+
+      gsl_matrix_free(Gamma);
+    }  
+  }
   
   // thermal expansion 
   if (distribution_alpha.defined != 0) {
@@ -727,7 +821,8 @@ int fino_break_compute_stresses(void) {
   double mu_max = 0;
   
   int v, V;
-  int i, j, g, m, n;
+  int j ,J;
+  int i, g, m, n;
   int j_global, j_global_prime;
   int j_local_prime;
   int progress = 0;
@@ -817,7 +912,7 @@ int fino_break_compute_stresses(void) {
   }  
 
 
-  // step 0 (only if we need to extrapolate from gauss): compute the derivatives in the gauss points
+  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
   // note that as we are going to extrapolate to the nodes we use the set of gauss points which
   // give one point close to one node independently of the integration scheme used in the computation
   // (i.e. full or reduced)
@@ -832,13 +927,13 @@ int fino_break_compute_stresses(void) {
       element = &mesh->element[i];
       if (element->type->dim == fino.dimensions){
         
-        V = element->type->gauss[integration_full].V;
+        V = element->type->gauss[mesh->integration].V;
         element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
         
         for (v = 0; v < V; v++) {
         
           element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v, integration_full);
+          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
 
           // aca habria que hacer una matriz con los phi globales
           // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
@@ -867,8 +962,10 @@ int fino_break_compute_stresses(void) {
     element = &mesh->element[i];
     if (element->type->dim == fino.dimensions) {
 
-      element->dphidx_node = calloc(element->type->nodes, sizeof(gsl_matrix *));
-      V = element->type->gauss[integration_full].V;
+      // TODO: choose full or actual
+      V = element->type->gauss[mesh->integration].V;
+      J = element->type->nodes;
+      element->dphidx_node = calloc(J, sizeof(gsl_matrix *));
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
@@ -889,69 +986,76 @@ int fino_break_compute_stresses(void) {
       
       // if nu, E and/or alpha are not uniform, we need to evalaute them at the nodes
       if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
-        element->property_node = calloc(element->type->nodes, sizeof(double *));
+        element->property_node = calloc(J, sizeof(double *));
       }
-      
-      for (j = 0; j < element->type->nodes; j++) {
-      
+
+      for (j = 0; j < J; j++) {
         element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-        j_global = element->node[j]->index_mesh;
+      }  
+      
+      // if we were asked to extrapolate from gauss, we compute all the nodal values
+      // at once by pre-multiplying the gauss values by the (possibly-rectangular) extrapolation
+      // matrix to get the nodal values
+      if (fino.gradient_evaluation == gradient_gauss_extrapolated && element->type->gauss[mesh->integration].extrap != NULL) {
+        gsl_vector *at_gauss = gsl_vector_alloc(V);
+        gsl_vector *at_nodes = gsl_vector_alloc(J);
         
-        // TODO: tiene que haber una matriz rectangular que pueda manejar todos los casos
-        // de cantidad de nodos y de puntos de gauss
-        if (fino.gradient_evaluation == gradient_gauss_extrapolated && j < V && element->type->gauss[integration_full].extrap != NULL) {
-          gsl_vector *inner = gsl_vector_alloc(V);
-          gsl_vector *outer = gsl_vector_alloc(V);
-          
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
-              
-              for (v = 0; v < V; v++) {
-                gsl_vector_set(inner, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
-              }  
-                
-              gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[integration_full].extrap, inner, 0, outer);
-              gsl_matrix_set(element->dphidx_node[j], g, m, gsl_vector_get(outer, j));
-              
+        for (g = 0; g < fino.degrees; g++) {
+          for (m = 0; m < fino.dimensions; m++) {
+            for (v = 0; v < V; v++) {
+              gsl_vector_set(at_gauss, v, gsl_matrix_get(element->dphidx_gauss[v], g, m));
+            }  
+            
+            gsl_blas_dgemv(CblasNoTrans, 1.0, element->type->gauss[mesh->integration].extrap, at_gauss, 0, at_nodes);
+            for (j = 0; j < J; j++) {
+              gsl_matrix_set(element->dphidx_node[j], g, m, gsl_vector_get(at_nodes, j));
             }
           }
-          gsl_vector_free(inner);
-          gsl_vector_free(outer);
-          
-        } else if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL && fino.gradient_highorder_nodes == gradient_average) {
-          // promedio de padres
-          double den = 0;
-          LL_FOREACH(element->type->node_parents[j], parent) {
-            den += 1.0;
-            for (g = 0; g < fino.degrees; g++) {
-              for (m = 0; m < fino.dimensions; m++) {
-                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(element->dphidx_node[parent->index], g, m));
+        }
+        gsl_vector_free(at_gauss);
+        gsl_vector_free(at_nodes);
+        
+      } else {
+
+        for (j = 0; j < J; j++) {
+          j_global = element->node[j]->index_mesh;
+        
+          if (element->type->node_parents != NULL && element->type->node_parents[j] != NULL && fino.gradient_highorder_nodes == gradient_average) {
+            // average of parents
+            double den = 0;
+            LL_FOREACH(element->type->node_parents[j], parent) {
+              den += 1.0;
+              for (g = 0; g < fino.degrees; g++) {
+                for (m = 0; m < fino.dimensions; m++) {
+                  gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(element->dphidx_node[parent->index], g, m));
+                }  
               }
             }  
-          }
+            gsl_matrix_scale(element->dphidx_node[j], 1.0/den);          
           
-          gsl_matrix_scale(element->dphidx_node[j], 1.0/den);          
+          } else {
+            
+            // direct evalution at the nodes
+            gsl_matrix *dhdx = gsl_matrix_calloc(J, fino.dimensions);
+            mesh_compute_dhdx(element, element->type->node_coords[j], NULL, dhdx);
           
-        } else {
-          
-          // evaluacion directa en los nodos
-          gsl_matrix *dhdx = gsl_matrix_calloc(element->type->nodes, fino.dimensions); // esto esta al vesre
-          mesh_compute_dhdx(element, element->type->node_coords[j], NULL, dhdx);
-          
-          // las nueve derivadas (o menos)
-          // TODO: como arriba, aunque hay que pelar ojo si hay menos DOFs
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
-              for (j_local_prime = 0; j_local_prime < element->type->nodes; j_local_prime++) {
-                j_global_prime = element->node[j_local_prime]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(dhdx, j_local_prime, m) * mesh->node[j_global_prime].phi[g]);
+            // las nueve derivadas (o menos)
+            // TODO: como arriba, aunque hay que pelar ojo si hay menos DOFs
+            for (g = 0; g < fino.degrees; g++) {
+              for (m = 0; m < fino.dimensions; m++) {
+                for (j_local_prime = 0; j_local_prime < J; j_local_prime++) {
+                  j_global_prime = element->node[j_local_prime]->index_mesh;
+                  gsl_matrix_add_to_element(element->dphidx_node[j], g, m, gsl_matrix_get(dhdx, j_local_prime, m) * mesh->node[j_global_prime].phi[g]);
+                }
               }
             }
+            gsl_matrix_free(dhdx);
           }
-          gsl_matrix_free(dhdx);
         }
+      }
         
 
+      for (j = 0; j < J; j++) {
         
         // if nu, E and/or alpha are not uniform, we need to evaluate them at the nodes
         if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
@@ -1212,7 +1316,7 @@ int fino_break_compute_stresses(void) {
         element = associated_element->element;
         if (element->dphidx_node != NULL) {
           found = 0;
-          for (j = 0; !found && j < element->type->nodes; j++) {
+          for (j = 0; !found && j < J; j++) {
             if (element->node[j]->index_mesh == j_global) {
 
               n++;
@@ -1511,7 +1615,7 @@ int fino_break_set_neumann(element_t *element, bc_t *bc) {
       z0 = physical_entity->cog[2];
     }
 
-    // el momento polar de inercia
+    // the polar moment of intertia
     Ix = 0;
     Iy = 0;
     Iz = 0;

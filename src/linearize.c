@@ -95,7 +95,7 @@ int fino_instruction_linearize(void *arg) {
         integrand_mx = integrand_my = integrand_mz = integrand_mxy = integrand_myz = integrand_mzx = 0;
         integrand_bx = integrand_by = integrand_bz = integrand_bxy = integrand_byz = integrand_bzx = 0;
         for (j = 0; j < element->type->nodes; j++) {
-          h = element->type->gauss[GAUSS_POINTS_FULL].h[v][j];
+          h = element->type->gauss[fino.mesh->integration].h[v][j];
           k = element->node[j]->index_mesh;
           integrand_mx   += h * fino.sigmax->data_value[k];
           integrand_my   += h * fino.sigmay->data_value[k];

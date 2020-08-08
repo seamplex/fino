@@ -222,6 +222,7 @@ Sets the problem type that Fino has to solve.
 \f[C]
 FINO_PROBLEM [ mechanical | thermal | modal ]
  [ AXISYMMETRIC | PLANE_STRESS | PLANE_STRAIN ] [ SYMMETRY_AXIS { x | y } ] [ LINEAR | NON_LINEAR ]
+ [ QUASISTATIC | TRANSIENT ]
  [ DIMENSIONS <expr> ] [ MESH <identifier> ] 
  [ N_MODES <expr> ] 
 \f[R]
@@ -386,7 +387,7 @@ Ask Fino to solve the problem and advance one step.
 .IP
 .nf
 \f[C]
-FINO_STEP [ JUST_BUILD ]
+FINO_STEP
 \f[R]
 .fi
 .PP
@@ -415,6 +416,7 @@ format.
 \f[C]
 MESH [ NAME <name> ] { FILE <file_id> | FILE_PATH <file_path> } [ DIMENSIONS <num_expr> ]
  [ SCALE <expr> ] [ OFFSET <expr_x> <expr_y> <expr_z> ]
+ [ INTEGRATION { full | reduced } ] [ RE_READ ]
  [ READ_SCALAR <name_in_mesh> AS <function_name> ] [...]
  [ READ_FUNCTION <function_name> ] [...]
 \f[R]

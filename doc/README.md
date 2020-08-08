@@ -20,7 +20,7 @@ Pay attention to `reference-manual.md`.
 
 Edit `help.md`.
 
-TODO: read it from the commented sources.
+**TODO:** read it from the commented sources.
 
 # Syntax highlighting files
 
