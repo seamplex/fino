@@ -4,11 +4,12 @@
  * pass long options to PETSc (fino --ksp_view -> pass -ksp_view to PETSc)
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
  * optimize assemblies -> gmsh partition
+ * read tet4 (or hex8) and convert internally to tet10 (or hex20), or conversely
  * log stages
  * refinement
     - stressrefine
     - sparselizard
- * rewrite DEBUG
+ * rewrite DEBUG as FINO_DUMP, write elemental matrices, gradients at gauss points, etc
  * compute heat fluxes
  * put mat2sng in a different code
  * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?

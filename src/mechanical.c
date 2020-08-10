@@ -467,7 +467,7 @@ int fino_break_build_element(element_t *element, int v) {
 
 #ifdef FEM_DUMP  
   printf("Ki(%d,%d) = \n", element->index, v);
-  gsl_matrix_fprintf(stdout, fino.Ki, "%g");  
+  fino_print_gsl_matrix(fino.Ki, stdout);
 #endif
   
   // see if we need to do hourglass control

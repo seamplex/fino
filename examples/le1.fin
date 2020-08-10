@@ -1,8 +1,8 @@
 # NAFEMS Benchmark #1: elliptical membrane
-
+# Reference solution: 92.7 MPa
 MESH FILE_PATH le1.msh DIMENSIONS 2
 FINO_PROBLEM PLANE_STRESS
-FINO_SOLVER GRADIENT gauss
+FINO_SOLVER GRADIENT nodes
 
 E = 210e3
 nu = 0.3
@@ -14,4 +14,4 @@ PHYSICAL_GROUP BC BC p=10
 FINO_STEP
 
 MESH_POST FILE_PATH le1.vtk VECTOR u v 0 sigmax sigmay tauxy
-PRINT "σy at point D = " %.3f sigmay(2,0) "(reference is 92.7)" SEP " "
+PRINT "σy at point D = " %.3f sigmay(2000,0) "(reference is 92.7)" SEP " "

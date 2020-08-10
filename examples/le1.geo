@@ -2,10 +2,10 @@
 SetFactory("OpenCASCADE");
 
 // create the geometry
-a = 1.00;
-b = 2.75;
-c = 3.25;
-d = 2.00;
+a = 1000;
+b = 2750;
+c = 3250;
+d = 2000;
 
 // define the four points
 Point(1) = {0, a, 0};
@@ -42,9 +42,9 @@ Mesh.ElementOrder = 2;
 Mesh.RecombineAll = 1;
 Mesh.SecondOrderIncomplete = 0;
 Mesh.SecondOrderLinear = 0;
-Mesh.CharacteristicLengthMax = 0.04;
+Mesh.CharacteristicLengthMax = 50;
 
 // use transfinite algoritmh to obtain a structured grid
-Transfinite Curve{1,3} = 2/(Mesh.CharacteristicLengthMax * Mesh.CharacteristicLengthFactor);
-Transfinite Curve{2,4} = 3/(Mesh.CharacteristicLengthMax * Mesh.CharacteristicLengthFactor);
+Transfinite Curve{1,3} = 2000/(Mesh.CharacteristicLengthMax * Mesh.CharacteristicLengthFactor);
+Transfinite Curve{2,4} = 3000/(Mesh.CharacteristicLengthMax * Mesh.CharacteristicLengthFactor);
 Transfinite Surface{1};
