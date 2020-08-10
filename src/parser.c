@@ -257,7 +257,7 @@ int plugin_parse_line(char *line) {
 
 ///kw+FINO_SOLVER+usage [ KSP { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]@
 ///kw+FINO_SOLVER+detail  * List of `KSP`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
-        } else if (strcasecmp(token, "KSP") == 0) || strcasecmp(token, "KSP_TYPE") == 0) {
+        } else if (strcasecmp(token, "KSP") == 0 || strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.ksp_type));
           
 ///kw+FINO_SOLVER+usage [ TS { bdf | arkimex | rosw | glle | beuler | ... } ]@
