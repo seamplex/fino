@@ -2,7 +2,6 @@
 # Reference solution: 92.7 MPa
 MESH FILE_PATH le1.msh DIMENSIONS 2
 FINO_PROBLEM PLANE_STRESS
-FINO_SOLVER GRADIENT nodes
 
 E = 210e3
 nu = 0.3
