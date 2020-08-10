@@ -456,8 +456,9 @@ int fino_break_build_element(element_t *element, int v) {
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
-    wasora_call(fino_break_compute_C(fino_distribution_evaluate(&distribution_E,  material, element->x[v]),
-                                     fino_distribution_evaluate(&distribution_nu, material, element->x[v]), C));
+    E = fino_distribution_evaluate(&distribution_E,  material, element->x[v]);
+    nu = fino_distribution_evaluate(&distribution_nu, material, element->x[v]);
+    wasora_call(fino_break_compute_C(E, nu, C));
   }
 
   // compute the elemental B'*C*B

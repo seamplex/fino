@@ -45,6 +45,9 @@ int fino_solve_petsc_linear(void) {
     if (fino.progress_ascii == PETSC_TRUE) {  
       petsc_call(KSPMonitorSet(fino.ksp, fino_ksp_monitor, NULL, 0));
     }
+    
+    // K is symmetric. Set symmetric flag to enable ICC/Cholesky preconditioner
+    petsc_call(MatSetOption(fino.K, MAT_SYMMETRIC, PETSC_TRUE));  
   }
   
   petsc_call(KSPSetOperators(fino.ksp, fino.K, fino.K));
@@ -58,8 +61,6 @@ int fino_solve_petsc_linear(void) {
   wasora_call(fino_set_pc(pc));
   wasora_call(fino_set_ksp(fino.ksp));
 
-  // K is symmetric. Set symmetric flag to enable ICC/Cholesky preconditioner
-  petsc_call(MatSetOption(fino.K, MAT_SYMMETRIC, PETSC_TRUE));  
   
   // try to use the solution as the initial guess (it already has Dirichlet BCs
   // but in quasi-static it has the previous solution which should be similar)
@@ -68,6 +69,7 @@ int fino_solve_petsc_linear(void) {
     // mumps cannot be used with a non-zero guess  
     petsc_call(KSPSetInitialGuessNonzero(fino.ksp, PETSC_TRUE));
   } 
+  fino.progress_last = 0;
   
   
   // do the work!
@@ -130,11 +132,13 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 //    printf("%d %e %.0f\n", n, rnorm/r0, 100*current_progress);
     
     if (fino.progress_ascii == PETSC_TRUE) {
-      for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
-        printf(CHAR_PROGRESS_SOLVE);
-        fflush(stdout);
-      }
-      fino.progress_last = current_progress;
+      if (fino.progress_last < current_progress) {
+        for (i = (int)(100*fino.progress_last); i < (int)(100*current_progress); i++) {
+          printf(CHAR_PROGRESS_SOLVE);
+          fflush(stdout);
+        }
+        fino.progress_last = current_progress;
+      }  
     }
   }  
 

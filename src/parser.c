@@ -248,30 +248,30 @@ int plugin_parse_line(char *line) {
         } else if (strcasecmp(token, "PROGRESS") == 0 || strcasecmp(token, "PROGRESS_ASCII") == 0) {
           fino.progress_ascii = PETSC_TRUE;
 
-///kw+FINO_SOLVER+usage [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]@
+///kw+FINO_SOLVER+usage [ PC { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]@
 ///kw+FINO_SOLVER+detail The preconditioner, linear and non-linear solver might be any of those available in PETSc:
 ///kw+FINO_SOLVER+detail @          
-///kw+FINO_SOLVER+detail  * List of `PC_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.
-        } else if (strcasecmp(token, "PC_TYPE") == 0) {
+///kw+FINO_SOLVER+detail  * List of `PC`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.
+        } else if (strcasecmp(token, "PC") == 0 || strcasecmp(token, "PC_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.pc_type));
 
-///kw+FINO_SOLVER+usage [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]@
-///kw+FINO_SOLVER+detail  * List of `KSP_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
-        } else if (strcasecmp(token, "KSP_TYPE") == 0) {
+///kw+FINO_SOLVER+usage [ KSP { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]@
+///kw+FINO_SOLVER+detail  * List of `KSP`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
+        } else if (strcasecmp(token, "KSP") == 0) || strcasecmp(token, "KSP_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.ksp_type));
           
-///kw+FINO_SOLVER+usage [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]@
-///kw+FINO_SOLVER+detail  * List of `TS_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html>.
-        } else if (strcasecmp(token, "TS_TYPE") == 0) {
+///kw+FINO_SOLVER+usage [ TS { bdf | arkimex | rosw | glle | beuler | ... } ]@
+///kw+FINO_SOLVER+detail  * List of `TS`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html>.
+        } else if (strcasecmp(token, "TS") == 0 || strcasecmp(token, "TS_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.ts_type));
 
 ///kw+FINO_SOLVER+usage [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]@
-///kw+FINO_SOLVER+detail  * List of `SNES_TYPE`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
+///kw+FINO_SOLVER+detail  * List of `SNES`s <http:/\/www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
 ///kw+FINO_SOLVER+detail @
-        } else if (strcasecmp(token, "SNES_TYPE") == 0) {
+        } else if (strcasecmp(token, "SNES") == 0 || strcasecmp(token, "SNES_TYPE") == 0) {
           wasora_call(wasora_parser_string((char **)&fino.snes_type));
 
-///kw+FINO_SOLVER+detail If either `PC_TYPE` or `KSP_TYPE` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
+///kw+FINO_SOLVER+detail If either `PC` or `KSP` is set to `mumps` (and PETSc is compiled with MUMPS support) then this direct solver is used.
 ///kw+FINO_SOLVER+detail For the mechanical problem, the default is to use GAMG as the preconditioner and PETSc’s default solver (GMRES).
 ///kw+FINO_SOLVER+detail For the thermal problem, the default is to use the default PETSc settings.
 ///kw+FINO_SOLVER+detail For the modal problem, the default is to use the default SLEPc settings.
