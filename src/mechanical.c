@@ -309,7 +309,8 @@ int fino_break_build_element(element_t *element, int v) {
     wasora_call(fino_distribution_init(&distribution_alpha, "alpha"));
     wasora_call(fino_distribution_init(&distribution_T, "T"));
     
-    // T0 (the temperature at wich no expansion occurs) might be a function or a constant
+    // T0 (the temperature at which no expansion occurs) might be
+    // either a function of space or a scalar constant
     wasora_call(fino_distribution_init(&distribution_T0, "T0"));
     if (distribution_T0.defined) {
       T0 = fino_distribution_evaluate(&distribution_T0, NULL, NULL);
@@ -383,7 +384,7 @@ int fino_break_build_element(element_t *element, int v) {
     }  
   }  
   
-  // matrix H is the standard one by B is not due to the reduced formulation of the multi-DOF problem
+  // matrix H is the standard one but B is not due to the reduced formulation of the multi-DOF problem
   // i.e the C matrix is 6x6 (or 3x3 in 2D) when it should be 9x9 for the full non-reduced problem
   gsl_matrix_set_zero(B);
 
