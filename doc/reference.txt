@@ -190,9 +190,9 @@ FINO_SOLVER
   Sets options related to the solver and the computation of gradients.
 
     FINO_SOLVER [ PROGRESS ]
-     [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
-     [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
-     [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
+     [ PC { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
+     [ KSP { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+     [ TS { bdf | arkimex | rosw | glle | beuler | ... } ]
      [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
      [ GRADIENT { gauss | nodes | none } ]
      [ GRADIENT_HIGHER { average | nodes } ]
@@ -205,21 +205,21 @@ matrices), the solution of the system of equations and the computation
 of gradients (stresses). The preconditioner, linear and non-linear
 solver might be any of those available in PETSc:
 
--   List of PC_TYPEs
+-   List of PCs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html.
--   List of KSP_TYPEs
+-   List of KSPs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html.
--   List of TS_TYPEs
+-   List of TSs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html.
--   List of SNES_TYPEs
+-   List of SNESs
     http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html.
 
-If either PC_TYPE or KSP_TYPE is set to mumps (and PETSc is compiled
-with MUMPS support) then this direct solver is used. For the mechanical
-problem, the default is to use GAMG as the preconditioner and PETSc’s
-default solver (GMRES). For the thermal problem, the default is to use
-the default PETSc settings. For the modal problem, the default is to use
-the default SLEPc settings. The GRADIENT keyword controls how the
+If either PC or KSP is set to mumps (and PETSc is compiled with MUMPS
+support) then this direct solver is used. For the mechanical problem,
+the default is to use GAMG as the preconditioner and PETSc’s default
+solver (GMRES). For the thermal problem, the default is to use the
+default PETSc settings. For the modal problem, the default is to use the
+default SLEPc settings. The GRADIENT keyword controls how the
 derivatives (i.e. strains) at the first-order nodes are to be computed
 out of the primary unknowns (i.e. displacements).
 

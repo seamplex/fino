@@ -58,7 +58,7 @@ GPLv3+ that uses the finite-element method to solve
 
 @itemize
 @item
-steady-state thermo-mechanical problems, or
+steady or quasistatic thermo-mechanical problems, or
 @item
 steady or transient heat conduction problems, or
 @item
@@ -1212,9 +1212,9 @@ Sets options related to the solver and the computation of gradients.
 @smallformat
 @verbatim
 FINO_SOLVER [ PROGRESS ]
- [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
- [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
- [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
+ [ PC { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
+ [ KSP { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+ [ TS { bdf | arkimex | rosw | glle | beuler | ... } ]
  [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
@@ -1231,28 +1231,27 @@ solver might be any of those available in PETSc:
 
 @itemize
 @item
-List of @code{PC_TYPE}s
+List of @code{PC}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html}.
 @item
-List of @code{KSP_TYPE}s
+List of @code{KSP}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html}.
 @item
-List of @code{TS_TYPE}s
+List of @code{TS}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html}.
 @item
-List of @code{SNES_TYPE}s
+List of @code{SNES}s
 @url{http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html}.
 @end itemize
 
-If either @code{PC_TYPE} or @code{KSP_TYPE} is set to @code{mumps} (and
-PETSc is compiled with MUMPS support) then this direct solver is used.
-For the mechanical problem, the default is to use GAMG as the
-preconditioner and PETSc's default solver (GMRES). For the thermal
-problem, the default is to use the default PETSc settings. For the modal
-problem, the default is to use the default SLEPc settings. The
-@code{GRADIENT} keyword controls how the derivatives (i.e.@ strains) at
-the first-order nodes are to be computed out of the primary unknowns
-(i.e.@ displacements).
+If either @code{PC} or @code{KSP} is set to @code{mumps} (and PETSc is
+compiled with MUMPS support) then this direct solver is used. For the
+mechanical problem, the default is to use GAMG as the preconditioner and
+PETSc's default solver (GMRES). For the thermal problem, the default is
+to use the default PETSc settings. For the modal problem, the default is
+to use the default SLEPc settings. The @code{GRADIENT} keyword controls
+how the derivatives (i.e.@ strains) at the first-order nodes are to be
+computed out of the primary unknowns (i.e.@ displacements).
 
 @itemize
 @item

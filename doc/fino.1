@@ -14,7 +14,7 @@ fino [\f[I]options\f[R]] input-file
 Fino is a free and open source tool released under the terms of the
 GPLv3+ that uses the finite-element method to solve
 .IP \[bu] 2
-steady-state thermo-mechanical problems, or
+steady or quasistatic thermo-mechanical problems, or
 .IP \[bu] 2
 steady or transient heat conduction problems, or
 .IP \[bu] 2
@@ -289,9 +289,9 @@ Sets options related to the solver and the computation of gradients.
 .nf
 \f[C]
 FINO_SOLVER [ PROGRESS ]
- [ PC_TYPE { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
- [ KSP_TYPE { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
- [ TS_TYPE { bdf | arkimex | rosw | glle | beuler | ... } ]
+ [ PC { gamg | mumps | lu | hypre | sor | bjacobi | cholesky | ... } ]
+ [ KSP { gmres | mumps | bcgs | bicg | richardson | chebyshev | ... } ]
+ [ TS { bdf | arkimex | rosw | glle | beuler | ... } ]
  [ SNES_TYPE { newtonls | newtontr | nrichardson | ngmres | qn | ngs | ... } ]
  [ GRADIENT { gauss | nodes | none } ]
  [ GRADIENT_HIGHER { average | nodes } ]
@@ -307,21 +307,20 @@ of gradients (stresses).
 The preconditioner, linear and non-linear solver might be any of those
 available in PETSc:
 .IP \[bu] 2
-List of \f[C]PC_TYPE\f[R]s
+List of \f[C]PC\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/PC/PCType.html>.
 .IP \[bu] 2
-List of \f[C]KSP_TYPE\f[R]s
+List of \f[C]KSP\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPType.html>.
 .IP \[bu] 2
-List of \f[C]TS_TYPE\f[R]s
+List of \f[C]TS\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/TS/TSType.html>.
 .IP \[bu] 2
-List of \f[C]SNES_TYPE\f[R]s
+List of \f[C]SNES\f[R]s
 <http://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/SNES/SNESType.html>.
 .PP
-If either \f[C]PC_TYPE\f[R] or \f[C]KSP_TYPE\f[R] is set to
-\f[C]mumps\f[R] (and PETSc is compiled with MUMPS support) then this
-direct solver is used.
+If either \f[C]PC\f[R] or \f[C]KSP\f[R] is set to \f[C]mumps\f[R] (and
+PETSc is compiled with MUMPS support) then this direct solver is used.
 For the mechanical problem, the default is to use GAMG as the
 preconditioner and PETSc\[cq]s default solver (GMRES).
 For the thermal problem, the default is to use the default PETSc
