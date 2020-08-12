@@ -149,17 +149,18 @@ PetscErrorCode fino_ksp_monitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dumm
 
 int fino_set_ksp(KSP ksp) {
 
-  // the KSP type
-  if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
-      (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
-    // mumps is a particular case, see fino_set_pc
-    KSPSetType(ksp, KSPPREONLY);
-  } else if (fino.ksp_type != NULL) {
+// the KSP type
+if (PETSC_HAVE_MUMPS &&
+    ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
+     (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0))) {
+  // mumps is a particular case, see fino_set_pc
+  KSPSetType(ksp, KSPPREONLY);
+} else if (fino.ksp_type != NULL) {
     petsc_call(KSPSetType(ksp, fino.ksp_type));
-  } else {
-    // by default use whatever PETSc/SLEPc like
-//    petsc_call(KSPSetType(ksp, KSPGMRES));
-  }  
+} else {
+  // by default use whatever PETSc/SLEPc like
+  petsc_call(KSPSetType(ksp, KSPGMRES));
+}  
 
   // read command-line options
   petsc_call(KSPSetFromOptions(ksp));
@@ -181,8 +182,9 @@ int fino_set_pc(PC pc) {
 
   // if we were asked for mumps, then either LU o cholesky needs to be used
   // and MatSolverType to mumps
-  if ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
-      (fino.pc_type != NULL && strcasecmp(fino.pc_type,  "mumps") == 0)) {
+  if (PETSC_HAVE_MUMPS &&
+      ((fino.ksp_type != NULL && strcasecmp(fino.ksp_type, "mumps") == 0) ||
+       (fino.pc_type  != NULL && strcasecmp(fino.pc_type,  "mumps") == 0))) {
 #if PETSC_VERSION_GT(3,9,0)
     petsc_call(MatSetOption(fino.K, MAT_SPD, PETSC_TRUE)); /* set MUMPS id%SYM=1 */
     petsc_call(PCSetType(pc, PCCHOLESKY));
