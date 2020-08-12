@@ -300,20 +300,24 @@ int fino_break_build_element(element_t *element, int v) {
   // if the stress-strain matrix C is null then we have to allocate some stuff
   // and resolve the special distributions with material properties
   if (C == NULL) {
-    wasora_call(fino_distribution_init(&distribution_E, "E"));
-    wasora_call(fino_distribution_init(&distribution_nu, "nu"));
-    wasora_call(fino_distribution_init(&distribution_rho, "rho"));
-    wasora_call(fino_distribution_init(&distribution_fx, "fx"));
-    wasora_call(fino_distribution_init(&distribution_fy, "fy"));
-    wasora_call(fino_distribution_init(&distribution_fz, "fz"));
+    wasora_call(fino_distribution_init(&distribution_E,     "E"));
+    wasora_call(fino_distribution_init(&distribution_nu,    "nu"));
+    wasora_call(fino_distribution_init(&distribution_rho,   "rho"));
+    wasora_call(fino_distribution_init(&distribution_fx,    "fx"));
+    wasora_call(fino_distribution_init(&distribution_fy,    "fy"));
+    wasora_call(fino_distribution_init(&distribution_fz,    "fz"));
     wasora_call(fino_distribution_init(&distribution_alpha, "alpha"));
-    wasora_call(fino_distribution_init(&distribution_T, "T"));
+    wasora_call(fino_distribution_init(&distribution_T,     "T"));
     
-    // T0 (the temperature at which no expansion occurs) might be
-    // either a function of space or a scalar constant
-    wasora_call(fino_distribution_init(&distribution_T0, "T0"));
+    // T0 (the temperature at which no expansion occurs) should be a scalar constant
+    wasora_call(fino_distribution_init(&distribution_T0,    "T0"));
     if (distribution_T0.defined) {
-      T0 = fino_distribution_evaluate(&distribution_T0, NULL, NULL);
+      if (distribution_T0.variable != NULL) {
+        T0 = fino_distribution_evaluate(&distribution_T0, NULL, NULL);
+      } else {
+        wasora_push_error_message("reference temperature 'T0' has to be a scalar variable");
+        return WASORA_RUNTIME_ERROR;
+      }  
     } else {
       T0 = 0;
     }
