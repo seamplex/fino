@@ -26,6 +26,7 @@
 
 #include "fino.h"
 #include "version.h"
+#include <petscconfiginfo.h>
 
 // global static so the compiler locates these strings in the text section
 // so when the plugin_* functions return pointers to the strings there is
@@ -80,9 +81,10 @@ Build architecture : %s\n\
 Builder            : %s@%s\n\
 Compiler           : %s\n\
 Compiler flags     : %s\n\
+SLEPc version      : %s\n\
 PETSc version      : %s\n\
 PETSc arch         : %s\n\
-SLEPc version      : %s",
+PETSc configure    : %s\n",
    PLUGIN_VCS_DATE,
    COMPILATION_DATE,
    COMPILATION_ARCH,
@@ -91,8 +93,9 @@ SLEPc version      : %s",
    CCOMPILER_VERSION,
    CCOMPILER_FLAGS,
    petscversion,
+   slepcversion,
    petscarch,
-   slepcversion);
+   petscconfigureoptions);
   
   return finolongversion;
 }

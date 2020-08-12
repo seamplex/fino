@@ -420,8 +420,13 @@ int fino_problem_init(void) {
   // see if the user asked for mumps in the command line
   petsc_call(PetscOptionsHasNameWrapper(PETSC_NULL, "--mumps", &flag));
   if (flag == PETSC_TRUE) {
+#ifdef PETSC_HAVE_MUMPS    
     fino.ksp_type = strdup("mumps");
     fino.pc_type = strdup("mumps");
+#else
+    wasora_push_error_message("PETSc was not compiled with MUMPS. Reconfigure with --download-mumps.");
+    return WASORA_RUNTIME_ERROR;
+#endif
   }
 
   // see if the user asked for progress in the command line
