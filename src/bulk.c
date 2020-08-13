@@ -122,7 +122,11 @@ int fino_build_bulk(void) {
     petsc_call(MatDestroy(&fino.K_nobc));
     petsc_call(MatDuplicate(fino.K, MAT_DO_NOT_COPY_VALUES, &fino.K_nobc));
     if (fino.b != NULL) {
-      petsc_call(VecDuplicate(fino.b, &fino.b_nobc));
+      if (fino.b_nobc == NULL) {
+        petsc_call(VecDuplicate(fino.b, &fino.b_nobc));
+      } else {
+        petsc_call(VecCopy(fino.b, fino.b_nobc));
+      }
     }  
   }
   

@@ -720,6 +720,7 @@ int fino_problem_free(void) {
       free(fino.sigma2->data_value);
       free(fino.sigma3->data_value);
       free(fino.sigma->data_value);
+      free(fino.delta_sigma->data_value);
       free(fino.tresca->data_value);
       
       fino.sigmax->data_value = NULL;
@@ -736,6 +737,7 @@ int fino_problem_free(void) {
       fino.sigma2->data_value = NULL;
       fino.sigma3->data_value = NULL;
       fino.sigma->data_value = NULL;
+      fino.delta_sigma->data_value = NULL;
       fino.tresca->data_value = NULL;
     }
     
@@ -763,6 +765,7 @@ int fino_problem_free(void) {
     fino_function_clean_nodal_data(fino.sigma2);
     fino_function_clean_nodal_data(fino.sigma3);
     fino_function_clean_nodal_data(fino.sigma);
+    fino_function_clean_nodal_data(fino.delta_sigma);
     fino_function_clean_nodal_data(fino.tresca);
     
   }
@@ -789,6 +792,9 @@ int fino_problem_free(void) {
   }
   if (fino.b != PETSC_NULL) {
     petsc_call(VecDestroy(&fino.b));
+  }
+  if (fino.b_nobc != PETSC_NULL) {
+    petsc_call(VecDestroy(&fino.b_nobc));
   }
 
   // mind the order!

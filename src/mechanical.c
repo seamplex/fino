@@ -475,6 +475,7 @@ int fino_break_build_element(element_t *element, int v) {
   fino_print_gsl_matrix(fino.Ki, stdout);
 #endif
   
+/*  
   // see if we need to do hourglass control
   if (fino.mesh->integration == integration_reduced && fino.hourglass_epsilon > 0) {  
     gsl_matrix *gamma = NULL;  // lowercase = matrix of plain gamma vectors , one vector per row
@@ -564,7 +565,7 @@ int fino_break_build_element(element_t *element, int v) {
       gsl_matrix_free(Gamma);
     }  
   }
-  
+*/  
   // thermal expansion 
   if (distribution_alpha.defined != 0) {
     // note that alpha should be the mean expansion coefficient in the range
