@@ -165,9 +165,7 @@ int fino_dirichlet_eval(Mat K, Vec b) {
             }
 
             // TODO: see if the node coordinates are needed or not
-            wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-            wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-            wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+            mesh_update_coord_vars(fino.mesh->node[j].x);
             
             // if there is a condition we evaluate it now
             if (bc->condition.n_tokens == 0 || fabs(wasora_evaluate_expression(&bc->condition)) > 1e-3) {

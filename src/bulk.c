@@ -172,6 +172,7 @@ int fino_build_element_volumetric(element_t *element) {
       wasora_call(fino_allocate_elemental_objects(element));
     }
     
+    // TODO: see if this is actually needed
     if (element->B == NULL) {
       element->B = calloc(V, sizeof(gsl_matrix *));
     }

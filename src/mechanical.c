@@ -457,7 +457,7 @@ int fino_break_build_element(element_t *element, int v) {
     }
   }
   
-  // if E and nu are scalar variables C is uniform and we already have it
+  // if E and nu are scalar variables then C is uniform and we already have it
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
@@ -1067,9 +1067,7 @@ int fino_break_compute_stresses(void) {
         if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
           
           element->property_node[j] = calloc(ELASTIC_PROPERTIES, sizeof(double));
-          wasora_var_value(wasora_mesh.vars.x) = mesh->node[j_global].x[0];
-          wasora_var_value(wasora_mesh.vars.y) = mesh->node[j_global].x[1];
-          wasora_var_value(wasora_mesh.vars.z) = mesh->node[j_global].x[2];
+          mesh_update_coord_vars(mesh->node[j_global].x);
           
           if (uniform_properties == 0) {
             if (distribution_E.variable == NULL) {
