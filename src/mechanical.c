@@ -845,14 +845,8 @@ int fino_break_compute_stresses(void) {
   // the mesh for "rough" mode is different
   mesh = (fino.rough == 0) ? fino.mesh : fino.mesh_rough;
   
-  
-  // the progress depends on wheter we extrapolate from gauss or we evaluate at the nodes
-  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
-    step = ceil((double)(2*mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0);
-  } else if (fino.gradient_evaluation == gradient_at_nodes) {
-    step = ceil((double)(mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0);
-  }  
-  if (step < 1) {
+  // number of steps we need to make for progress bar
+  if ((step = ceil((double)(mesh->n_elements+mesh->n_nodes)*wasora.nprocs/100.0)) < 1) {
     step = 1;
   }
   
@@ -884,45 +878,8 @@ int fino_break_compute_stresses(void) {
     fino_fill_result_function(sigma3);
 
     // von mises
-    fino_fill_result_function(sigma);
-    fino_fill_result_function(delta_sigma);
-    
-    // tresca
-    fino_fill_result_function(tresca);
-  }
-  
-  // evaluate nu, E and alpha, if they are uniform these values are kept
-  if (distribution_nu.variable != NULL ) {
-    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
-    if (nu > 0.499) {
-      wasora_push_error_message("nu is greater than 1/2");
-      return WASORA_RUNTIME_ERROR;
-    } else if (nu < 0) {
-      wasora_push_error_message("nu is negative");
-      return WASORA_RUNTIME_ERROR;
-    }
-  }
-  if (distribution_E.variable != NULL) {
-    if ((E = fino_distribution_evaluate(&distribution_E, NULL, NULL)) <= 0) {
-      wasora_push_error_message("E is not positive (%g)", E);
-      return WASORA_RUNTIME_ERROR;
-    }
-  }
-  if (distribution_alpha.variable != NULL) {
-    alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
-  }
-  
-  if (uniform_properties) {
-    // this works for the rest of the routine
-    lambda = E*nu/((1+nu)*(1-2*nu));
-    mu = 0.5*E/(1+nu);
-  }  
-
-
+    fino_fill_result_function(sigma);/*
   // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
-  // note that as we are going to extrapolate to the nodes we use the set of gauss points which
-  // give one point close to one node independently of the integration scheme used in the computation
-  // (i.e. full or reduced)
   if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
     for (i = 0; i < mesh->n_elements; i++) {
       if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
@@ -957,7 +914,115 @@ int fino_break_compute_stresses(void) {
       }
     }  
   }  
+*/  
+/*
+  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
+  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
+    for (i = 0; i < mesh->n_elements; i++) {
+      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
+        printf(CHAR_PROGRESS_GRADIENT);  
+        fflush(stdout);
+        ascii_progress_chars++;
+      }
+      
+      element = &mesh->element[i];
+      if (element->type->dim == fino.dimensions){
+        
+        V = element->type->gauss[mesh->integration].V;
+        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
+        
+        for (v = 0; v < V; v++) {
+        
+          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
+
+          // aca habria que hacer una matriz con los phi globales
+          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
+          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+              for (j = 0; j < element->type->nodes; j++) {
+                j_global = element->node[j]->index_mesh;
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
+              }
+            }
+          }
+        }
+      }
+    }  
+  }  
+*/  /*
+  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
+  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
+    for (i = 0; i < mesh->n_elements; i++) {
+      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
+        printf(CHAR_PROGRESS_GRADIENT);  
+        fflush(stdout);
+        ascii_progress_chars++;
+      }
+      
+      element = &mesh->element[i];
+      if (element->type->dim == fino.dimensions){
+        
+        V = element->type->gauss[mesh->integration].V;
+        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
+        
+        for (v = 0; v < V; v++) {
+        
+          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
+
+          // aca habria que hacer una matriz con los phi globales
+          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
+          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+              for (j = 0; j < element->type->nodes; j++) {
+                j_global = element->node[j]->index_mesh;
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
+              }
+            }
+          }
+        }
+      }
+    }  
+  }  
+*/  
+
+
+    fino_fill_result_function(delta_sigma);
+    
+    // tresca
+    fino_fill_result_function(tresca);
+  }
   
+  // evaluate nu, E and alpha, if they are uniform these values are kept
+  if (distribution_nu.variable != NULL ) {
+    nu = fino_distribution_evaluate(&distribution_nu, NULL, NULL);
+    if (nu > 0.499) {
+      wasora_push_error_message("nu is greater than 1/2");
+      return WASORA_RUNTIME_ERROR;
+    } else if (nu < 0) {
+      wasora_push_error_message("nu is negative");
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+  if (distribution_E.variable != NULL) {
+    if ((E = fino_distribution_evaluate(&distribution_E, NULL, NULL)) <= 0) {
+      wasora_push_error_message("E is not positive (%g)", E);
+      return WASORA_RUNTIME_ERROR;
+    }
+  }
+  if (distribution_alpha.variable != NULL) {
+    alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
+  }
+  
+  if (uniform_properties) {
+    // this works for the rest of the routine
+    lambda = E*nu/((1+nu)*(1-2*nu));
+    mu = 0.5*E/(1+nu);
+  }  
+
   // step 1. sweep elements and compute tensors at each node of each element
   for (i = 0; i < mesh->n_elements; i++) {
     if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
@@ -1004,9 +1069,30 @@ int fino_break_compute_stresses(void) {
       // at once by pre-multiplying the gauss values by the (possibly-rectangular) extrapolation
       // matrix to get the nodal values
       if (fino.gradient_evaluation == gradient_gauss_extrapolated && element->type->gauss[mesh->integration].extrap != NULL) {
+        
         gsl_vector *at_gauss = gsl_vector_alloc(V);
         gsl_vector *at_nodes = gsl_vector_alloc(J);
+        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
         
+        for (v = 0; v < V; v++) {
+        
+          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
+
+          // aca habria que hacer una matriz con los phi globales
+          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
+          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
+          for (g = 0; g < fino.degrees; g++) {
+            for (m = 0; m < fino.dimensions; m++) {
+              for (j = 0; j < element->type->nodes; j++) {
+                j_global = element->node[j]->index_mesh;
+                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
+              }
+            }
+          }
+        }
+        
+        // take the product of the extrapolation matrix times the values at the fauss points
         for (g = 0; g < fino.degrees; g++) {
           for (m = 0; m < fino.dimensions; m++) {
             for (v = 0; v < V; v++) {

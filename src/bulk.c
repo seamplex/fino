@@ -81,7 +81,7 @@ int fino_build_bulk(void) {
   if (fino.b != NULL) {
     petsc_call(VecZeroEntries(fino.b));
   }  
-  
+
   for (i = fino.first_element; i < fino.last_element; i++) {
 
 // ------ progress bar ------------------------------------------    
