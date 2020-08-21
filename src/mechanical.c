@@ -45,14 +45,30 @@
         fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
         fino.fun_nam->data_value = calloc(fino.fun_nam->mesh->n_nodes, sizeof(double));}
         
-fino_distribution_t distribution_E;     // modulo de young
-fino_distribution_t distribution_nu;    // coef de poisson
-fino_distribution_t distribution_rho;   // densidad
-fino_distribution_t distribution_fx;    // fuerza volumetrica en x
-fino_distribution_t distribution_fy;    // fuerza volumetrica en y
-fino_distribution_t distribution_fz;    // fuerza volumetrica en z
-fino_distribution_t distribution_alpha; // coeficiente de expansion termica
-fino_distribution_t distribution_T;     // temperatura
+// isotropic properties
+fino_distribution_t distribution_E;     // Young's modulus
+fino_distribution_t distribution_nu;    // Poisson's ratio
+
+// orthotropic
+fino_distribution_t distribution_Ex;    // Young's modulus along axis x
+fino_distribution_t distribution_Ey;
+fino_distribution_t distribution_Ez;
+
+fino_distribution_t distribution_nuxy;  // Poisson's ratio corresponding to a contraction in y when an extension in x is applied
+fino_distribution_t distribution_nuyz;
+fino_distribution_t distribution_nuzx;
+
+fino_distribution_t distribution_Gxy;   // shear modulus in direction y on the plane whose normal is x
+fino_distribution_t distribution_Gyz;
+fino_distribution_t distribution_Gzx;
+
+
+fino_distribution_t distribution_rho;   // density
+fino_distribution_t distribution_fx;    // volumetric load in x
+fino_distribution_t distribution_fy;    // volumetric load in y
+fino_distribution_t distribution_fz;    // volumetric load in z
+fino_distribution_t distribution_alpha; // thermal expansion coefficient
+fino_distribution_t distribution_T;     // temperature
 
 // este es un escalar pero lo ponemos como dist para ver si ya lo inicializamos
 fino_distribution_t distribution_T0;    // temperatura de referencia (i.e. sin deformacion)
@@ -280,7 +296,6 @@ int fino_break_build_element(element_t *element, int v) {
   
   material_t *material;
 
-  double E, nu;
   double rho;
   double c;
   double alphaDT;
@@ -302,6 +317,19 @@ int fino_break_build_element(element_t *element, int v) {
   if (C == NULL) {
     wasora_call(fino_distribution_init(&distribution_E,     "E"));
     wasora_call(fino_distribution_init(&distribution_nu,    "nu"));
+    
+    wasora_call(fino_distribution_init(&distribution_Ex,    "Ex"));
+    wasora_call(fino_distribution_init(&distribution_Ey,    "Ey"));
+    wasora_call(fino_distribution_init(&distribution_Ez,    "Ez"));
+
+    wasora_call(fino_distribution_init(&distribution_nuxy,  "nuxy"));
+    wasora_call(fino_distribution_init(&distribution_nuyz,  "nuyz"));
+    wasora_call(fino_distribution_init(&distribution_nuzx,  "nuzx"));
+
+    wasora_call(fino_distribution_init(&distribution_Gxy,   "Gxy"));
+    wasora_call(fino_distribution_init(&distribution_Gyz,   "Gyz"));
+    wasora_call(fino_distribution_init(&distribution_Gzx,   "Gzx"));    
+    
     wasora_call(fino_distribution_init(&distribution_rho,   "rho"));
     wasora_call(fino_distribution_init(&distribution_fx,    "fx"));
     wasora_call(fino_distribution_init(&distribution_fy,    "fy"));
@@ -354,20 +382,7 @@ int fino_break_build_element(element_t *element, int v) {
     // because they do not depend on space and will always be the same for all elements
     if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
       uniform_properties = 1;
-      if ((E = fino_distribution_evaluate(&distribution_E, material, NULL)) <= 0) {
-        wasora_push_error_message("E is not positive (%g)", E);
-        return WASORA_RUNTIME_ERROR;
-      }
-
-      nu = fino_distribution_evaluate(&distribution_nu, material, NULL);
-      if (nu > 0.499) {
-        wasora_push_error_message("nu is greater than 1/2");
-        return WASORA_RUNTIME_ERROR;
-      } else if (nu < 0) {
-        wasora_push_error_message("nu is negative");
-        return WASORA_RUNTIME_ERROR;
-      }
-      wasora_call(fino_break_compute_C(E, nu, C));
+      wasora_call(fino_break_compute_C(NULL, NULL, C));
     }
     
   }
@@ -461,9 +476,7 @@ int fino_break_build_element(element_t *element, int v) {
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
-    E = fino_distribution_evaluate(&distribution_E,  material, element->x[v]);
-    nu = fino_distribution_evaluate(&distribution_nu, material, element->x[v]);
-    wasora_call(fino_break_compute_C(E, nu, C));
+    wasora_call(fino_break_compute_C(material, element->x[v], C));
   }
 
   // compute the elemental B'*C*B
@@ -596,9 +609,38 @@ int fino_break_build_element(element_t *element, int v) {
   
 }
 
-int fino_break_compute_C(double E, double nu, gsl_matrix *C) {
+
+int fino_break_compute_C(material_t *material, const double *x, gsl_matrix *C) {
   
+  // TODO: function pointers
+  if (distribution_E.defined) {
+    wasora_call(fino_break_compute_C_isotropic(material, x, C));
+  } else {
+    wasora_call(fino_break_compute_C_orthotropic(material, x, C)); 
+  }
+  
+  return WASORA_RUNTIME_OK;
+  
+}
+
+int fino_break_compute_C_isotropic(material_t *material, const double *x, gsl_matrix *C) {
+  
+  double E, nu;
   double lambda, mu, lambda2mu;
+  
+  if ((E = fino_distribution_evaluate(&distribution_E, material, x)) <= 0) {
+    wasora_push_error_message("E is not positive (%g)", E);
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  nu = fino_distribution_evaluate(&distribution_nu, material, x);
+  if (nu > 0.499) {
+    wasora_push_error_message("nu is greater than 1/2");
+    return WASORA_RUNTIME_ERROR;
+  } else if (nu < 0) {
+    wasora_push_error_message("nu is negative");
+    return WASORA_RUNTIME_ERROR;
+  }
   
   // using Lame coefficients is more elegant and efficient, but the reference is table 4.3 pag 194 Bathe
   lambda = E*nu/((1+nu)*(1-2*nu));
@@ -667,6 +709,83 @@ int fino_break_compute_C(double E, double nu, gsl_matrix *C) {
 
   return WASORA_RUNTIME_OK;
 }    
+
+int fino_break_compute_C_orthotropic(material_t *material, const double *x, gsl_matrix *C) {
+  
+  double Ex, Ey, Ez;
+  double nuxy, nuyz, nuzx;
+  double Gxy, Gyz, Gzx;
+  
+  if ((Ex = fino_distribution_evaluate(&distribution_Ex, material, x)) <= 0) {
+    wasora_push_error_message("Ex is not positive (%g)", Ex);
+    return WASORA_RUNTIME_ERROR;
+  }
+  if ((Ey = fino_distribution_evaluate(&distribution_Ey, material, x)) <= 0) {
+    wasora_push_error_message("Ey is not positive (%g)", Ey);
+    return WASORA_RUNTIME_ERROR;
+  }
+  if ((Ez = fino_distribution_evaluate(&distribution_Ez, material, x)) <= 0) {
+    wasora_push_error_message("Ez is not positive (%g)", Ez);
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  nuxy = fino_distribution_evaluate(&distribution_nuxy, material, x);
+  nuyz = fino_distribution_evaluate(&distribution_nuyz, material, x);
+  nuzx = fino_distribution_evaluate(&distribution_nuzx, material, x);
+  
+  Gxy = fino_distribution_evaluate(&distribution_Gxy, material, x);
+  Gyz = fino_distribution_evaluate(&distribution_Gyz, material, x);
+  Gzx = fino_distribution_evaluate(&distribution_Gzx, material, x);
+  
+  if (fino.problem_kind == problem_kind_full3d) {
+
+    gsl_matrix *reducedS = gsl_matrix_alloc(3, 3);  // reduced compliance matrix (only the normal-stress stuff)
+    gsl_matrix *reducedC = gsl_matrix_alloc(3, 3);  // reduced stiffness matrix
+    
+    // fill the compliance matrix
+    gsl_matrix_set(reducedS, 0, 0, 1.0/Ex);
+    gsl_matrix_set(reducedS, 1, 1, 1.0/Ey);
+    gsl_matrix_set(reducedS, 2, 2, 1.0/Ez);
+
+    gsl_matrix_set(reducedS, 0, 1, -nuxy/Ex);
+    gsl_matrix_set(reducedS, 1, 0, -nuxy/Ex);
+    
+    gsl_matrix_set(reducedS, 0, 2, -nuzx/Ez);
+    gsl_matrix_set(reducedS, 2, 0, -nuzx/Ez);
+
+    gsl_matrix_set(reducedS, 1, 2, -nuyz/Ey);
+    gsl_matrix_set(reducedS, 2, 1, -nuyz/Ey);
+
+    // compute the stiffness by inverting the compliance
+    wasora_call(mesh_inverse(reducedS, reducedC));
+    
+    // fill the full C
+    gsl_matrix_set(C, 0, 0, gsl_matrix_get(reducedC, 0, 0));
+    gsl_matrix_set(C, 0, 1, gsl_matrix_get(reducedC, 0, 1));
+    gsl_matrix_set(C, 0, 2, gsl_matrix_get(reducedC, 0, 2));
+    gsl_matrix_set(C, 1, 0, gsl_matrix_get(reducedC, 1, 0));
+    gsl_matrix_set(C, 1, 1, gsl_matrix_get(reducedC, 1, 1));
+    gsl_matrix_set(C, 1, 2, gsl_matrix_get(reducedC, 1, 2));
+    gsl_matrix_set(C, 2, 0, gsl_matrix_get(reducedC, 2, 0));
+    gsl_matrix_set(C, 2, 1, gsl_matrix_get(reducedC, 2, 1));
+    gsl_matrix_set(C, 2, 2, gsl_matrix_get(reducedC, 2, 2));
+    
+    gsl_matrix_set(C, 3, 3, Gyz);
+    gsl_matrix_set(C, 4, 4, Gzx);
+    gsl_matrix_set(C, 4, 4, Gxy);
+    
+    gsl_matrix_free(reducedC);
+    gsl_matrix_free(reducedS);
+    
+
+  } else {
+    wasora_push_error_message("orthotropic problems are allowed only in 3D");
+    return WASORA_RUNTIME_ERROR;
+  }
+
+  return WASORA_RUNTIME_OK;
+}    
+
 
 int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, double mu, double alpha, double *sigmax, double *sigmay, double *sigmaz, double *tauxy, double *tauyz, double *tauzx) {
   

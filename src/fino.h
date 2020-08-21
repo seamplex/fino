@@ -608,7 +608,9 @@ extern double fino_get_cpu_time(void);
 // breakshake.c
 extern int fino_break_build_element(element_t *, int);
 extern int fino_break_set_neumann(element_t *, bc_t *);
-extern int fino_break_compute_C(double, double, gsl_matrix *);
+extern int fino_break_compute_C(material_t *, const double *, gsl_matrix *);
+extern int fino_break_compute_C_isotropic(material_t *, const double *, gsl_matrix *);
+extern int fino_break_compute_C_orthotropic(material_t *, const double *, gsl_matrix *);
 extern int fino_break_compute_nodal_stresses(element_t *, int, double, double, double, double *, double *, double *, double *, double *, double *);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);
@@ -639,7 +641,7 @@ extern const char *plugin_copyright(void);
 
 // distributions.c
 extern int fino_distribution_init(fino_distribution_t *, const char *);
-extern double fino_distribution_evaluate(fino_distribution_t *, material_t *, double *);
+extern double fino_distribution_evaluate(fino_distribution_t *, material_t *, const double *);
 
 // post.c
 extern int fino_instruction_post(void *);

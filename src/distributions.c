@@ -53,7 +53,7 @@ int fino_distribution_init(fino_distribution_t *distribution, const char *name) 
   return WASORA_RUNTIME_OK;
 }
 
-double fino_distribution_evaluate(fino_distribution_t *distribution, material_t *material, double *x) {
+double fino_distribution_evaluate(fino_distribution_t *distribution, material_t *material, const double *x) {
   
   if (distribution->variable != NULL) {
     return wasora_var_value(distribution->variable);
