@@ -1108,7 +1108,14 @@ int fino_break_compute_stresses(void) {
       // TODO: choose full or actual
       V = element->type->gauss[mesh->integration].V;
       J = element->type->nodes;
-      element->dphidx_node = calloc(J, sizeof(gsl_matrix *));
+      
+      // if already alloced, no need to realloc
+      if (element->dphidx_node == NULL) {
+        element->dphidx_node = calloc(J, sizeof(gsl_matrix *));
+        for (j = 0; j < J; j++) {
+          element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+        }  
+      }
 
       if (fino.rough == 0) {
         if (fino.gradient_element_weight == gradient_weight_volume) {
@@ -1126,16 +1133,7 @@ int fino_break_compute_stresses(void) {
           element->weight = 1;
         }
       }
-      
-      // if nu, E and/or alpha are not uniform, we need to evalaute them at the nodes
-      if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
-        element->property_node = calloc(J, sizeof(double *));
-      }
-
-      for (j = 0; j < J; j++) {
-        element->dphidx_node[j] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-      }  
-      
+            
       // if we were asked to extrapolate from gauss, we compute all the nodal values
       // at once by pre-multiplying the gauss values by the (possibly-rectangular) 
       // extrapolation matrix to get the nodal values
@@ -1218,7 +1216,13 @@ int fino_break_compute_stresses(void) {
         }
       }
         
-
+      // if nu, E and/or alpha are not uniform, we need to evalaute them at the nodes
+      if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
+        if (element->property_node == NULL) {
+          element->property_node = calloc(J, sizeof(double *));
+        }  
+      }
+        
       for (j = 0; j < J; j++) {
         
         // if nu, E and/or alpha are not uniform, we need to evaluate them at the nodes
@@ -1227,7 +1231,9 @@ int fino_break_compute_stresses(void) {
              distribution_alpha.function != NULL ||
              distribution_alpha.physical_property != NULL)) {
           
-          element->property_node[j] = calloc(ISOTROPIC_ELASTIC_PROPERTIES, sizeof(double));
+          if (element->property_node[j] == NULL) {
+            element->property_node[j] = calloc(ISOTROPIC_ELASTIC_PROPERTIES, sizeof(double));
+          }  
           mesh_update_coord_vars(mesh->node[j_global].x);
           
           if (uniform_properties == 0) {

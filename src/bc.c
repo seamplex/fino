@@ -120,16 +120,17 @@ int fino_dirichlet_eval(Mat K, Vec b) {
   int j, d;
   int k = 0;
   
-  if (fino.n_dirichlet_rows != 0) {
+  if (fino.n_dirichlet_rows == 0) {
+    fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
+    fino.dirichlet_values = calloc(n_bcs, sizeof(PetscScalar));
+
+    n_bcs = fino.degrees * (fino.last_node - fino.first_node);    
+  } else {
     // if we are here then we know more or less the number of BCs we need
     n_bcs = fino.n_dirichlet_rows;
-  } else {
-    n_bcs = fino.degrees * (fino.last_node - fino.first_node);
   }  
   current_size = n_bcs;
 
-  fino.dirichlet_indexes = calloc(n_bcs, sizeof(PetscInt));
-  fino.dirichlet_values = calloc(n_bcs, sizeof(PetscScalar));
   
   for (j = fino.first_node; j < fino.last_node; j++) {
 
