@@ -160,6 +160,10 @@ struct {
     transient_type_quasistatic
   } transient_type;
 
+  enum {
+    material_type_linear_isotropic,
+    material_type_linear_orthotropic
+  } material_type;
   
   int spatial_unknowns;  // number of spatial unknowns (= nodes)
   int degrees;           // DoF per node
@@ -608,9 +612,9 @@ extern double fino_get_cpu_time(void);
 // breakshake.c
 extern int fino_break_build_element(element_t *, int);
 extern int fino_break_set_neumann(element_t *, bc_t *);
-extern int fino_break_compute_C(material_t *, const double *, gsl_matrix *);
-extern int fino_break_compute_C_isotropic(material_t *, const double *, gsl_matrix *);
-extern int fino_break_compute_C_orthotropic(material_t *, const double *, gsl_matrix *);
+extern int fino_break_compute_C(material_t *, const double *);
+extern int fino_break_compute_C_isotropic(material_t *, const double *);
+extern int fino_break_compute_C_orthotropic(material_t *, const double *);
 extern int fino_break_compute_nodal_stresses(element_t *, int, double, double, double, double *, double *, double *, double *, double *, double *);
 extern int fino_break_compute_stresses(void);
 extern int fino_break_compute_reactions(void);

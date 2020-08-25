@@ -25,10 +25,24 @@
 
 #include "fino.h"
 
-#define LAMBDA             0
-#define MU                 1
-#define ALPHA              2
-#define ELASTIC_PROPERTIES 3
+#define LAMBDA                          0
+#define MU                              1
+#define ALPHA                           2
+#define ISOTROPIC_ELASTIC_PROPERTIES    3
+
+#define EX                              0
+#define EY                              1
+#define EZ                              2
+#define NUXY                            3
+#define NUYZ                            4
+#define NUZX                            5
+#define GXY                             6
+#define GYZ                             7
+#define GZX                             8
+#define ALPHAX                          9
+#define ALPHAY                         10
+#define ALPHAZ                         11
+#define ORTHOTROPIC_ELASTIC_PROPERTIES 12
 
 #define SIGMAX             0
 #define SIGMAY             1
@@ -70,11 +84,15 @@ fino_distribution_t distribution_fz;    // volumetric load in z
 fino_distribution_t distribution_alpha; // thermal expansion coefficient
 fino_distribution_t distribution_T;     // temperature
 
-// este es un escalar pero lo ponemos como dist para ver si ya lo inicializamos
-fino_distribution_t distribution_T0;    // temperatura de referencia (i.e. sin deformacion)
-double T0;  // este es el escalar que usamos para evaluar
+// this should be a scalar but we put it as a distribution to check if it is already initialized
+fino_distribution_t distribution_T0;    // reference temperature (i.e. no deformations)
+double T0;  // this is the scalar used to evaluate it
 
 int uniform_properties;  // flag global para saber si hay que evaluar cada vez o no
+
+// the 6x6 strain-stress matrix
+gsl_matrix *C;
+
 
 double hourglass_2d[] = {+1, -1, +1, -1};
 double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
@@ -282,7 +300,6 @@ int fino_break_build_element(element_t *element, int v) {
  
   static size_t stress_strain_size = 0;
   // matrices needed for the problem formulation
-  static gsl_matrix *C = NULL;
   static gsl_matrix *B = NULL;
   // this vector is needed to compute thermal expansion
   static gsl_vector *et = NULL;
@@ -350,11 +367,43 @@ int fino_break_build_element(element_t *element, int v) {
       T0 = 0;
     }
     
-    if (distribution_E.defined == 0) {
+    if (distribution_E.defined) {
+      
+      if (distribution_nu.defined == 0) {
+        wasora_push_error_message("cannot find Poisson coefficient 'nu'");
+        return WASORA_RUNTIME_ERROR;
+      }
+      
+      fino.material_type = material_type_linear_isotropic;
+      
+      if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
+        uniform_properties = 1;
+      }
+      
+    } else if (distribution_Ex.defined || distribution_Ey.defined || distribution_Ez.defined) {
+      if (distribution_Ex.defined == 0 || distribution_Ey.defined == 0 || distribution_Ez.defined == 0) {
+        wasora_push_error_message("Three Young modulus 'Ex', 'Ey' and 'Ez' needed and (at least) one missing");
+        return WASORA_RUNTIME_ERROR;
+      }
+
+      if (distribution_nuxy.defined == 0 || distribution_nuyz.defined == 0 || distribution_nuzx.defined == 0) {
+        wasora_push_error_message("Three Poisson’s ratios 'nuxy', 'nuyz' and 'nuzx' needed and (at least) one missing");
+        return WASORA_RUNTIME_ERROR;
+      }
+
+      fino.material_type = material_type_linear_orthotropic;
+
+      if (distribution_Ex.variable != NULL && distribution_nuxy.variable != NULL &&
+          distribution_Ey.variable != NULL && distribution_nuyz.variable != NULL &&
+          distribution_Ez.variable != NULL && distribution_nuzx.variable != NULL) {
+        uniform_properties = 1;
+      } else {
+        wasora_push_error_message("non-uniform orthotropic properties are not supported (yet)");
+        return WASORA_RUNTIME_ERROR;
+      }
+      
+    } else {
       wasora_push_error_message("cannot find Young modulus 'E'");
-      return WASORA_RUNTIME_ERROR;
-    } else if (distribution_nu.defined == 0) {
-      wasora_push_error_message("cannot find Poisson coefficient 'nu'");
       return WASORA_RUNTIME_ERROR;
     }
     
@@ -380,9 +429,8 @@ int fino_break_build_element(element_t *element, int v) {
     
     // if E y nu are scalar variables (i.e. uniform in space) then we compute C once
     // because they do not depend on space and will always be the same for all elements
-    if (distribution_E.variable != NULL && distribution_nu.variable != NULL) {
-      uniform_properties = 1;
-      wasora_call(fino_break_compute_C(NULL, NULL, C));
+    if (uniform_properties) {
+      wasora_call(fino_break_compute_C(NULL, NULL));
     }
     
   }
@@ -476,7 +524,7 @@ int fino_break_build_element(element_t *element, int v) {
   // but if E or nu are functions or material properties, we need to re-compute C
   if (uniform_properties == 0) {
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
-    wasora_call(fino_break_compute_C(material, element->x[v], C));
+    wasora_call(fino_break_compute_C(material, element->x[v]));
   }
 
   // compute the elemental B'*C*B
@@ -600,7 +648,7 @@ int fino_break_build_element(element_t *element, int v) {
     // compute the mass matrix H'*rho*H
     mesh_compute_x_at_gauss(element, v, fino.mesh->integration);
     mesh_compute_H_at_gauss(element, v, fino.degrees, fino.mesh->integration);
-    // TODO: check for uniform properties
+    // TODO: check for uniform density
     rho = fino_distribution_evaluate(&distribution_rho, material, element->x[v]);
     gsl_blas_dgemm(CblasTrans, CblasNoTrans, element->w[v] * r_for_axisymmetric * rho, element->H[v], element->H[v], 1.0, fino.Mi);
   } 
@@ -610,20 +658,23 @@ int fino_break_build_element(element_t *element, int v) {
 }
 
 
-int fino_break_compute_C(material_t *material, const double *x, gsl_matrix *C) {
+int fino_break_compute_C(material_t *material, const double *x) {
   
   // TODO: function pointers
-  if (distribution_E.defined) {
-    wasora_call(fino_break_compute_C_isotropic(material, x, C));
-  } else {
-    wasora_call(fino_break_compute_C_orthotropic(material, x, C)); 
+  switch (fino.material_type) {
+    case material_type_linear_isotropic:
+      wasora_call(fino_break_compute_C_isotropic(material, x));
+    break; 
+    case material_type_linear_orthotropic:
+      wasora_call(fino_break_compute_C_orthotropic(material, x)); 
+    break;  
   }
   
   return WASORA_RUNTIME_OK;
   
 }
 
-int fino_break_compute_C_isotropic(material_t *material, const double *x, gsl_matrix *C) {
+int fino_break_compute_C_isotropic(material_t *material, const double *x) {
   
   double E, nu;
   double lambda, mu, lambda2mu;
@@ -710,7 +761,7 @@ int fino_break_compute_C_isotropic(material_t *material, const double *x, gsl_ma
   return WASORA_RUNTIME_OK;
 }    
 
-int fino_break_compute_C_orthotropic(material_t *material, const double *x, gsl_matrix *C) {
+int fino_break_compute_C_orthotropic(material_t *material, const double *x) {
   
   double Ex, Ey, Ez;
   double nuxy, nuyz, nuzx;
@@ -772,7 +823,7 @@ int fino_break_compute_C_orthotropic(material_t *material, const double *x, gsl_
     
     gsl_matrix_set(C, 3, 3, Gyz);
     gsl_matrix_set(C, 4, 4, Gzx);
-    gsl_matrix_set(C, 4, 4, Gxy);
+    gsl_matrix_set(C, 5, 5, Gxy);
     
     gsl_matrix_free(reducedC);
     gsl_matrix_free(reducedS);
@@ -814,7 +865,7 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
   
   double xi = 0;
   
-  // nombres lindos
+  // cuter names
   dudx = gsl_matrix_get(element->dphidx_node[j], 0, 0);
   dudy = gsl_matrix_get(element->dphidx_node[j], 0, 1);
 
@@ -830,7 +881,7 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
     dwdz = gsl_matrix_get(element->dphidx_node[j], 2, 2);
   }
 
-  // el tensor de deformaciones
+  // strain tensor
   ex = dudx;
   ey = dvdy;
 
@@ -856,40 +907,52 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
     gammazx = dwdx + dudz;
   }
 
-  // ya tenemos derivadas y strains, ahora las tensiones
-  
-  // tensiones normales
-  if (fino.problem_kind != problem_kind_plane_stress) {
-    xi = ex + ey + ez;
-    *sigmax = lambda * xi + 2*mu * ex;
-    *sigmay = lambda * xi + 2*mu * ey;
-    *sigmaz = lambda * xi + 2*mu * ez;  // esta es sigmatheta en axi
+  // so we have derivatives and strains, let's go for the stresses
+  // TODO: function pointer
+  if (fino.material_type == material_type_linear_isotropic) {
+    if (fino.problem_kind != problem_kind_plane_stress) {
+    
+      // normal stresses
+      xi = ex + ey + ez;
+      *sigmax = lambda * xi + 2*mu * ex;
+      *sigmay = lambda * xi + 2*mu * ey;
+      *sigmaz = lambda * xi + 2*mu * ez;  // esta es sigmatheta en axi
 
-    // esfuerzos de corte
-    *tauxy =  mu * gammaxy;
-    if (fino.dimensions == 3) {
-      *tauyz =  mu * gammayz;
-      *tauzx =  mu * gammazx;
+      // esfuerzos de corte
+      *tauxy =  mu * gammaxy;
+      if (fino.dimensions == 3) {
+        *tauyz =  mu * gammayz;
+        *tauzx =  mu * gammazx;
+      } else {
+        *tauyz = 0;
+        *tauzx = 0;
+      }
     } else {
-      *tauyz = 0;
-      *tauzx = 0;
-    }
-  } else {
     
-    // plane stress es otra milonga
-    double c1, c2;
+      // plane stress es otra milonga
+      double c1, c2;
     
-    E = mu*(3*lambda + 2*mu)/(lambda+mu);
-    nu = lambda / (2*(lambda+mu));
+      E = mu*(3*lambda + 2*mu)/(lambda+mu);
+      nu = lambda / (2*(lambda+mu));
     
-    c1 = E/(1-nu*nu);
-    c2 = nu * c1;
+      c1 = E/(1-nu*nu);
+      c2 = nu * c1;
 
-    *sigmax = c1 * ex + c2 * ey;
-    *sigmay = c2 * ex + c1 * ey;
-    *tauxy = c1*0.5*(1-nu) * gammaxy;
+      *sigmax = c1 * ex + c2 * ey;
+      *sigmay = c2 * ex + c1 * ey;
+      *tauxy = c1*0.5*(1-nu) * gammaxy;
     
-  }  
+    }  
+  } else if (fino.material_type == material_type_linear_orthotropic) {
+    
+    *sigmax = gsl_matrix_get(C, 0, 0) * ex + gsl_matrix_get(C, 0, 1) * ey + gsl_matrix_get(C, 0, 2) * ez;
+    *sigmay = gsl_matrix_get(C, 1, 0) * ex + gsl_matrix_get(C, 1, 1) * ey + gsl_matrix_get(C, 1, 2) * ez;
+    *sigmaz = gsl_matrix_get(C, 2, 0) * ex + gsl_matrix_get(C, 2, 1) * ey + gsl_matrix_get(C, 2, 2) * ez;
+    *tauxy = gsl_matrix_get(C, 3, 3) * gammaxy;
+    *tauyz = gsl_matrix_get(C, 4, 4) * gammayz;
+    *tauzx = gsl_matrix_get(C, 5, 5) * gammazx;
+    
+  }
   
   // subtract the thermal contribution to the normal stresses (see IFEM.Ch30)
   if (alpha != 0) {
@@ -997,118 +1060,7 @@ int fino_break_compute_stresses(void) {
     fino_fill_result_function(sigma3);
 
     // von mises
-    fino_fill_result_function(sigma);/*
-  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
-  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
-    for (i = 0; i < mesh->n_elements; i++) {
-      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
-        printf(CHAR_PROGRESS_GRADIENT);  
-        fflush(stdout);
-        ascii_progress_chars++;
-      }
-      
-      element = &mesh->element[i];
-      if (element->type->dim == fino.dimensions){
-        
-        V = element->type->gauss[mesh->integration].V;
-        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
-        
-        for (v = 0; v < V; v++) {
-        
-          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
-
-          // aca habria que hacer una matriz con los phi globales
-          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
-          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
-              for (j = 0; j < element->type->nodes; j++) {
-                j_global = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
-              }
-            }
-          }
-        }
-      }
-    }  
-  }  
-*/  
-/*
-  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
-  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
-    for (i = 0; i < mesh->n_elements; i++) {
-      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
-        printf(CHAR_PROGRESS_GRADIENT);  
-        fflush(stdout);
-        ascii_progress_chars++;
-      }
-      
-      element = &mesh->element[i];
-      if (element->type->dim == fino.dimensions){
-        
-        V = element->type->gauss[mesh->integration].V;
-        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
-        
-        for (v = 0; v < V; v++) {
-        
-          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
-
-          // aca habria que hacer una matriz con los phi globales
-          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
-          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
-              for (j = 0; j < element->type->nodes; j++) {
-                j_global = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
-              }
-            }
-          }
-        }
-      }
-    }  
-  }  
-*/  /*
-  // step 0 (only if we need to extrapolate from gauss): compute the derivatives at the gauss points
-  if (fino.gradient_evaluation == gradient_gauss_extrapolated) {
-    for (i = 0; i < mesh->n_elements; i++) {
-      if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
-        printf(CHAR_PROGRESS_GRADIENT);  
-        fflush(stdout);
-        ascii_progress_chars++;
-      }
-      
-      element = &mesh->element[i];
-      if (element->type->dim == fino.dimensions){
-        
-        V = element->type->gauss[mesh->integration].V;
-        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
-        
-        for (v = 0; v < V; v++) {
-        
-          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
-
-          // aca habria que hacer una matriz con los phi globales
-          // (de j y g, que de paso no depende de v asi que se podria hacer afuera del for de v)
-          // y ver como calcular la matriz dphidx como producto de dhdx y esta matriz
-          for (g = 0; g < fino.degrees; g++) {
-            for (m = 0; m < fino.dimensions; m++) {
-              for (j = 0; j < element->type->nodes; j++) {
-                j_global = element->node[j]->index_mesh;
-                gsl_matrix_add_to_element(element->dphidx_gauss[v], g, m, gsl_matrix_get(element->dhdx[v], j, m) * mesh->node[j_global].phi[g]);
-              }
-            }
-          }
-        }
-      }
-    }  
-  }  
-*/  
-
-
+    fino_fill_result_function(sigma);
     fino_fill_result_function(delta_sigma);
     
     // tresca
@@ -1136,7 +1088,7 @@ int fino_break_compute_stresses(void) {
     alpha = fino_distribution_evaluate(&distribution_alpha, NULL, NULL);
   }
   
-  if (uniform_properties) {
+  if (uniform_properties && fino.material_type == material_type_linear_isotropic) {
     // this works for the rest of the routine
     lambda = E*nu/((1+nu)*(1-2*nu));
     mu = 0.5*E/(1+nu);
@@ -1185,8 +1137,8 @@ int fino_break_compute_stresses(void) {
       }  
       
       // if we were asked to extrapolate from gauss, we compute all the nodal values
-      // at once by pre-multiplying the gauss values by the (possibly-rectangular) extrapolation
-      // matrix to get the nodal values
+      // at once by pre-multiplying the gauss values by the (possibly-rectangular) 
+      // extrapolation matrix to get the nodal values
       if (fino.gradient_evaluation == gradient_gauss_extrapolated && element->type->gauss[mesh->integration].extrap != NULL) {
         
         gsl_vector *at_gauss = gsl_vector_alloc(V);
@@ -1211,7 +1163,7 @@ int fino_break_compute_stresses(void) {
           }
         }
         
-        // take the product of the extrapolation matrix times the values at the fauss points
+        // take the product of the extrapolation matrix times the values at the gauss points
         for (g = 0; g < fino.degrees; g++) {
           for (m = 0; m < fino.dimensions; m++) {
             for (v = 0; v < V; v++) {
@@ -1270,9 +1222,12 @@ int fino_break_compute_stresses(void) {
       for (j = 0; j < J; j++) {
         
         // if nu, E and/or alpha are not uniform, we need to evaluate them at the nodes
-        if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
+        if (fino.material_type == material_type_linear_isotropic &&
+            (uniform_properties == 0 ||
+             distribution_alpha.function != NULL ||
+             distribution_alpha.physical_property != NULL)) {
           
-          element->property_node[j] = calloc(ELASTIC_PROPERTIES, sizeof(double));
+          element->property_node[j] = calloc(ISOTROPIC_ELASTIC_PROPERTIES, sizeof(double));
           mesh_update_coord_vars(mesh->node[j_global].x);
           
           if (uniform_properties == 0) {
@@ -1295,9 +1250,12 @@ int fino_break_compute_stresses(void) {
             
             lambda = E*nu/((1+nu)*(1-2*nu));
             mu = 0.5*E/(1+nu);
+            
           }
           
-          if (distribution_alpha.variable == NULL && (distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL)) {
+          if (distribution_alpha.variable == NULL &&
+              (distribution_alpha.function != NULL ||
+               distribution_alpha.physical_property != NULL)) {
             alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, element->node[j]->x);
           }
 
