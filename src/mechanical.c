@@ -1141,15 +1141,15 @@ int fino_break_compute_stresses(void) {
         
         gsl_vector *at_gauss = gsl_vector_alloc(V);
         gsl_vector *at_nodes = gsl_vector_alloc(J);
-        if (element->dphidx_gauss == NULL) {
+//        if (element->dphidx_gauss == NULL) {
           element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
-        }  
+//        }  
         
         for (v = 0; v < V; v++) {
         
-          if (element->dphidx_gauss[v] == NULL) {
+//          if (element->dphidx_gauss[v] == NULL) {
             element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-          }
+//          }
           mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
 
           // aca habria que hacer una matriz con los phi globales
@@ -1474,9 +1474,13 @@ int fino_break_compute_stresses(void) {
       // en iterative si no hacemos esto estamos leakando
       if (node->dphidx == NULL) {
         node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-      }
+      } else {
+        gsl_matrix_set_zero(node->dphidx);
+      }  
       if (node->delta_dphidx == NULL) {
         node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      } else {
+        gsl_matrix_set_zero(node->delta_dphidx);
       }
       if (node->f == NULL) {
         node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
