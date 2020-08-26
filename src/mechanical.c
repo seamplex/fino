@@ -1135,21 +1135,23 @@ int fino_break_compute_stresses(void) {
       }
             
       // if we were asked to extrapolate from gauss, we compute all the nodal values
-      // at once by pre-multiplying the gauss values by the (possibly-rectangular) 
+      // at once by left-multiplying the gauss values by the (possibly-rectangular) 
       // extrapolation matrix to get the nodal values
       if (fino.gradient_evaluation == gradient_gauss_extrapolated && element->type->gauss[mesh->integration].extrap != NULL) {
         
         gsl_vector *at_gauss = gsl_vector_alloc(V);
         gsl_vector *at_nodes = gsl_vector_alloc(J);
-//        if (element->dphidx_gauss == NULL) {
+        if (element->dphidx_gauss == NULL) {
           element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
-//        }  
+        }  
         
         for (v = 0; v < V; v++) {
         
-//          if (element->dphidx_gauss[v] == NULL) {
+          if (element->dphidx_gauss[v] == NULL) {
             element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-//          }
+          } else {
+            gsl_matrix_set_zero(element->dphidx_gauss[v]);
+          }
           mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
 
           // aca habria que hacer una matriz con los phi globales
@@ -1235,9 +1237,6 @@ int fino_break_compute_stresses(void) {
              distribution_alpha.function != NULL ||
              distribution_alpha.physical_property != NULL)) {
           
-          if (element->property_node[j] == NULL) {
-            element->property_node[j] = calloc(ISOTROPIC_ELASTIC_PROPERTIES, sizeof(double));
-          }  
           mesh_update_coord_vars(mesh->node[j_global].x);
           
           if (uniform_properties == 0) {
@@ -1269,6 +1268,9 @@ int fino_break_compute_stresses(void) {
             alpha = fino_distribution_evaluate(&distribution_alpha, element->physical_entity->material, element->node[j]->x);
           }
 
+          if (element->property_node[j] == NULL) {
+            element->property_node[j] = calloc(ISOTROPIC_ELASTIC_PROPERTIES, sizeof(double));
+          }  
           element->property_node[j][LAMBDA] = lambda;
           element->property_node[j][MU] = mu;
           element->property_node[j][ALPHA] = alpha;
