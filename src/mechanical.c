@@ -1141,11 +1141,15 @@ int fino_break_compute_stresses(void) {
         
         gsl_vector *at_gauss = gsl_vector_alloc(V);
         gsl_vector *at_nodes = gsl_vector_alloc(J);
-        element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
+        if (element->dphidx_gauss == NULL) {
+          element->dphidx_gauss = calloc(V, sizeof(gsl_matrix *));
+        }  
         
         for (v = 0; v < V; v++) {
         
-          element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+          if (element->dphidx_gauss[v] == NULL) {
+            element->dphidx_gauss[v] = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+          }
           mesh_compute_dhdx_at_gauss(element, v, mesh->integration);
 
           // aca habria que hacer una matriz con los phi globales
@@ -1468,18 +1472,16 @@ int fino_break_compute_stresses(void) {
       int found = 0;
       
       // en iterative si no hacemos esto estamos leakando
-      if (node->dphidx != NULL) {
-        gsl_matrix_free(node->dphidx);
+      if (node->dphidx == NULL) {
+        node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       }
-      if (node->delta_dphidx != NULL) {
-        gsl_matrix_free(node->delta_dphidx);
+      if (node->delta_dphidx == NULL) {
+        node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
       }
-      if (node->f != NULL) {
-        free(node->f);
+      if (node->f == NULL) {
+        node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
       }
-      node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-      node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
-      node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
+      
       
       n = 0;
       // esto lo hacemos asi para quedarnos con los mayores lambda y mu
