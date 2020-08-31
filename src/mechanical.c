@@ -165,7 +165,6 @@ int fino_bc_process_mechanical(bc_t **bc_pointer, char *name, char *expr, char *
 
   } else if (strcmp(name, "radial") == 0) {
 
-    
     bc->type_math = bc_math_dirichlet;
     bc->type_phys = bc_phys_displacement_radial;
 
@@ -260,35 +259,44 @@ int fino_bc_process_mechanical(bc_t **bc_pointer, char *name, char *expr, char *
 
   } else if (strcmp(name, "Mx") == 0 ||
              strcmp(name, "My") == 0 ||
-             strcmp(name, "Mz") == 0 ||
-             (base_bc != NULL && base_bc->type_phys == bc_phys_moment &&
-               (strcmp(name, "x0") == 0 ||
-                strcmp(name, "y0") == 0 ||
-                strcmp(name, "z0") == 0))) {
+             strcmp(name, "Mz") == 0) {
 
-    // M necesita seis expresiones
+   
+    bc->type_math = bc_math_neumann;
+    bc->type_phys = bc_phys_moment;
+
+    // M can take up to 6 expressions
     // asi que las alocamos: Mx My Mz x0 y0 z0 en la primera de las BCs
-    if (base_bc == NULL) {
-      // solo ponemos el tipo a la base, las otras no hay que procesarlas en bulk
-      bc->type_math = bc_math_neumann;
-      bc->type_phys = bc_phys_moment;
+    // solo ponemos el tipo a la base, las otras no hay que procesarlas en bulk
+    base_bc = bc;
+    base_bc->expr = calloc(6, sizeof(expr_t));
+    
+    tmp = bc;
+    do {
+      // put back the equal sign, the first time is to parse again
+      // the next one is not to break the string
+      // the last time is fixed outside the large loop
+      if (equal_sign != NULL) {
+        *equal_sign = '=';
+      }
+      fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
+      i = -1;
+      if (name[1] == 'x') i = 0;
+      if (name[1] == 'y') i = 1;
+      if (name[1] == 'z') i = 2;
+      if (name[0] == 'x') i = 3;
+      if (name[0] == 'y') i = 4;
+      if (name[0] == 'z') i = 5;
+      if (i == -1) {
+        wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
+        return WASORA_PARSER_ERROR;
+      }             
+      wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
+      tmp = bc; // esto es para "volver para atras"
+    } while ((bc = bc->next) != NULL);
 
-      base_bc = bc;
-      base_bc->expr = calloc(6, sizeof(expr_t));
-    }
-
-    i = -1;  // si alguna no aparece es cero (que por default es el baricentro de la entidad)
-    if (name[1] == 'x') i = 0;
-    if (name[1] == 'y') i = 1;
-    if (name[1] == 'z') i = 2;
-    if (name[0] == 'x') i = 3;
-    if (name[0] == 'y') i = 4;
-    if (name[0] == 'z') i = 5;
-    if (i == -1) {
-      wasora_push_error_message("expecting 'Mx', 'My', 'Mz', 'x0', 'y0' or 'z0' instead of '%s'", name);
-      return WASORA_PARSER_ERROR;
-    }
-    wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
+    // bc is now pointing to null, we need to put it back otherwise the foreach loop breaks
+    *bc_pointer = tmp;
 
   } else {
     wasora_push_error_message("unknown boundary condition type '%s'", name);
