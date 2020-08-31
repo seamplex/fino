@@ -101,11 +101,13 @@ double hourglass_3d[] = {+1, +1, -1, -1, -1, -1, +1, +1,
                          -1, +1, -1, +1, +1, -1, +1, -1};
 
 
-int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
+int fino_bc_process_mechanical(bc_t **bc_pointer, char *name, char *expr, char *equal_sign) {
 
   int i;
+  bc_t *bc = *(bc_pointer);
   bc_t *base_bc = NULL;
-  
+  bc_t *tmp = NULL;
+
   if (strcmp(name, "fixed") == 0) {
     bc->type_math = bc_math_dirichlet;
     bc->type_phys = bc_phys_displacement_fixed;
@@ -161,33 +163,39 @@ int fino_bc_process_mechanical(bc_t *bc, char *name, char *expr) {
     bc->type_math = bc_math_dirichlet;
     bc->type_phys = bc_phys_displacement_symmetry;
 
-  } else if (strcmp(name, "radial") == 0 ||
-             (base_bc != NULL && base_bc->type_phys == bc_phys_displacement_radial &&
-               (strcmp(name, "x0") == 0 ||
-                strcmp(name, "y0") == 0 ||
-                strcmp(name, "z0") == 0))) {
+  } else if (strcmp(name, "radial") == 0) {
 
-    // radial puede tener tres expresiones
-    // asi que las alocamos: x0 y0 z0 en la primera de las BCs
-    if (base_bc == NULL) {
-      bc->type_math = bc_math_dirichlet;
-      bc->type_phys = bc_phys_displacement_radial;
+    
+    bc->type_math = bc_math_dirichlet;
+    bc->type_phys = bc_phys_displacement_radial;
 
-      base_bc = bc;
-      base_bc->expr = calloc(3, sizeof(expr_t));
-    }
-
-    if (strcmp(name, "radial") != 0) {
-      i = -1;  // si alguna no aparece es cero (que por default es el baricentro de la entidad)
+    // radial might have three extra expressions
+    base_bc = bc;
+    base_bc->expr = calloc(3, sizeof(expr_t));
+    
+    tmp = bc;
+    while ((bc = bc->next) != NULL) {
+      // put back the equal sign, the first time is to parse again
+      // the next one is not to break the string
+      // the last time is fixed outside the large loop
+      if (equal_sign != NULL) {
+        *equal_sign = '=';
+      }
+      fino_bc_read_name_expr(bc, &name, &expr, &equal_sign);
+      i = -1;
       if (name[0] == 'x') i = 0;
       if (name[0] == 'y') i = 1;
       if (name[0] == 'z') i = 2;
       if (i == -1) {
         wasora_push_error_message("expecting 'x0', 'y0' or 'z0' instead of '%s'", name);
         return WASORA_PARSER_ERROR;
-      }
-      wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));          
-    }
+      }             
+      wasora_call(wasora_parse_expression(expr, &base_bc->expr[i]));
+      tmp = bc; // esto es para "volver para atras"
+    } 
+
+    // bc is now pointing to null, we need to put it back otherwise the foreach loop breaks
+    *bc_pointer = tmp;
 
   } else if (strcmp(name, "0") == 0 || strcmp(name, "implicit") == 0) {
     char *dummy;

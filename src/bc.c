@@ -70,7 +70,7 @@ int fino_bc_string2parsed(void) {
 
       // TODO: function pointers
       if (fino.problem_family == problem_family_mechanical || fino.problem_family == problem_family_modal) {
-        wasora_call(fino_bc_process_mechanical(bc, name, expr));
+        wasora_call(fino_bc_process_mechanical(&bc, name, expr, equal_sign));
       } else if (fino.problem_family == problem_family_thermal) {
         // TODO: fix this, we need to pass a pointer to the bc because convection
         // reads two expressions so it needs to modify the pointer bc

@@ -519,7 +519,7 @@ extern int fino_phi_to_solution(Vec phi, int);
 // bc.c
 extern int fino_bc_string2parsed(void);
 extern void fino_bc_read_name_expr(bc_t *, char **, char **, char **);
-extern int fino_bc_process_mechanical(bc_t *, char *, char *);
+extern int fino_bc_process_mechanical(bc_t **, char *, char *, char *);
 extern int fino_bc_process_thermal(bc_t **, char *, char *, char *);
 extern int fino_dirichlet_eval(Mat, Vec);
 extern int fino_dirichlet_set_K(Mat, Vec);
