@@ -33,7 +33,7 @@ INSTALL
 
 wasora
 
-Makefile.am
+/Makefile.am
 src/.deps/
 src/.dirstamp
 src/.libs/
