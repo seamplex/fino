@@ -18,7 +18,7 @@ AC_CANONICAL_HOST
 WASORA_PLUGIN_INIT_C
 WASORA_OPT_FLAGS_C
 
-AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile test/Makefile])
 
 WASORA_PLUGIN_VERSION_H
 

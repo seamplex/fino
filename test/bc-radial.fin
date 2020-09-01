@@ -1,0 +1,13 @@
+MESH FILE_PATH cube-hex20-struct.msh DIMENSIONS 3
+FINO_PROBLEM mechanical
+
+E = 1
+nu = 0.3
+alpha = 1
+T(x,y,z) := 1
+T0 = 0
+
+INCLUDE bc-radial-$1.fin
+
+FINO_STEP
+PRINT %.2f u(1,1,1) v(1,1,1) w(1,1,1)

@@ -1,0 +1,17 @@
+MESH FILE_PATH cube-hex20-struct.msh DIMENSIONS 3
+
+E = 1          # Young modulus
+nu = 0.3       # Poisson ratio
+
+T = 1.2345678  # Temperature (uniform)
+T0 = 0         # Reference temperature
+alpha = 1      # Thermal expansion coefficient
+
+PHYSICAL_GROUP "left"   BC symmetry
+PHYSICAL_GROUP "front"  BC symmetry
+PHYSICAL_GROUP "bottom" BC symmetry
+
+FINO_STEP
+
+# the displacements at the corner of the prism
+PRINT u(1,1,1) v(1,1,1) w(1,1,1)
