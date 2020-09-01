@@ -1,6 +1,6 @@
 
 answer1arg() {
-  answer=$(../static $1 $2)
+  answer=$(../fino $1 $2)
   
   if [ "${answer}" = "$3" ]; then
     echo "ok"
