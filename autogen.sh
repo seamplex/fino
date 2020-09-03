@@ -63,7 +63,7 @@ fi
 
 am="Makefile.am"
 cat << EOF > ${am}
-SUBDIRS = src test ${docsubdir}
+SUBDIRS = src ${docsubdir}
 DIST_SUBDIRS = src wasora doc test
 
 ACLOCAL_AMFLAGS = -I wasora/m4
