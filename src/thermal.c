@@ -382,7 +382,6 @@ int fino_thermal_compute_fluxes(void) {
   }
   
   if (fino.gradient[0][0]->data_value == NULL) {
-    int  m;
     // gradient vector
     for (m = 0; m < fino.dimensions; m++) {
       fino_fill_result_function(gradient[0][m]);
