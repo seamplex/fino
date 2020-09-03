@@ -98,6 +98,12 @@ PetscErrorCode petsc_err;
   petsc_call(PetscGetCPUTime(&fino.petsc.which)); \
   fino.cpu.which = fino_get_cpu_time();
 
+#define fino_fill_result_function(fun_nam) {\
+        fino.fun_nam->mesh = fino.rough==0?fino.mesh:fino.mesh_rough; \
+        fino.fun_nam->data_argument = fino.fun_nam->mesh->nodes_argument;   \
+        fino.fun_nam->data_size = fino.fun_nam->mesh->n_nodes; \
+        fino.fun_nam->data_value = calloc(fino.fun_nam->mesh->n_nodes, sizeof(double));}
+
 
 // forward definitions
 typedef struct fino_distribution_t fino_distribution_t;
@@ -169,7 +175,8 @@ struct {
   int degrees;           // DoF per node
   int dimensions;        // spatial dimension of the problem
   
-  int global_size;       // total number of DoFs
+  int global_size;        // total number of DoFs
+  int allow_new_nonzeros; // flag to set MAT_NEW_NONZERO_ALLOCATION_ERR to false, needed in some rare cases
   
   int rough;             // keep each element's contribution to the gradient?
   int roughish;          // average only on the same physical group?
@@ -550,6 +557,9 @@ extern int fino_debug_close(fino_debug_t *);
 extern int fino_print_petsc_vector(Vec, PetscViewer);
 extern int fino_print_petsc_matrix(Mat, PetscViewer);
 extern int fino_print_petsc_matrix_struct(Mat, PetscViewer);
+
+// gradient.c
+extern int fino_compute_gradients_at_nodes(mesh_t *, element_t *);
 
 // init.c
 extern int plugin_init_before_parser(void);

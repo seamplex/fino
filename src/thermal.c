@@ -19,9 +19,14 @@
  *  along with wasora.  If not, see <http://www.gnu.org/licenses/>.
  *------------------- ------------  ----    --------  --     -       -         -
  */
-#include <petscts.h>
 
 #include "fino.h"
+
+#define QX             0
+#define QY             1
+#define QZ             2
+#define THERMAL_FUNCTIONS  3
+
 
 fino_distribution_t distribution_k;     // conductivity 
 fino_distribution_t distribution_Q;     // volumetric heat source
@@ -343,16 +348,26 @@ int fino_thermal_set_convection(element_t *element, bc_t *bc) {
 
 int fino_thermal_compute_fluxes(void) {
   
-//  material_t *material = NULL;
-//  element_list_item_t *associated_element = NULL;
+//  double dTdx, dTdy, dTdz;
+//  double delta_dTdx, delta_dTdy, delta_dTdz;
   
   double k;
   double T_max = -INFTY;
   double T_min = +INFTY;
   
-  int j;
+  int i, j;
+  int m;
+  int j_global;
+  int progress = 0;
+  int step = 0; 
+  int ascii_progress_chars = 0;
+
+  element_t *element;  
+  element_list_item_t *associated_element;
+  node_t *node;
   
-  // evaluamos k, si es uniformes esto ya nos sirve para siempre
+  
+  // if k is a scalar this works for the whole routine
   if (distribution_k.variable != NULL) {
     k = fino_distribution_evaluate(&distribution_k, NULL, NULL);
     if (k < 0) {
@@ -361,40 +376,165 @@ int fino_thermal_compute_fluxes(void) {
     }
   }
  
-  for (j = 0; j < fino.mesh->n_nodes; j++) {
-/*    
-    wasora_var_value(wasora_mesh.vars.x) = fino.mesh->node[j].x[0];
-    wasora_var_value(wasora_mesh.vars.y) = fino.mesh->node[j].x[1];
-    wasora_var_value(wasora_mesh.vars.z) = fino.mesh->node[j].x[2];
+  // number of steps we need to make for progress bar
+  if ((step = ceil((double)(fino.mesh->n_elements+fino.mesh->n_nodes)*wasora.nprocs/100.0)) < 1) {
+    step = 1;
+  }
+  
+  if (fino.gradient[0][0]->data_value == NULL) {
+    int  m;
+    // gradient vector
+    for (m = 0; m < fino.dimensions; m++) {
+      fino_fill_result_function(gradient[0][m]);
+      fino_fill_result_function(delta_gradient[0][m]);
+    }
+  }
+  
+  
+  // step 1. sweep elements and compute gradients at each node of each element
+  for (i = 0; i < fino.mesh->n_elements; i++) {
+    if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
+      printf(CHAR_PROGRESS_GRADIENT);  
+      fflush(stdout);
+      ascii_progress_chars++;
+    }
+
+    element = &fino.mesh->element[i];
+    if (element->type->dim == fino.dimensions) {
+      wasora_call(fino_compute_gradients_at_nodes(fino.mesh, element));
+    }
+  }
+  
+  // step 2. sweep nodes of the output mesh
+  for (j_global = 0; j_global < fino.mesh->n_nodes; j_global++) {
+    if ((fino.progress_ascii == PETSC_TRUE) && (progress++ % step) == 0) {
+      printf(CHAR_PROGRESS_GRADIENT);  
+      fflush(stdout);
+      ascii_progress_chars++;
+    }
+
+    node = &fino.mesh->node[j_global];
     
-    material = NULL;
-    if (distribution_k.physical_property != NULL) {
-      LL_FOREACH(fino.mesh->node[j].associated_elements, associated_element)  {
-        if (associated_element->element->type->dim == fino.dimensions &&
-            associated_element->element->physical_entity != NULL) {
-          material = associated_element->element->physical_entity->material;
+    if (fino.rough == 0) {
+      double *mean;
+      double *current;
+      double delta;
+      double sum_weight = 0;
+      double rel_weight = 0;
+      gsl_matrix *m2 = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      int found = 0;
+      
+      // en iterative si no hacemos esto estamos leakando
+      if (node->dphidx == NULL) {
+        node->dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      } else {
+        gsl_matrix_set_zero(node->dphidx);
+      }  
+      if (node->delta_dphidx == NULL) {
+        node->delta_dphidx = gsl_matrix_calloc(fino.degrees, fino.dimensions);
+      } else {
+        gsl_matrix_set_zero(node->delta_dphidx);
+      }
+/*      
+      if (node->f == NULL) {
+        node->f = calloc(ELASTIC_FUNCTIONS, sizeof(double));
+      }
+*/      
+      
+      int n = 0;
+      LL_FOREACH(fino.mesh->node[j_global].associated_elements, associated_element) {
+        element = associated_element->element;
+        if (element->dphidx_node != NULL) {
+          found = 0;
+          for (j = 0; !found && j < element->type->nodes; j++) {
+            if (element->node[j]->index_mesh == j_global) {
+
+              n++;
+              found = 1;
+              sum_weight += element->weight;
+              rel_weight = element->weight / sum_weight;
+              
+              // las derivadas con sus incertezas segun weldford
+//              for (g = 0; g < fino.degrees; g++) {
+                for (m = 0; m < fino.dimensions; m++) {
+                  mean = gsl_matrix_ptr(node->dphidx, 0, m);
+                  current = gsl_matrix_ptr(element->dphidx_node[j], 0, m);
+                  delta = *current - *mean;
+                  *mean += rel_weight * delta;
+                  gsl_matrix_add_to_element(m2, 0, m, element->weight * delta * ((*current)-(*mean)));
+                  gsl_matrix_set(node->delta_dphidx, 0, m, sqrt(gsl_matrix_get(m2, 0, m)/sum_weight));
+                }
+//              }
+
+/*              
+              if (element->property_node != NULL) {
+                lambda = element->property_node[j][LAMBDA];
+                mu = element->property_node[j][MU];
+                alpha = element->property_node[j][ALPHA];
+              }
+              fino_break_compute_nodal_stresses(element, j, lambda, mu, alpha, &sigmax, &sigmay, &sigmaz, &tauxy, &tauyz, &tauzx);
+
+              node->f[SIGMAX] += rel_weight*(sigmax - node->f[SIGMAX]);
+              node->f[SIGMAY] += rel_weight*(sigmay - node->f[SIGMAY]);
+              node->f[SIGMAZ] += rel_weight*(sigmaz - node->f[SIGMAZ]);
+              node->f[TAUXY] += rel_weight*(tauxy - node->f[TAUXY]);
+              node->f[TAUYZ] += rel_weight*(tauyz - node->f[TAUYZ]);
+              node->f[TAUZX] += rel_weight*(tauzx - node->f[TAUZX]);
+              
+              // necesitamos el peor lambda y el peor mu para calcular el delta de von mises
+              if (uniform_properties == 0) {
+                if (lambda > lambda_max) {
+                  lambda_max = lambda;
+                }
+                if (mu > mu_max) {
+                  mu_max = mu;
+                }
+              }  
+*/
+              
+            }
+          }
         }
       }
-      if (material != NULL) {
-//        wasora_push_error_message("cannot find a material for node %d", fino.mesh->node[j].tag);
-//        return WASORA_RUNTIME_ERROR;
       
-        if (distribution_k.variable == NULL) {
-          k = fino_distribution_evaluate(&distribution_k, material, fino.mesh->node[j].x);
-        }  
-        if (k < 0) {
-          wasora_push_error_message("k is negative");
-          return WASORA_RUNTIME_ERROR;
-        }  
-      }      
+      gsl_matrix_free(m2);
+      
     }
-*/    
+    
+    // ya tenemos los promedios ahora, rellenamos las funciones
+/*    
+    dTdx = gsl_matrix_get(node->dphidx, 0, 0);
+    dTdy = (fino.dimensions > 1) ? gsl_matrix_get(node->dphidx, 0, 1) : 0;
+    dTdz = (fino.dimensions > 2) ? gsl_matrix_get(node->dphidx, 0, 2) : 0;
+ */
+    
+    fino.gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 0);
+    if (fino.dimensions > 1) {
+      fino.gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 1);
+      if (fino.dimensions > 2) {
+        fino.gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->dphidx, 0, 2);
+      }
+    }
+    
+    // incertezas
+    // las incertezas
+    if (fino.rough == 0) {
+      fino.gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 0);
+      if (fino.dimensions > 1) {
+        fino.gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 1);
+        if (fino.dimensions > 2) {
+          fino.gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 2);
+        }
+      }  
+    }
+    // TODO: heat flux
+    
     // el >= es porque si en un parametrico se pasa por cero tal vez no se actualice T_max
-    if (fino.solution[0]->data_value[j] >= T_max) {
-      T_max = fino.mesh->node[j].phi[0];
+    if (fino.solution[0]->data_value[j_global] >= T_max) {
+      T_max = fino.mesh->node[j_global].phi[0];
     }
-    if (fino.solution[0]->data_value[j] <= T_min) {
-      T_min = fino.mesh->node[j].phi[0];
+    if (fino.solution[0]->data_value[j_global] <= T_min) {
+      T_min = fino.mesh->node[j_global].phi[0];
     }
     
   }

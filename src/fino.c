@@ -28,7 +28,6 @@
 
 
 int fino_instruction_step(void *arg) {
-//  fino_step_t *fino_step = (fino_step_t *)arg;
 
   int j;
   double xi;
@@ -42,7 +41,7 @@ int fino_instruction_step(void *arg) {
     wasora_call(fino_problem_init());
   }
 
-  // check if we were given an initial temperature distribution
+  // check if we were given an initial solution
   if (wasora_var_value(wasora_special_var(in_static)) && (ic = wasora_get_function_ptr("T_0")) != NULL) {
     if (ic->n_arguments != fino.dimensions) {
       wasora_push_error_message("initial condition function T_0 ought to have %d arguments instead of %d", fino.dimensions, ic->n_arguments);
@@ -139,67 +138,6 @@ int fino_instruction_step(void *arg) {
     petsc_call(TSGetTimeStep(fino.ts, wasora_value_ptr(wasora_special_var(dt))));
   }
   
-
-  
-/*  
-  if (wasora_var_value(wasora_special_var(end_time)) == 0 || fino.problem_family != problem_family_thermal) {
-      
-      // if the problem is not transient heat we solve the (quasi) steady state here
-      if (fino.math_type == math_type_linear) {
-        
-        wasora_call(fino_solve_petsc_linear());
-        wasora_call(fino_phi_to_solution(fino.phi));
-        
-      } else if (fino.math_type == math_type_nonlinear) {
-        
-        wasora_call(fino_solve_petsc_nonlinear());
-        
-      } else if (fino.math_type == math_type_eigen) {
-        
-#ifdef HAVE_SLEPC
-        wasora_call(fino_solve_eigen_slepc());
-        wasora_call(fino_eigen_nev()); 
-        wasora_call(fino_phi_to_solution(fino.phi));
-#else 
-        wasora_push_error_message("fino should be linked against SLEPc to be able to solve eigen-problems");
-        return WASORA_RUNTIME_ERROR;
-#endif      
-      }
-    } else {
-      
-      // the transient heat problem is different
-      // TODO: homogenize the logic
-      if (wasora_var_value(wasora_special_var(in_static))) {
-        wasora_call(fino_thermal_step_initial());
-      } else {
-        wasora_call(fino_thermal_step_transient());
-      }
-    }
-    time_checkpoint(solve_end);
-    
-  // ------------------------------------
-  // stresses
-  // ------------------------------------
-    
-    time_checkpoint(stress_begin);
-    
-    if (fino.problem_family == problem_family_mechanical) {
-  
-      wasora_call(fino_compute_strain_energy());
-      if (fino.gradient_evaluation != gradient_none) {
-        wasora_call(fino_break_compute_stresses());
-      }  
-      
-    } else if (fino.problem_family == problem_family_thermal) {
-        
-      wasora_call(fino_thermal_compute_fluxes());
-      
-    }
-    
-    time_checkpoint(stress_end);
-    
-  }
-*/  
   wasora_var(fino.vars.time_petsc_build) += fino.petsc.build_end - fino.petsc.build_begin;
   wasora_var(fino.vars.time_wall_build)  += fino.wall.build_end  - fino.wall.build_begin;
   wasora_var(fino.vars.time_cpu_build)   += fino.cpu.build_end   - fino.cpu.build_begin;
