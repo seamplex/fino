@@ -499,8 +499,9 @@ int fino_problem_init(void) {
   petsc_call(MatSeqAIJSetPreallocation(fino.K, width, PETSC_NULL));
   petsc_call(MatSetOption(fino.K, MAT_KEEP_NONZERO_PATTERN, PETSC_TRUE));
 
-  // TODO: add an option
-//  petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  if (fino.allow_new_nonzeros) {
+    petsc_call(MatSetOption(fino.K, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE));
+  }  
   
   if (fino.degrees > 1) {
     petsc_call(MatSetBlockSize(fino.K, fino.degrees));
