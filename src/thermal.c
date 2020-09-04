@@ -518,11 +518,11 @@ int fino_thermal_compute_fluxes(void) {
     // incertezas
     // las incertezas
     if (fino.rough == 0) {
-      fino.gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 0);
+      fino.delta_gradient[0][0]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 0);
       if (fino.dimensions > 1) {
-        fino.gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 1);
+        fino.delta_gradient[0][1]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 1);
         if (fino.dimensions > 2) {
-          fino.gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 2);
+          fino.delta_gradient[0][2]->data_value[j_global] = gsl_matrix_get(node->delta_dphidx, 0, 2);
         }
       }  
     }
@@ -541,6 +541,18 @@ int fino_thermal_compute_fluxes(void) {
   wasora_var(fino.vars.T_max) = T_max;
   wasora_var(fino.vars.T_min) = T_min;
 
+  if (fino.progress_ascii == PETSC_TRUE) {
+    if (wasora.nprocs == 1) {
+      while (ascii_progress_chars++ < 100) {
+        printf(CHAR_PROGRESS_GRADIENT);
+      }
+    }
+    if (wasora.rank == 0) {
+      printf("\n");  
+      fflush(stdout);
+    }  
+  }
+  
   
   return WASORA_RUNTIME_OK;
 }
