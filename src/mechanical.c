@@ -1117,7 +1117,7 @@ int fino_break_compute_stresses(void) {
       // if nu, E and/or alpha are not uniform, we need to evalaute them at the nodes
       if (uniform_properties == 0 || distribution_alpha.function != NULL || distribution_alpha.physical_property != NULL) {
         if (element->property_node == NULL) {
-          element->property_node = calloc(J, sizeof(double *));
+          element->property_node = calloc(element->type->nodes, sizeof(double *));
         }  
       }
         
