@@ -1019,7 +1019,7 @@ int fino_break_compute_stresses(void) {
   double lambda_max = 0;
   double mu_max = 0;
   
-  int j ,J;
+  int j, J;
   int i, g, m, n;
   int j_global;
   int progress = 0;
@@ -1121,8 +1121,6 @@ int fino_break_compute_stresses(void) {
         }  
       }
         
-//      J = element->type->nodes;
-//      for (j = 0; j < J; j++) {
       for (j = 0; j < element->type->nodes; j++) {      
         
         // if nu, E and/or alpha are not uniform, we need to evaluate them at the nodes
@@ -1391,7 +1389,7 @@ int fino_break_compute_stresses(void) {
         element = associated_element->element;
         if (element->dphidx_node != NULL) {
           found = 0;
-          for (j = 0; !found && j < J; j++) {
+          for (j = 0; !found && j < element->type->nodes; j++) {
             if (element->node[j]->index_mesh == j_global) {
 
               n++;
