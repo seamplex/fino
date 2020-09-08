@@ -1,5 +1,5 @@
 MESH FILE_PATH infinite-cylinder-axi.msh
-FINO_PROBLEM ELASTIC_AXISYMMETRIC SYMMETRY_AXIS y
+FINO_PROBLEM axisymmetric SYMMETRY_AXIS y
 
 E = 205e3
 nu = 0.28
@@ -8,7 +8,7 @@ a = 1
 b = 2
 p = 10
 
-PHYSICAL_GROUP NAME inner  BC p=-p
+PHYSICAL_GROUP NAME inner  BC P=p
 # PHYSICAL_GROUP NAME outer  BC u=0
 PHYSICAL_GROUP NAME infinite   BC v=0
 
