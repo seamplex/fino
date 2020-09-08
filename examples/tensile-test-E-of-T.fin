@@ -1,0 +1,41 @@
+# tensile test example with spatial-dependent properties, compare with tensile-test.fin
+MESH FILE_PATH tensile-test.msh  # mesh file in Gmsh format (either version 2.2 or 4.x)
+
+# non-uniform properties given as spatial functions
+# first, the temperature depends algebraically on space
+T(x,y,z) := 100+x+60*cos(pi*x/80)
+# then, Young modulus depends point-wise on temperature through a point-wise function
+FUNCTION EofT(temp) INTERPOLATION steffen DATA {
+  0    250e3
+  20   220e3
+  60   200e3
+  100  160e3
+  160  140e3
+  200  120e3
+}
+
+# finally the Youg modulus is given as a spatial algebraic function of x,y,z
+E(x,y,z) := EofT(T(x,y,z))
+
+nu = 0.3    # Poisson’s ratio
+
+# boundary conditions ("left" and "right" come from the names in the mesh)
+PHYSICAL_GROUP left  BC fixed       # fixed end
+PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
+
+FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+# FINO_SOLVER KSP mumps       # try to use mumps (if it is not available gamg+gmres is used)
+FINO_STEP                   # solve
+
+# compute reaction force at fixed end
+FINO_REACTION PHYSICAL_GROUP left RESULT R
+
+# write E(x), T(x) and results (Von Mises, principal and displacements) in a VTK file
+MESH_POST FILE_PATH tensile-test-EofT.vtk T E sigma sigma1 sigma2 sigma3 VECTOR u v w
+
+# print some results (otherwise output will be null)
+PRINT SEP " " "displ_max =" %.3f displ_max "mm"
+PRINT SEP " " "sigma_max = (" %.1f sigma_max "±" delta_sigma_max ") MPa"
+PRINT SEP " " "principal1 at center = (" %.5f sigma1(0,0,0) "±" delta_sigma(0,0,0) ") MPa"
+PRINT SEP " " "reaction  = [" %.3e R "] Newtons"
+PRINT FILE_PATH tensile-sigma.dat %.0f sigma(0,0,0)
