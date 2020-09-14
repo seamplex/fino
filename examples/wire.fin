@@ -2,7 +2,7 @@
 # see https://www.seamplex.com/fino/doc/alambre.pdf (in spanish)
 # (note that there is a systematic error of a factor of two in the measured values)
 
-DEFAULT_ARGUMENT_VALUE 1 hex       # mesh, either hex, axisymetric or general
+DEFAULT_ARGUMENT_VALUE 1 hex       # mesh, either hex or unstruct
 DEFAULT_ARGUMENT_VALUE 2 copper    # material, either copper or aluminum
 
 MESH FILE_PATH wire-$1.msh DIMENSIONS 3
@@ -48,6 +48,11 @@ PRINT "\# $2 wire over $1 mesh, frequencies in Hz"
 PRINT "\# -------------------------------------------------"
 PRINT        "\# n"    "FEM"    "Euler"   "Relative difference [%]"
 PRINT_VECTOR i         f(2*i-1) f_euler   100*(f_euler(i)-f(2*i-1))/f_euler(i)
+
+PRINT
+PRINT "\# mode    L              Gamma           mu              Mu"
+PRINT "\# -------------------------------------------------------------------"
+PRINT_VECTOR FORMAT "% .6g" i L Gamma mu Mu
 
 # write the modes into a vtk file
 MESH_POST FILE_PATH wire-$1-$2.vtk \
