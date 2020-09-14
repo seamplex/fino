@@ -1019,7 +1019,7 @@ int fino_break_compute_stresses(void) {
   double lambda_max = 0;
   double mu_max = 0;
   
-  int j, J;
+  int j;
   int i, g, m, n;
   int j_global;
   int progress = 0;

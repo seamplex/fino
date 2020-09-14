@@ -537,13 +537,29 @@ int plugin_parse_line(char *line) {
 
       while ((token = wasora_get_next_token(NULL)) != NULL) {
 ///kw+FINO_REACTION+usage PHYSICAL_GROUP <physical_group>
-        
         if (strcasecmp(token, "PHYSICAL_GROUP") == 0 || strcasecmp(token, "PHYSICAL_ENTITY") == 0) {
           wasora_call(wasora_parser_string(&name));
           if ((reaction->physical_entity = wasora_get_physical_entity_ptr(name, fino.mesh)) == NULL) {
             reaction->physical_entity = wasora_define_physical_entity(name, fino.mesh, 1);
           }
           free(name);
+
+///kw+FINO_REACTION+usage [ { FORCE
+        } else if (strcasecmp(token, "FORCE") == 0) {
+          reaction->order = 0;
+          
+///kw+FINO_REACTION+usage | MOMENT } ]
+        } else if (strcasecmp(token, "MOMENT") == 0) {
+          reaction->order = 1;
+          
+///kw+FINO_REACTION+usage [ {X0 | Y0 | Z0 } expr ]
+        } else if (strcasecmp(token, "X0") == 0 || strcasecmp(token, "Y0") == 0 || strcasecmp(token, "Z0") == 0) {
+          char *expr_string;
+          int dof = token[0]-'X';
+          wasora_call(wasora_parser_string(&expr_string));
+          wasora_call(wasora_parse_expression(expr_string, &reaction->x0[dof]));
+          free(expr_string);
+          
 ///kw+FINO_REACTION+usage RESULT { <variable> | <vector> }
         } else if (strcasecmp(token, "RESULT") == 0) {
           wasora_call(wasora_parser_string(&name));

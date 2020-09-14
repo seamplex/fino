@@ -463,6 +463,8 @@ struct fino_reaction_t {
   physical_entity_t *physical_entity;
   var_t *scalar;
   vector_t *vector;
+  int order;
+  expr_t x0[3];
   
   fino_reaction_t *next;
 };
