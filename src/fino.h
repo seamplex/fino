@@ -546,7 +546,7 @@ extern int fino_build_bulk(void);
 extern int fino_build_element_volumetric(element_t *);
 extern int fino_build_element_bc(element_t *, bc_t *);
 
-extern inline double fino_compute_r_for_axisymmetric(element_t *, int);
+extern double fino_compute_r_for_axisymmetric(element_t *, int);
 
 extern int fino_print_gsl_vector(gsl_vector *, FILE *);
 extern int fino_print_gsl_matrix(gsl_matrix *, FILE *);
