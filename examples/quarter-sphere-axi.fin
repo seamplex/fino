@@ -1,5 +1,5 @@
 MESH FILE_PATH quarter-sphere-axi.msh
-FINO_PROBLEM ELASTIC_AXISYMMETRIC
+FINO_PROBLEM elastic AXISYMMETRIC
 
 E = 210
 nu = 0.3
@@ -14,5 +14,5 @@ FINO_STEP
 
 # http://solidmechanics.org/text/Chapter4_1/Chapter4_1.htm
 
-MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v 0 sigma sigmax sigmay sigmaz dudx dvdx dudy dvdy
+MESH_POST FILE_PATH quarter-sphere-axi.vtk VECTOR u v 0 sigma sigmax sigmay dudx dvdx dudy dvdy
 # PRINT_FUNCTION u

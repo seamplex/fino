@@ -1,0 +1,14 @@
+MESH FILE_PATH rect-for-axi.msh DIMENSIONS 2
+FINO_PROBLEM thermal AXISYMMETRIC SYMMETRY_AXIS y
+
+k = 1
+
+PHYSICAL_GROUP right  BC h=1 Tref=1
+PHYSICAL_GROUP top    BC h=1 Tref=1
+PHYSICAL_GROUP bottom BC T=0
+
+FINO_STEP
+
+MESH_POST FILE_PATH thermal-axi.vtk T VECTOR dTdx dTdy 0
+MESH_POST FILE_PATH thermal-axi.msh T VECTOR dTdx dTdy 0
+

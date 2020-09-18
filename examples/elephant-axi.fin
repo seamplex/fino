@@ -2,7 +2,7 @@
 # clamped solid cylinder in a 2d axi-symmetric case
 
 MESH FILE_PATH elephant-axi.msh  # 2D rectangle, mesh in mm
-FINO_PROBLEM ELASTIC_AXISYMMETRIC SYMMETRY_AXIS y
+FINO_PROBLEM elastic AXISYMMETRIC SYMMETRY_AXIS y
 FINO_SOLVER PROGRESS_ASCII
 
 E = 100e3  # [ MPa ]
