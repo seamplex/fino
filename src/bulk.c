@@ -265,12 +265,12 @@ inline double fino_compute_r_for_axisymmetric(element_t *element, int v) {
     if (fino.symmetry_axis == symmetry_axis_y) {
       if ((r_for_axisymmetric = element->x[v][0]) < ZERO) {
         wasora_push_error_message("axisymmetric problems with respect to y cannot have nodes with x <~ 0");
-        return WASORA_RUNTIME_ERROR;
+        wasora_runtime_error();
       }
     } else if (fino.symmetry_axis == symmetry_axis_x) {
       if ((r_for_axisymmetric = element->x[v][1]) < ZERO) {
         wasora_push_error_message("axisymmetric problems with respect to x cannot have nodes with y <~ 0");
-        return WASORA_RUNTIME_ERROR;
+        wasora_runtime_error();
       }
     }
   }
