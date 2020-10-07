@@ -10,7 +10,7 @@ M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo EXPAND lc EXPAND r 
 SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
 MESH FILE_PATH veeder.msh DIMENSIONS 3
 
-FINO_PROBLEM BREAK
+FINO_PROBLEM mechanical
 
 E = 200e3     # young modulus (does not matter for the displacement, only for stresses)
 nu = 0.25     # poisson ratio
@@ -20,18 +20,14 @@ alpha = 1e-5  # temperature expansion coefficient
 T0 = 400-20
 T(x,y,z) := T0*(1-(x^2+y^2)/(r^2))
 
-# boundary conditions (note that the cylinder can still rotate around z)
-PHYSICAL_GROUP NAME inf      BC w=0
-PHYSICAL_GROUP NAME origin   BC fixed
+# boundary conditions (note that the cylinder can still expand on the x-y plane)
+PHYSICAL_GROUP NAME inf      BC tangential radial x0=0 y0=0 z0=0
 
 # solve!
 FINO_STEP
 
 # write vtk output
 MESH_POST FILE_PATH veeder.vtk      T sigma dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz  sigma1 sigma2 sigma3  VECTOR u v w
-
-# PRINT_FUNCTION u v w
-# FINO_DEBUG MATRICES_X
 
 # displacement profiles 
 v_profile(z') := v(0, r, z'*H/2)/(alpha*T0*r)

@@ -1,8 +1,9 @@
 SHELL "gmsh -3 -v 0 traction.geo"
 MESH FILE_PATH traction.msh
+FINO_SOLVER KSP_TYPE cgxxx
 
 
-PHYSICAL_GROUP NAME left  BC u=0
+PHYSICAL_GROUP NAME left  BC u=0 radial
 PHYSICAL_GROUP NAME right BC u=0.1
 # PHYSICAL_GROUP NAME right BC Tx=20000
 
@@ -14,6 +15,8 @@ FINO_STEP
 MESH_POST FILE_PATH traction.vtk dudx sigma sigma1 sigma2 sigma3 VECTOR u v w
 
 dipl_in_x(x) := u(x,0,0)
+
+FINO_REACTION PHYSICAL_GROUP left RESULT right_RF
 
 PRINT TEXT "\# elements   =" %g elements
 PRINT TEXT "\# nodes      =" %g nodes

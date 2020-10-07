@@ -22,16 +22,16 @@ lang: en-US
  * modal analysis problems.
 
 :::{.alert .alert-warning}
-Please note that Fino is a [back-end](https://en.wikipedia.org/wiki/Front_and_back_ends) aimed at advanced users. For an easy-to-use web-based front-end with Fino running in the cloud directly from your browser see [CAEplex](https://www.caeplex.com) at <https://www.caeplex.com>.
+Please note that Fino is a [back end](https://en.wikipedia.org/wiki/Front_and_back_ends) aimed at advanced users. For an easy-to-use web-based front end with Fino running in the cloud directly from your browser see [CAEplex](https://www.caeplex.com) at <https://www.caeplex.com>.
 
 ::::: {.embed-responsive .embed-responsive-16by9 .mb-3}
  <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/kD3tQdq17ZE" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 :::::
 :::
 
-## Why another finite-element program? The world is already full of them!
+## Why
 
-Because almost every piece of FEA software falls in either one of these two categories:
+The world is already full of finite-element programs. However, almost every piece of FEA software falls in either one of these two categories:
 
  a. Powerful, flexible and complex advanced numerical solvers of general non-linear partial differential equations written by academics (for academics) distributed under the form of 
      i. libraries, which the user has to compile and link to their own codes, or
@@ -50,7 +50,7 @@ Because almost every piece of FEA software falls in either one of these two cate
 Hence, Fino tries to fill in the gap between these two worlds with a different design basis.^[Somewhat like [milonga](https://www.seamplex.com/milonga) although the landscape is slightly different.]
 Read the foreword of the [tensile-test example](https://seamplex.com/fino/cases/000-tensile-test/) within the [case files](https://seamplex.com/fino/cases) for a deeper insight into Fino’s design and implementation philosophy.
      
-## How does Fino fill in the gap?
+## How
 
 Fino...
 
@@ -61,7 +61,7 @@ Fino...
  * is written in plain [ANSI C](https://en.wikipedia.org/wiki/ANSI_C) (neither C++ nor Fortran) and uses state-of-the-art libraries and resources---such as [GNU Autotools](https://www.gnu.org/software/automake/manual/automake.html) and [PETSc](https://www.mcs.anl.gov/petsc/)---written by professional programmers. 
  * delegates all the grid management to [Gmsh](http://gmsh.info/) in a way that the input file Fino reads does not (necessarily) contain any reference to the mesh properties. In particular, this means that the very same Fino input file can be used to solve the same problem with different meshing schemes (shapes, sizes, optimizations, etc.).
  * can write [VTK](https://vtk.org/) files to be post-processed with [Paraview](https://www.paraview.org/) or other compatible tool. It can also write [MSH](http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format) files for post-processing with [Gmsh](http://gmsh.info/).
- * is particularly designed to handle complex dependence of material properties (i.e. temperature-dependent properties) and boundary conditions dependent on space over different geometric entities (i.e. volumes, faces, edges and/or vertices).
+ * is particularly designed to handle complex dependence of material properties (i.e. temperature-dependent properties) and boundary conditions dependent on space over different geometric entities (i.e. volumes, faces, edges and/or vertices)---see the [thermal transient on a valve](#valve).
  * can perform parametric or optimization runs---see [the parametric cantilever study](#cantilever).
 
 
@@ -138,7 +138,7 @@ PRINT "reaction  = [" %.3e R "] Newtons"
 
 If we ran this example from a terminal, we would get something like this:
 
-```bash
+```terminal
 $ fino tensile-test.fin
 ....................................................................................................
 ----------------------------------------------------------------------------------------------------
@@ -150,26 +150,30 @@ reaction  = [   -1.000e+04      1.622e-03       6.226e-03       ] Newtons
 $
 ```
 
- * The three lines with the dots, dashes and double dashes are ASCII progress bars for the assembly of the stiffness matrix, the solution of the linear system and the computation of stresses, respectively.
- * There is no need to have a node at the origin to know what the stress is at $\vec{x}=(0,0,0)$. Fino (actually [wasora](https://www.seamplex.com/wasora)) can evaluate functions at any arbitrary point.
- * Almost any location in the input file where a numerical value is expected can be replaced by an algebraic expression, including standard functions like `log`, `exp`, `sin`, etc. See [wasora’s reference](https://www.seamplex.com/wasora/reference.html#functions).
- * If the `MESH_POST` and `PRINT` instructions were not included, there would not be any default output of the execution ([UNIX rule of silence](http://www.linfo.org/rule_of_silence.html)). This should be emphasized, as I have recently (i.e. twelve years after the commercial introduction of smartphones) stumbled upon a the output file of a classical FEM program that seems to be written in the 1970s:  paginated ASCII text apparently ready to be printed with all the possible numerical output because the CPU cost of re-running the case of course overwhelms the hourly rate of the engineer that has to understand the results. 
- * The output is 100% controlled by the user, including the precision of the printed results with [`printf` format specifiers](https://en.wikipedia.org/wiki/Printf_format_string). Note the eight decimal positions in the evaluation of $\sigma_1$ at the origin, whilst the expected value was $100~\text{MPa}$ (the load is $F_x=10^4~\text{N}$ and the cross-sectional area is $100~\text{mm}^2$).
- * The generation of the mesh `tensile-test.msh` is not covered in this example. See [`tensile-test.geo`](https://github.com/seamplex/fino/blob/master/examples/tensile-test.geo). Yet, please do consider the comparison of two few-lines [syntactically-sweetened](https://en.wikipedia.org/wiki/Syntactic_sugar) plain-text files which live near the English language with a similar input file for a certain open-source solver (whose input is in turn inspired by another non-free solver) that condenses both the mesh and the problem definition in a single 5Mb file that lives far away from plain English. 
- * The `VTK` output can be post-processed with the free tool [ParaView](http://www.paraview.org/):
+The output can be post-processed with the free tool [ParaView](http://www.paraview.org/):
 
-![Tensile test results obtained by [Fino](https://www.seamplex.com/fino) and post-processed by [ParaView](http://www.paraview.org/).](examples/tensile-test.png){.img-fluid #fig:tensile-vtk}
+![](examples/tensile-test.png){.img-fluid #fig:tensile-vtk}\ 
 
 
-## Cantilever beam with first & second order elements {#cantilever}
+See the full [tensile-test example](https://seamplex.com/fino/cases/000-tensile-test/) within the [case files](https://seamplex.com/fino/cases) for further details and a thorough discussion.
 
-This example is far more complex as it studies the shear-locking effect of first order elements under bending loads, how displacements compares to second-order elements and how they depend on mesh size.
-Hence, the input file is also more complex. 
+
+
+
+## Parametric beam {#cantilever}
+
+This example is far more complex as it studies the shear-locking effect of first order elements under bending loads of a square-section cantilevered beam. It computes how displacements compares to second-order elements and how they depend on mesh size and structure. Hence, the input file is also more complex. 
+
+```{=html}
+<p class="mt-2"><a class="btn btn-primary" data-toggle="collapse" href="#input_cantilever">Show input file</a></p>
+<div class="collapse" id="input_cantilever">
+<div class="card card-body">
+```
 
 ```fino
 DEFAULT_ARGUMENT_VALUE 1 1        # use first (1) or second (2) order elements
 DEFAULT_ARGUMENT_VALUE 2 0        # use structured (1) or unstructured (0) tets
-DEFAULT_ARGUMENT_VALUE 3 5        # maximum number of elements along h
+DEFAULT_ARGUMENT_VALUE 3 5        # number of elements along h
 
 h = 10   # beam width and height
 l = 50   # beam length
@@ -204,7 +208,6 @@ PHYSICAL_ENTITY NAME right BC Fz=-1000
 
 FINO_STEP
 
-# this is fun but takes a lot of time for a test
 # energy_density(x,y,z) := 0.5*{( 
 #  sigmax(x,y,z)*dudx(x,y,z) +
 #  sigmay(x,y,z)*dvdy(x,y,z) +
@@ -230,6 +233,11 @@ OUTPUT_FILE vtk cantilever-$1-$2-%g.vtk n
 MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
 ```
 
+```{=html}
+</div>
+</div>
+```
+
 ![Cantilever beam displacement for different grids and element order.](examples/cantilever.svg){.img-fluid width=100% #fig:cantilever-displ}
 
 ![Cantilever beam strain energy for different grids and element order.](examples/cantilever-energy.svg){.img-fluid width=100% #fig:cantilever-energy}
@@ -238,6 +246,12 @@ MESH_POST FILE vtk sigma sigma1 sigma2 sigma3 VECTOR u v w sigma
 ## Thermal conduction in a piston engine
 
 Problem taken from [Simscale’s thermal tutorial](https://www.simscale.com/docs/content/tutorials/tutorial_heat-transfer.html):
+
+```{=html}
+<p class="mt-2"><a class="btn btn-primary" data-toggle="collapse" href="#input_piston">Show input file</a></p>
+<div class="collapse" id="input_piston">
+<div class="card card-body">
+```
 
 
 ```fino
@@ -273,59 +287,271 @@ PRINT "\# memory [Mb]    = "  %.0f memory/1024^2
 PRINT %.0f T(0,0,0)
 ```
 
+```{=html}
+</div>
+</div>
+```
+
 ![Fino results.](examples/engine-piston.png){.img-fluid #fig:engine-piston}
 
 ![Simscale (CalculiX) results.](examples/piston-simscale.png){.img-fluid #fig:piston-simscale}
 
 
-## Conic valve
 
-Can your solver constrain your model faces to algebraically-defined surfaces such as cones? Ours can (and it is open source):
 
-[![Conic valve](examples/conic_valve.png){.img-fluid}](https://twitter.com/seamplex/status/789440535329181696)\ 
+## Transient heat conduction on a valve {#valve}
 
-```fino
-# can you fem solver constrain your model faces
-# to algebraically-defined surfaces such as cones?
-# ours can! (and it is open source)
-# <https://twitter.com/seamplex/status/789440535329181696>
+Thermal conduction on a multi-material valve plus nozzle set with temperature-dependent properties and time-dependent boundary conditions.
 
-SHELL "gmsh -v 0 -3 conic_valve.geo"
-MESH FILE_PATH conic_valve.msh DIMENSIONS 3
-
-FINO_SOLVER PROGRESS_ASCII
-
-E = 200e3
-nu = 0.3
-
-PHYSICAL_ENTITY NAME base  BC u=0 v=1e-2 w=0
-PHYSICAL_ENTITY NAME top   BC u=0 v=1e-2 w=0
-
-# the cone equation
-x1 = -4
-y1 = 2
-
-x2 = -2
-y2 = 4
-
-f(x) := (y2-y1)/(x2-x1)*(x-x1) + y1
-h = f(0)
-r = root(f(x), x, -10, 0) 
-
-PHYSICAL_ENTITY NAME cone  BC 0=((x+u)^2+(z+w)^2)/(r/h)^2-(y+v-h)^2
-
-FINO_STEP
-MESH_POST FILE_PATH conic_valve.vtk sigma VECTOR u v w #dudx dvdx dwdx dudy dvdy dwdy dudz dvdz dwdz 
+```{=html}
+<div class="embed-responsive embed-responsive-16by9">
+ <video width="100%" height="100%" controls>
+  <source src="examples/temp-valve-smooth.mp4" type="video/mp4">
+  <source src="examples/temp-valve-smooth.mkv" type="video/mkv">
+  <source src="examples/temp-valve-smooth.webm" type="video/webm">
+ </video> 
+</div> 
 ```
 
-See the original tweet at <https://twitter.com/seamplex/status/789440535329181696>
+```{=html}
+<p class="mt-2"><a class="btn btn-primary" data-toggle="collapse" href="#input_piston">Show input file</a></p>
+<div class="collapse" id="input_piston">
+<div class="card card-body">
+```
+
+```fino
+MESH FILE_PATH valve.msh DIMENSIONS 3
+FINO_PROBLEM thermal
+
+FUNCTION Tref(t) DATA {
+ 0    50
+ 10   50
+ 50   320
+ 60   300
+ 90   150
+ 120  320
+ 150  320
+}
+
+static_steps = 3
+end_time = Tref_b
+
+PHYSICAL_ENTITY NAME internal  BC T=Tref(t)
+PHYSICAL_ENTITY NAME external  BC h=1e-6      Tref=50
+PHYSICAL_ENTITY NAME symmetry  BC q=0
+
+FUNCTION k_carbon(temp) INTERPOLATION steffen DATA {
+      20             11.5
+      50             12.0
+      75             12.3
+     100             12.7
+     125             12.9
+     150             13.2
+     175             13.5
+     200             13.8
+     225             14.0
+     250             14.3
+     275             14.6
+     300             14.9
+     325             15.1
+     350             15.4
+}
+
+FUNCTION kappa_carbon(temp) INTERPOLATION steffen DATA {
+      20             11.5
+      50             11.8
+      75             11.9
+     100             12.1
+     125             12.3
+     150             12.4
+     175             12.6
+     200             12.7
+     225             12.9
+     250             13.0
+     275             13.2
+     300             13.3
+     325             13.4
+     350             13.6
+}
+
+FUNCTION k_ss(temp) INTERPOLATION steffen DATA {
+   20     14.8
+   50     15.3
+   75     15.8
+  100     16.2
+  125     16.6
+  150     17.0
+  175     17.5
+  200     17.9
+  225     18.3
+  250     18.6
+  275     19.0
+  300     19.4
+  325     19.8
+  350     20.1
+}
+
+FUNCTION kappa_ss(temp) INTERPOLATION steffen DATA {
+   20      3.90
+   50      3.94
+   75      3.99
+  100      4.04
+  125      4.08
+  150      4.14
+  175      4.19
+  200      4.24
+  225      4.30
+  250      4.35
+  275      4.41
+  300      4.46
+  325      4.52
+  350      4.57
+}
+
+
+MATERIAL carbon {
+  k       k_carbon(T(x,y,z))*1e-3      # it is in W/(m K) and we need it in W/(mm K)
+  kappa   kappa_carbon(T(x,y,z))       # it is in 1e-6 m^2/S and we need it in mm^2/s
+}
+
+MATERIAL stainless {
+  k       0.2*k_ss(T(x,y,z))*1e-3      # one-fifth to exaggerate the effects
+  kappa   kappa_ss(T(x,y,z))
+}
+
+# advance one step
+FINO_STEP
+
+IF done_static
+ ro = 57
+ ri = ro-8.5
+ PRINT %g t %.3f Tref(t) {
+  T(+1,0,ri)
+  T(+1,0,0.5*(ri+ro))
+  T(+1,0,ro)
+  T(-1,0,ri)
+  T(-1,0,0.5*(ri+ro))
+  T(-1,0,ro)
+ }
+ MESH_POST FILE_PATH temp-valve.msh T
+ENDIF
+```
+
+```{=html}
+</div>
+</div>
+```
+
+## Modal analysis of a piping systems
+
+ * <https://caeplex.com/project/results.php?id=42180c>
+
+```{=html}
+<div class="embed-responsive embed-responsive-16by9">
+ <video width="100%" height="100%" controls>
+  <source src="examples/mode5.mp4" type="video/mp4">
+  <source src="examples/mode5.mkv" type="video/mkv">
+  <source src="examples/mode5.webm" type="video/webm">
+ </video> 
+</div> 
+```
+
+```{=html}
+<div class="embed-responsive embed-responsive-16by9">
+ <video width="100%" height="100%" controls>
+  <source src="examples/mode6.mp4" type="video/mp4">
+  <source src="examples/mode6.mkv" type="video/mkv">
+  <source src="examples/mode6.webm" type="video/webm">
+ </video> 
+</div> 
+```
+
+```{=html}
+<div class="embed-responsive embed-responsive-16by9">
+ <video width="100%" height="100%" controls>
+  <source src="examples/mode7.mp4" type="video/mp4">
+  <source src="examples/mode7.mkv" type="video/mkv">
+  <source src="examples/mode7.webm" type="video/webm">
+ </video> 
+</div> 
+```
+
+
 
 ## Thermal expansion of finite cylinders
+
+ * <https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf>
+ * <https://www.caeplex.com/project/results.php?id=118237faf0>.
+
+```{=html}
+<div class="embed-responsive embed-responsive-16by9">
+  <iframe class="embed-responsive-item" style="border: 0" src="https://www.caeplex.com/project/results.php?id=118237faf0&embed"></iframe>
+</div> 
+```
+
+```{=html}
+<p class="mt-2"><a class="btn btn-primary" data-toggle="collapse" href="#input_veeder">Show input file</a></p>
+<div class="collapse" id="input_veeder">
+<div class="card card-body">
+```
+
+```fino
+# solves the benchmark problem by J. Veeder
+# Thermo-elastic expansion of finite cylinders, AECL-2660, 1967
+
+r = 20   # cylinder radius
+H = 20   # cylinder height 
+lc = 5   # characteristic length of the mesh
+
+# mesh
+M4 INPUT_FILE_PATH veeder.geo.m4 OUTPUT_FILE_PATH veeder.geo EXPAND lc EXPAND r EXPAND H
+SHELL "gmsh -3 -v 0 -order 2 veeder.geo"
+MESH FILE_PATH veeder.msh DIMENSIONS 3
+
+FINO_PROBLEM mechanical
+
+E = 200e3     # young modulus (does not matter for the displacement, only for stresses)
+nu = 0.25     # poisson ratio
+alpha = 1e-5  # temperature expansion coefficient
+
+# temperature distribution
+T0 = 400-20
+T(x,y,z) := T0*(1-(x^2+y^2)/(r^2))
+
+# boundary conditions (note that the cylinder can still expand on the x-y plane)
+PHYSICAL_GROUP NAME inf      BC tangential radial x0=0 y0=0 z0=0
+
+# solve!
+FINO_STEP
+
+# write vtk output
+MESH_POST FILE_PATH veeder.vtk      T sigma dudx dudy dudz dvdx dvdy dvdz dwdx dwdy dwdz  sigma1 sigma2 sigma3  VECTOR u v w
+
+# displacement profiles 
+v_profile(z') := v(0, r, z'*H/2)/(alpha*T0*r)
+w_profile(y') := w(0, r*y', H/2)/(alpha*T0*r)
+
+PRINT_FUNCTION FILE_PATH veeder_v.dat FORMAT %.3f v_profile MIN 0 MAX 1 NSTEPS 50 HEADER
+PRINT_FUNCTION FILE_PATH veeder_w.dat FORMAT %.3f w_profile MIN 0 MAX 1 NSTEPS 50 HEADER
+
+# screen output
+PRINT "\# max_displacement" displ_max TEXT "at" displ_max_x displ_max_y displ_max_z
+PRINT "\# see veeder_v.dat and veeder_w.dat for the non-dimensional displacement profiles along the axes"
+PRINT "\# cpu time [sec] = "  %.2f time_cpu_build "(build) "  %.2f time_cpu_solve "(solve)"  SEP " "
+PRINT "\# memory [Gb]    = "  %.2f memory_usage_global/1e9 TEXT "/" available_memory/1e9  SEP " "
+
+PRINT sigma(0,0,0) sigma1(0,0,0) sigma2(0,0,0) sigma3(0,0,0)
+```
+
+```{=html}
+</div>
+</div>
+```
 
 ![Veeder Benchmark problem](examples/veeder.png){.img-fluid #fig:veeder}
 
 
-See <https://www.seamplex.com/docs/SP-FI-17-BM-5460-A.pdf>.
+
 
 # Licensing
 

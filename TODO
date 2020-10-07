@@ -5,34 +5,35 @@
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
  * optimize assemblies -> gmsh partition
  * read tet4 (or hex8) and convert internally to tet10 (or hex20), or conversely
+ * 
  * log stages
- * refinement
+ * AMR?
     - stressrefine
     - sparselizard
  * rewrite DEBUG as FINO_DUMP, write elemental matrices, gradients at gauss points, etc
  * compute heat fluxes
  * put mat2sng in a different code
- * find an explicit solution for the 3x3 matrix in the routine that computes the barycentric coordinates -> cramer?
  * see if some for loops can be replaced by matrix-matrix products
  * DMplex + mutigrid
  * extrapolate matrix for prisms
  * optimize memory usage with massif
     - instead of having max_neighbours try to get the actual number of neighbors per node
     - preallocation
- * non-linearities
+ * non-linearities - detect them! an allow explicit settings LINEAR_BULK/NONLINEAR_BULK - BC/LINEAR_BC/NONLINEAR_BC
     - materials
        * bi-linear elastoplastic 
-       * anisotropy
+       * orthotropic heat conduction
     - BCs
        * type radiation
     - transient
        * check the time derivative of the mass matrix in thermal
        * be smart when to re-compute the matrices
     - geometries
-       * total lagrangain
+       * total lagrangian
     - contact
        * hertz?
  * write a toolbox for FreeCAD
+ * onelab integration
  * test suite
     - transient heat
     - modal
