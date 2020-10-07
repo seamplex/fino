@@ -116,6 +116,10 @@ int fino_bc_process_mechanical(bc_t **bc_pointer, char *name, char *expr, char *
     } else if (name[6] == 'v') {
       bc->dof = 1;
     } else if (name[6] == 'w') {
+      if (fino.dimensions < 3) {
+        wasora_push_error_message("cannot set 'w' in a two-dimensional problem");
+        return WASORA_PARSER_ERROR;
+      }
       bc->dof = 2;
     } else {
       wasora_push_error_message("expected either 'u_', 'v_' or 'w_' instead of '%s' in mimic()", name+5);
@@ -145,9 +149,15 @@ int fino_bc_process_mechanical(bc_t **bc_pointer, char *name, char *expr, char *
     bc->type_math = bc_math_dirichlet;
     bc->type_phys = bc_phys_displacement;
 
-    if (name[0] == 'u') bc->dof = 0;
-    if (name[0] == 'v') bc->dof = 1;
-    if (name[0] == 'w') bc->dof = 2;
+    bc->dof = name[0]-'u';
+//    if (name[0] == 'u') bc->dof = 0;
+//    if (name[0] == 'v') bc->dof = 1;
+//    if (name[0] == 'w') bc->dof = 2;
+    if (bc->dof == 2 && fino.dimensions < 3) {
+      wasora_push_error_message("cannot set 'w' in a two-dimensional problem");
+      return WASORA_PARSER_ERROR;
+    }
+    
 
     bc->expr = calloc(1, sizeof(expr_t));
     wasora_call(wasora_parse_expression(expr, &bc->expr[0]));
