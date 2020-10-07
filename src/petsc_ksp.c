@@ -158,8 +158,8 @@ int fino_set_ksp(KSP ksp) {
   } else if (fino.ksp_type != NULL) {
 #else
   if (fino.ksp_type != NULL) {
-    petsc_call(KSPSetType(ksp, fino.ksp_type));
 #endif
+    petsc_call(KSPSetType(ksp, fino.ksp_type));
 } else {
   // by default use whatever PETSc/SLEPc like
   petsc_call(KSPSetType(ksp, KSPGMRES));
