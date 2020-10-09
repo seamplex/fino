@@ -1,12 +1,9 @@
 SHELL "gmsh -3 -v 0 traction.geo"
 MESH FILE_PATH traction.msh
-FINO_SOLVER KSP_TYPE cgxxx
-
 
 PHYSICAL_GROUP NAME left  BC u=0 radial
 PHYSICAL_GROUP NAME right BC u=0.1
 # PHYSICAL_GROUP NAME right BC Tx=20000
-
 
 E = 200e3
 nu = 0.3

@@ -1,0 +1,33 @@
+# NAFEMS Benchmark #10: thick plate pressure
+# Reference solution: -5.38 MPa
+
+# try different refinements by varying clscale
+#  $  gmsh -v 0 -3 le10.geo -clscale 0.12
+MESH FILE_PATH le10.msh
+
+E = 210e3   # [ MPa ]
+nu = 0.3
+
+# fixtures
+PHYSICAL_GROUP DCD'C'   BC v=0
+PHYSICAL_GROUP ABA'B'   BC u=0
+PHYSICAL_GROUP BCB'C'   BC u=0 v=0
+PHYSICAL_GROUP midplane BC w=0
+
+# load
+PHYSICAL_GROUP upper    BC p=-1
+
+# print some data
+PRINT "number of elements = " elements
+PRINT "number of nodes = " nodes
+
+FINO_STEP   # solve!
+
+# print results
+PRINT "[u,v,w] @ D = [" u(2000,0,600) v(2000,0,600) w(2000,0,600) "] mm"   SEP " "
+PRINT "sigma_y @ D = " %.2f sigmay(2000,0,600) "MPa (target = -5.38 MPa)"  SEP " "
+PRINT "  error @ D = " %.1f 100*abs(sigmay(2000,0,600)+5.38)/5.38 TEXT "%" SEP " "
+
+MESH_POST FILE_PATH le10.vtk VECTOR u v w sigmay
+
+PRINT " total time = " %.1f time_wall_total " secs"                        SEP " "

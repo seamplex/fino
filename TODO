@@ -2,6 +2,8 @@
  * complete manual
     - sort reference by relevance not just alphabetically
  * pass long options to PETSc (fino --ksp_view -> pass -ksp_view to PETSc)
+ * try to see if PETSC has OpenMP and parallelize the matrix assembly
+    - choose OMP_NUM_THREADS from the input
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
  * optimize assemblies -> gmsh partition
  * read tet4 (or hex8) and convert internally to tet10 (or hex20), or conversely
