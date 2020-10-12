@@ -1,0 +1,23 @@
+MESH FILE_PATH cube.msh
+
+E = 200e3
+nu = 0.3
+alpha = 1e-6
+
+PHYSICAL_GROUP left   BC u=0
+PHYSICAL_GROUP front  BC v=0
+PHYSICAL_GROUP bottom BC w=0
+
+FUNCTION T(x,y,z) INTERPOLATION modified_shepard DATA {
+0   0   0    20
+0.5 0   0    30
+0.5 0   0.5  40
+0   0.5 0.5  50
+1   0.5 0    60
+1   1   0.5  70
+1   1   1    100
+}
+
+FINO_STEP
+
+MESH_POST FILE_PATH arbitrary-thermal-expansion.vtk VECTOR u v w T sigma
