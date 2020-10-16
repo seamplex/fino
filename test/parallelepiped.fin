@@ -1,0 +1,33 @@
+MESH FILE_PATH parallelepiped-$1-$2.msh DIMENSIONS 3
+
+T(x,y,z) := -2*x-3*y-4*z+40
+E(x,y,z) := 1000/(800-T(x,y,z))
+nu = 0.3
+
+# boundary conditions
+PHYSICAL_ENTITY NAME O     BC fixed
+PHYSICAL_ENTITY NAME B     BC u=0 w=0
+PHYSICAL_ENTITY NAME C     BC u=0
+PHYSICAL_ENTITY NAME "x=l" BC p=1
+PHYSICAL_ENTITY NAME "x=0" BC p=1
+
+FINO_STEP
+
+# analytical solutions
+h = 10
+A = 0.002
+B = 0.003
+C = 0.004
+D = 0.76
+
+ureal(x,y,z) := A/2*(x^2 + nu*(y^2+z^2)) + B*x*y + C*x*z + D*x - nu*A*h/4*(y+z)
+vreal(x,y,z) := -nu*(A*x*y + B/2*(y^2-z^2+x^2/nu) + C*y*z + D*y -A*h/4*x - C*h/4*z)
+wreal(x,y,z) := -nu*(A*x*z + B*y*z + C/2*(z^2-y^2+x^2/nu) + D*z + C*h/4*y - A*h/4*x)
+
+PRINT %.0e abs((u(20,0,0)-ureal(20,0,0))/ureal(20,0,0))
+PRINT %.0e abs((v(20,0,0)-vreal(20,0,0))/vreal(20,0,0))
+PRINT %.0e abs((w(20,0,0)-wreal(20,0,0))/wreal(20,0,0))
+PRINT %.0e abs((u(20,5,5)-ureal(20,5,5))/ureal(20,5,5))
+PRINT %.0e abs((v(20,5,5)-vreal(20,5,5))/vreal(20,5,5))
+PRINT %.0e abs((w(20,5,5)-wreal(20,5,5))/wreal(20,5,5))
+
