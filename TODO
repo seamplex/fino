@@ -7,7 +7,7 @@
  * add keyword PETSC_OPTION in input file to call PetscOptionsSetValue()
  * optimize assemblies -> gmsh partition
  * read tet4 (or hex8) and convert internally to tet10 (or hex20), or conversely
- * 
+ * optimize code with const and restrict
  * log stages
  * AMR?
     - stressrefine
