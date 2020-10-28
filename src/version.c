@@ -33,8 +33,8 @@
 // no need to free them afterward
 const char finoname[] = "Fino";
 const char finodescription[] = "a free finite-element thermo-mechanical solver";
-char finoshortversion[128];
-char finolongversion[2048];
+char finoshortversion[256];
+char finolongversion[8192];
 const char finousage[] = "\
   --mumps           use the MUMPS direct solver (if available)\n\
   --progress        show build, solve and stress ASCII progress bars\n\
