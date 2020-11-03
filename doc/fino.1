@@ -73,6 +73,7 @@ PHYSICAL_GROUP left  BC fixed       # fixed end
 PHYSICAL_GROUP right BC Fx=1e4      # [ N ] load in x+
 
 FINO_SOLVER PROGRESS_ASCII  # print ascii progress bars (optional) 
+# FINO_SOLVER KSP mumps       # try to use mumps (if it is not available gamg+gmres is used)
 FINO_STEP                   # solve
 
 # compute reaction force at fixed end
@@ -268,7 +269,7 @@ Computes the reaction at the selected physical group.
 .IP
 .nf
 \f[C]
-FINO_REACTION PHYSICAL_GROUP <physical_group> RESULT { <variable> | <vector> }
+FINO_REACTION PHYSICAL_GROUP <physical_group> [ { FORCE | MOMENT } ] [ {X0 | Y0 | Z0 } expr ] RESULT { <variable> | <vector> }
 \f[R]
 .fi
 .PP

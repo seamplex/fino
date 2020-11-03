@@ -176,7 +176,7 @@ FINO_REACTION
 
   Computes the reaction at the selected physical group.
 
-    FINO_REACTION PHYSICAL_GROUP <physical_group> RESULT { <variable> | <vector> }
+    FINO_REACTION PHYSICAL_GROUP <physical_group> [ { FORCE | MOMENT } ] [ {X0 | Y0 | Z0 } expr ] RESULT { <variable> | <vector> }
 
 The result is stored in the variable or vector provided, depending on
 the number of degrees of freedoms of the problem. If the object passed

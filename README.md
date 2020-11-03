@@ -93,7 +93,27 @@ Output is 100% defined in the input file. If no explicit output instruction is p
 
 This section lists a few relevant examples.
 See the [Fino cases list](https://www.seamplex.com/fino/cases) for a full list of annotated examples, verification cases and discussion of results.
-See also the directory [examples](https://github.com/seamplex/fino/tree/master/examples) in the source repository for further problems.
+
+ | 
+ ------------------------------------------------------- | ------------ | ------------
+| [Tensile test specimen](cases/000-tensile-test) | [ePub](cases/000-tensile-test.epub) | [PDF](cases/000-tensile-test.pdf) |
+| [Cube under pure tension](cases/003-cube-pure-tension) | [ePub](cases/003-cube-pure-tension.epub) | [PDF](cases/003-cube-pure-tension.pdf) |
+| [Cylinder under pure compression](cases/006-cylinder-pure-compression) | [ePub](cases/006-cylinder-pure-compression.epub) | [PDF](cases/006-cylinder-pure-compression.pdf) |
+| [NAFEMS LE1 plane-stress benchmark](cases/010-nafems-le1) | [ePub](cases/010-nafems-le1.epub) | [PDF](cases/010-nafems-le1.pdf) |
+| [NAFEMS LE10 thick plate pressure benchmark](cases/012-nafems-le10) | [ePub](cases/012-nafems-le10.epub) | [PDF](cases/012-nafems-le10.pdf) |
+| [Stresses in a 10-node tetrahedron with prescribed displacements](cases/050-tet10) | [ePub](cases/050-tet10.epub) | [PDF](cases/050-tet10.pdf) |
+| [The NAFEMS Benchmark Challenge\ &num;1](cases/060-nafems-challenge-problem1) | [ePub](cases/060-nafems-challenge-problem1.epub) | [PDF](cases/060-nafems-challenge-problem1.pdf) |
+| [Four ways of solving three pressurized thick cylinders](cases/065-thick-cylinder) | [ePub](cases/065-thick-cylinder.epub) | [PDF](cases/065-thick-cylinder.pdf) |
+| [Two cubes of different materials](cases/070-two-cubes) | [ePub](cases/070-two-cubes.epub) | [PDF](cases/070-two-cubes.pdf) |
+| [Fixed compressed cylinder](cases/075-fixed-compressed-cylinder) | [ePub](cases/075-fixed-compressed-cylinder.epub) | [PDF](cases/075-fixed-compressed-cylinder.pdf) |
+| [Thick cantilever cylinder](cases/085-cantilever-cylinder) | [ePub](cases/085-cantilever-cylinder.epub) | [PDF](cases/085-cantilever-cylinder.pdf) |
+| [Cylinder embedded in another cylinder---smooth](cases/105-cyl-cyl-smooth) | [ePub](cases/105-cyl-cyl-smooth.epub) | [PDF](cases/105-cyl-cyl-smooth.pdf) |
+| [Cylinder embedded in another cylinder---rough](cases/115-cyl-cyl-rough) | [ePub](cases/115-cyl-cyl-rough.epub) | [PDF](cases/115-cyl-cyl-rough.pdf) |
+
+
+> All cases are published under the terms of the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+
+
 
 
 ## Tensile test 
