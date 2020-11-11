@@ -90,3 +90,6 @@ slab.msh
 
 beam-modal.msh
 2dbeam-hex-struct.msh
+
+holed_plate*.msh
+holed_plate*.vtk

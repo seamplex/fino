@@ -1,0 +1,20 @@
+DEFAULT_ARGUMENT_VALUE 1 stress
+MESH FILE_PATH holed_plate_2d.msh
+FINO_PROBLEM plane_$1
+
+E = 69
+nu = 0.3
+
+PHYSICAL_GROUP u BC u=0
+PHYSICAL_GROUP v BC v=0
+# PHYSICAL_GROUP w BC w=0
+
+PHYSICAL_GROUP load BC tx=10
+
+FINO_STEP
+
+MESH_POST FILE_PATH holed_plate_plane_$1.vtk VECTOR u v 0 sigma sigmax sigmay tauxy
+
+PRINT %.2f  sigmax(0,1) sigmay(0,1) tauxy(0,1) sigma1(0,1) sigma2(0,1) sigma3(0,1)
+PRINT %.2f  sigmax(1,0) sigmay(1,0) tauxy(1,0) sigma1(1,0) sigma2(1,0) sigma3(1,0)
+

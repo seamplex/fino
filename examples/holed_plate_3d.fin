@@ -1,0 +1,19 @@
+MESH FILE_PATH holed_plate_3d.msh
+FINO_SOLVER PROGRESS
+
+E = 69
+nu = 0.3
+
+PHYSICAL_GROUP u BC u=0
+PHYSICAL_GROUP v BC v=0
+PHYSICAL_GROUP w BC w=0
+
+PHYSICAL_GROUP load BC tx=10
+
+FINO_STEP
+
+MESH_POST FILE_PATH holed_plate_3d.vtk VECTOR u v w sigma sigmax sigmay sigmaz tauxy tauyz tauzx
+
+PRINT HEADER %.1f  sigmax(1,0,0) sigmay(1,0,0) tauxy(1,0,0) sigma1(1,0,0) sigma2(1,0,0) sigma3(1,0,0)
+PRINT HEADER %.1f  sigmax(0,1,0) sigmay(0,1,0) tauxy(0,1,0) sigma1(0,1,0) sigma2(0,1,0) sigma3(0,1,0)
+
