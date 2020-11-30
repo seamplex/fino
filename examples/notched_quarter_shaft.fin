@@ -1,0 +1,29 @@
+MESH FILE_PATH notched_quarter_shaft.msh
+FINO_SOLVER PROGRESS
+
+E = 210e3
+nu = 0.3
+
+PHYSICAL_GROUP u BC u=0
+PHYSICAL_GROUP v BC v=0
+PHYSICAL_GROUP w BC w=0
+
+PHYSICAL_GROUP load BC tz=1
+
+FINO_STEP
+
+MESH_POST FILE_PATH notched_quarter_shaft.vtk VECTOR u v w sigma sigmax sigmay sigmaz tauxy tauyz tauzx
+
+D = 28/2
+r = 1
+
+PRINT %.2f sigma(D-r,0,0)
+PRINT %.2f sigmax(D-r,0,0) sigmay(D-r,0,0) sigmaz(D-r,0,0) 
+PRINT %.2f sigma1(D-r,0,0) sigma2(D-r,0,0) sigma3(D-r,0,0)
+
+PRINT
+
+PRINT %.2f sigma(0,D-r,0)
+PRINT %.2f sigmax(0,D-r,0) sigmay(0,D-r,0) sigmaz(0,D-r,0) 
+PRINT %.2f sigma1(0,D-r,0) sigma2(0,D-r,0) sigma3(0,D-r,0)
+

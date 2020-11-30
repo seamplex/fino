@@ -1,0 +1,13 @@
+MESH FILE_PATH crack.msh
+FINO_PROBLEM mechanical plane_stress
+
+E = 200e3
+nu = 0.3
+
+PHYSICAL_ENTITY NAME bottom BC fixed
+PHYSICAL_ENTITY NAME top    BC p=1
+
+FINO_STEP
+
+MESH_POST FILE_PATH crack.out.msh VECTOR u v 0 sigmax sigmay tauxy
+
