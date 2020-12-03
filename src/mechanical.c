@@ -976,16 +976,15 @@ int fino_break_compute_nodal_stresses(element_t *element, int j, double lambda, 
   
   // subtract the thermal contribution to the normal stresses (see IFEM.Ch30)
   if (alpha != 0) {
-    DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, fino.mesh->node[j].x) - T0;
+    DT = fino_distribution_evaluate(&distribution_T, element->physical_entity->material, element->node[j]->x) - T0;
     E = mu*(3*lambda + 2*mu)/(lambda+mu);
     nu = lambda / (2*(lambda+mu));
     xi = E/(1-2*nu) * alpha * DT;
-
+    
     *sigmax -= xi;
     *sigmay -= xi;
     *sigmaz -= xi;
   }
-  
   
   return WASORA_RUNTIME_OK;
 }
