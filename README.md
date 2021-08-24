@@ -4,6 +4,11 @@ lang: en-US
 ...
 
 
+# FINO IS NOW OUTDATED/DEPRECATED/NOT AVAILABLE ANYMORE!
+
+# PLEASE SWITCH TO [FeenoX](https://github.com/seamplex/feenox) ASAP
+
+
 :::{.text-center}
 ![](doc/fino.svg)
 
